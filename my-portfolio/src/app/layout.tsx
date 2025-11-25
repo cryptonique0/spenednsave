@@ -1,16 +1,9 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
-
 export const metadata: Metadata = {
-  title: 'King Bryan - Blockchain Developer',
-  description: 'Portfolio of King Bryan, Blockchain Developer and Community Manager',
+  title: 'King Bryan - Web3 Community Manager',
+  description: 'Professional Web3 Community Manager with 3+ years experience. Proven track record of building and nurturing thriving communities of 150,000+ members.',
   icons: {
     icon: '/favicon.ico',
     apple: '/profile.png',
@@ -23,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <head>
         <script
           dangerouslySetInnerHTML={{
