@@ -1,0 +1,17 @@
+{
+  "name": "celo-dapp",
+  "version": "0.1.0",
+  "description": "Minimal Celo dApp scaffold for contest (SimplePayments)",
+  "scripts": {
+    "build": "echo \"No build configured yet\"",
+    "deploy:alfajores": "node scripts/deploy.js"
+  },
+  "devDependencies": {
+    "hardhat": "^2.16.0",
+    "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "ethers": "^5.7.2"
+  },
+  "dependencies": {
+    "@celo/contractkit": "^1.7.0"
+  }
+}

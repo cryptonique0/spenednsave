@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Celo SimplePayments</title>
+  </head>
+  <body>
+    <h1>Celo SimplePayments (Demo)</h1>
+    <p>This is a minimal frontend stub. Connect a Celo wallet and send a small amount to the contract address.</p>
+    <p>Contract address (fill after deploy): <span id="addr">-</span></p>
+    <label>Send amount (wei): <input id="amount" value="1000000000000000" /></label>
+    <button id="send">Send</button>
+
+    <script>
+      // Minimal JS stub: user can replace with ContractKit or ethers usage
+      document.getElementById('send').addEventListener('click', () => {
+        alert('This is a UI stub. Use ContractKit/ethers to connect and send transactions.');
+      });
+    </script>
+  </body>
+</html>
