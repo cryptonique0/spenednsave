@@ -33,3 +33,8 @@ Notes
 - Chain: Celo Alfajores (testnet). You can change chains by editing `src/main.jsx` chain config.
 - Connectors: WalletConnect and Injected (e.g., MetaMask).
 - Example actions: sign a message, read current block number.
+
+ Useful links
+- Alfajores faucet (test CELO): https://celo.org/developers/faucet
+- WalletConnect Cloud (Project ID dashboard): https://cloud.walletconnect.com/
+- Celo docs: https://docs.celo.org/
