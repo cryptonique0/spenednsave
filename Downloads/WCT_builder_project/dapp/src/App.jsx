@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react'
 import { useAccount, useDisconnect, useSignMessage, useConnect } from 'wagmi'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 import NetworkInfo from './components/NetworkInfo'
+import { formatAddress } from './lib/format'
 
 export default function App() {
   const { address, isConnected } = useAccount()
@@ -41,7 +42,7 @@ export default function App() {
       <div style={{ marginTop: 12 }}>
         {isConnected ? (
           <div>
-            <div>Connected address: {address}</div>
+            <div>Connected address: {formatAddress(address)}</div>
             <div style={{ marginTop: 8 }}>
               <button onClick={() => disconnect()}>Disconnect</button>
               <button onClick={onSign} style={{ marginLeft: 8 }}>
