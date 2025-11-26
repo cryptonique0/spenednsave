@@ -5,6 +5,9 @@ import { useAccount, useDisconnect, useSignMessage, useConnect } from 'wagmi'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 import NetworkInfo from './components/NetworkInfo'
 import StatusBar from './components/StatusBar'
+import BalanceOf from './components/BalanceOf'
+import { TOKENS } from './config/tokens'
+import SwitchNetwork from './components/SwitchNetwork'
 import { formatAddress } from './lib/format'
 
 export default function App() {
@@ -41,6 +44,7 @@ export default function App() {
       <h1>WCT DApp (WalletConnect on Celo Alfajores)</h1>
 
   <StatusBar />
+  <SwitchNetwork />
   <div style={{ marginTop: 12 }}>
         {isConnected ? (
           <div>
@@ -52,6 +56,7 @@ export default function App() {
               </button>
             </div>
             <NetworkInfo />
+            <BalanceOf tokenAddress={TOKENS.cUSD.address} label="cUSD" />
             {sig && (
               <pre style={{ marginTop: 12, maxWidth: 800, whiteSpace: 'break-spaces' }}>{sig}</pre>
             )}
