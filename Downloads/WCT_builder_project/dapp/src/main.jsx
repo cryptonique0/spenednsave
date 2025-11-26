@@ -7,16 +7,7 @@ import { publicProvider } from 'wagmi/providers/public'
 import { jsonRpcProvider } from 'wagmi/providers/jsonRpc'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
-
-// Target: Celo Alfajores chain
-const alfajores = {
-  id: 44787,
-  name: 'Alfajores',
-  network: 'alfajores',
-  nativeCurrency: { name: 'Celo', symbol: 'CELO', decimals: 18 },
-  rpcUrls: { default: { http: ['https://alfajores-forno.celo-testnet.org'] } },
-  testnet: true,
-}
+import { alfajores } from './config/chains'
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || ''
 
