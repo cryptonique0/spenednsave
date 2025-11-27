@@ -93,6 +93,7 @@ export default function TransactionDemo({ tokenAddress }) {
         <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
           <input
             type="text"
+            aria-label="approve-spender"
             placeholder="spender 0x..."
             value={spender}
             onChange={(e) => setSpender(e.target.value)}
@@ -100,12 +101,15 @@ export default function TransactionDemo({ tokenAddress }) {
           />
           <input
             type="text"
+            aria-label="approve-amount"
             placeholder="amount (e.g. 0.01)"
             value={approveAmount}
             onChange={(e) => setApproveAmount(e.target.value)}
             style={{ width: 160, padding: 6, borderRadius: 6, border: '1px solid #ccc' }}
           />
           <button
+            aria-label="approve-button"
+            title="Approve token allowance"
             onClick={() => writeApprove?.()}
             disabled={!writeApprove || isApproving || approveMining || !approveAddressValid || !approveAmountValid}
           >
@@ -131,6 +135,7 @@ export default function TransactionDemo({ tokenAddress }) {
         <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
           <input
             type="text"
+            aria-label="transfer-recipient"
             placeholder="recipient 0x..."
             value={to}
             onChange={(e) => setTo(e.target.value)}
@@ -138,12 +143,15 @@ export default function TransactionDemo({ tokenAddress }) {
           />
           <input
             type="text"
+            aria-label="transfer-amount"
             placeholder="amount (e.g. 0.001)"
             value={transferAmount}
             onChange={(e) => setTransferAmount(e.target.value)}
             style={{ width: 160, padding: 6, borderRadius: 6, border: '1px solid #ccc' }}
           />
           <button
+            aria-label="transfer-button"
+            title="Transfer tokens to recipient"
             onClick={() => writeTransfer?.()}
             disabled={!writeTransfer || isTransferring || transferMining || !transferAddressValid || !transferAmountValid}
           >
