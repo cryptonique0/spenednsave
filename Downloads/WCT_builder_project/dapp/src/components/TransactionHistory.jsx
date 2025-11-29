@@ -77,24 +77,6 @@ export default function TransactionHistory() {
   }
 
   const filtered = useMemo(() => {
-      // CSV export logic
-      function exportCSV() {
-        if (!filtered.length) return
-        const header = ['hash', 'type', 'status', 'timestamp']
-        const rows = filtered.map(tx => [tx.hash, tx.type, tx.status, new Date(tx.timestamp).toISOString()])
-        const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n')
-        const blob = new Blob([csv], { type: 'text/csv' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'history.csv'
-        document.body.appendChild(a)
-        a.click()
-        setTimeout(() => {
-          document.body.removeChild(a)
-          URL.revokeObjectURL(url)
-        }, 100)
-      }
     return transactions.filter(tx => {
       if (filterType !== 'all' && tx.type !== filterType) return false
       if (filterStatus !== 'all' && tx.status !== filterStatus) return false
@@ -102,6 +84,25 @@ export default function TransactionHistory() {
       return true
     })
   }, [transactions, filterType, filterStatus, search])
+
+  // CSV export logic (kept outside of the memo so the button can call it)
+  const exportCSV = () => {
+    if (!filtered.length) return
+    const header = ['hash', 'type', 'status', 'timestamp']
+    const rows = filtered.map(tx => [tx.hash, tx.type, tx.status, new Date(tx.timestamp).toISOString()])
+    const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'history.csv'
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }, 100)
+  }
 
   if (!address) return null
 
