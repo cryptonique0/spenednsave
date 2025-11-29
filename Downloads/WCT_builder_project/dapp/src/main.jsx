@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { ToastProvider } from './components/Toast'
 
 import { WagmiConfig, createConfig, configureChains } from 'wagmi'
 import { publicProvider } from 'wagmi/providers/public'
@@ -39,6 +40,8 @@ const wagmiConfig = createConfig({ autoConnect: true, connectors, publicClient }
 
 createRoot(document.getElementById('root')).render(
   <WagmiConfig config={wagmiConfig}>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </WagmiConfig>
 )
