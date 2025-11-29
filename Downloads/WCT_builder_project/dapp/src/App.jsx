@@ -17,6 +17,11 @@ import AnalyticsDashboard from './components/AnalyticsDashboard'
 import ThemeToggle from './components/ThemeToggle'
 import TransactionSimulator from './components/TransactionSimulator'
 import MultiSigIntegration from './components/MultiSigIntegration'
+import GovernanceDashboard from './components/GovernanceDashboard'
+import NotificationSystem from './components/NotificationSystem'
+import SwapComponent from './components/SwapComponent'
+import LendingComponent from './components/LendingComponent'
+import UserProfile from './components/UserProfile'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { formatAddress } from './lib/format'
 
@@ -81,6 +86,11 @@ export default function App() {
               <StakingDashboard tokenAddress={selectedToken} />
               <NFTMinting nftContractAddress={selectedToken} /> {/* Placeholder; use actual NFT contract */}
               <AnalyticsDashboard />
+              <GovernanceDashboard governanceContractAddress={selectedToken} /> {/* Placeholder */}
+              <NotificationSystem />
+              <SwapComponent tokenIn={TOKENS.cUSD.address} tokenOut={selectedToken} />
+              <LendingComponent tokenAddress={selectedToken} />
+              <UserProfile />
               <TransactionSimulator txData={{ to: selectedToken, data: '0x', value: '0x0' }} /> {/* Placeholder txData */}
               <MultiSigIntegration txData={{ to: selectedToken, data: '0x', value: '0x0' }} /> {/* Placeholder txData */}
               {sig && (
