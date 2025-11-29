@@ -8,6 +8,7 @@ import { publicProvider } from 'wagmi/providers/public'
 import { jsonRpcProvider } from 'wagmi/providers/jsonRpc'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
+import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
 import { alfajores } from './config/chains'
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || ''
@@ -26,12 +27,18 @@ const connectors = [
     chains: [alfajores],
     options: {
       projectId,
-      // Optional: metadata for WalletConnect modal
       metadata: {
         name: 'WCT DApp',
         description: 'Demo dapp with WalletConnect on Celo Alfajores',
         url: 'http://localhost:5173',
       },
+    },
+  }),
+  new CoinbaseWalletConnector({
+    chains: [alfajores],
+    options: {
+      appName: 'WCT DApp',
+      jsonRpcUrl: alfajores.rpcUrls.default.http[0],
     },
   }),
 ]

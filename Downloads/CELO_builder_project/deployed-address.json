@@ -1,4 +1,9 @@
 {
-  "network": "alfajores",
-  "address": "0xd42db19569aBA76023A75A512aa22Ea12B4eAa77"
+  "network": "celo",
+  "address": "0x0B33158062bEBDFc1E6Fe2fA43a6cec943331402",
+  "contracts": {
+    "primary": "0x0B33158062bEBDFc1E6Fe2fA43a6cec943331402",
+    "secondary": "0xb690E08975b20e61904E7fae6127234F4Fe6FB65",
+    "tertiary": "0x5d0F9219728cc9110577122875966254aaA9c75D"
+  }
 }

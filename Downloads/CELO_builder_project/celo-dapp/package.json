@@ -6,14 +6,22 @@
     "build": "npx hardhat compile",
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
-    "deploy:alfajores": "npx hardhat run scripts/deploy.js --network alfajores"
+    "deploy:alfajores": "npx hardhat run scripts/deploy.js --network alfajores",
+    "deploy:celo": "npx hardhat run scripts/deploy.js --network celo",
+    "verify:alfajores": "npx hardhat run scripts/verify.js --network alfajores",
+    "verify:celo": "npx hardhat run scripts/verify.js --network celo",
+    "deploy:verify:alfajores": "npm run deploy:alfajores && npm run verify:alfajores",
+    "deploy:verify:celo": "npm run deploy:celo && npm run verify:celo",
+    "interact:pay": "PAY_AMOUNT=0.001 MEMO='hello' npx hardhat run scripts/interact.js --network celo"
   },
   "devDependencies": {
     "hardhat": "^2.16.0",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
     "ethers": "^5.7.2"
   },
   "dependencies": {
-    "@celo/contractkit": "^1.7.0"
+     "@celo/contractkit": "^5.0.0",
+     "dotenv": "^16.0.0"
   }
 }
