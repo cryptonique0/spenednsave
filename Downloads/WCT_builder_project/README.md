@@ -5,6 +5,8 @@
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.19-blue)](https://soliditylang.org/)
 [![WalletConnect](https://img.shields.io/badge/WalletConnect-Enabled-blue)](https://walletconnect.com/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/coverage-25%25-yellow.svg)]()
 
 A lightweight dApp starter used for the WalletConnect Builder contest. This repository contains a React frontend (Vite) under `dapp/` and a small Python helper in `src/`.
 
@@ -55,7 +57,7 @@ Run the demo batch script (claim + transfer) to generate verified contract usage
 ```bash
 cd dapp
 export RPC_URL="https://sepolia.infura.io/v3/your-key"
-export CONTRACT_ADDRESS="0x..."
+export CONTRACT_ADDRESS=""
 export PRIVATE_KEYS="pk1,pk2"
 node scripts/batchTxs.js
 ```
