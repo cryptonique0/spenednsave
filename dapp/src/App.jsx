@@ -44,6 +44,9 @@ import AchievementsLeaderboard from './components/AchievementsLeaderboard'
 import WalletAnalytics from './components/WalletAnalytics'
 import LendingBorrowing from './components/LendingBorrowing'
 import TokenVesting from './components/TokenVesting'
+import YieldFarming from './components/YieldFarming.jsx'
+import NFTMarketplace from './components/NFTMarketplace.jsx'
+import StakingPools from './components/StakingPools.jsx'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { formatAddress } from './lib/format'
 
@@ -125,6 +128,9 @@ export default function App() {
               <ReferralProgram />
               <AchievementsLeaderboard />
               <WalletAnalytics />
+              <YieldFarming />
+              <StakingPools />
+              <NFTMarketplace />
               <LendingBorrowing />
               <TokenVesting />
               <StakingDashboard tokenAddress={selectedToken} />
