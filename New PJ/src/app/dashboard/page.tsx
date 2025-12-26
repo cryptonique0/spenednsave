@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
@@ -11,6 +11,21 @@ import useMediaQuery from '@/hooks/useMediaQuery';
 
 export default function DashboardPage() {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const [verified, setVerified] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const addr = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x230ec2A8fBb06C04C7eC982aF80AA067BD1D472D';
+    const checkVerified = async () => {
+      try {
+        const res = await fetch(`/api/explorer/contract/${addr}`);
+        const json = await res.json();
+        setVerified(Boolean(json?.verified));
+      } catch (e) {
+        setVerified(null);
+      }
+    };
+    checkVerified();
+  }, []);
 
   const dashboardTabs = [
     {
@@ -86,9 +101,15 @@ export default function DashboardPage() {
                 Welcome back! Here's your profile overview
               </p>
             </div>
-            <Badge variant="success" icon="✓">
-              Account Verified
-            </Badge>
+            {verified === null && (
+              <Badge variant="secondary" icon="⏳">Checking Contract…</Badge>
+            )}
+            {verified === true && (
+              <Badge variant="success" icon="✓">Contract Verified</Badge>
+            )}
+            {verified === false && (
+              <Badge variant="warning" icon="⚠️">Contract Not Verified</Badge>
+            )}
           </div>
         </div>
 
