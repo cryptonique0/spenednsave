@@ -24,6 +24,7 @@ export const NETWORKS = {
 };
 
 export const TALENT_PROTOCOL_API_URL = 'https://api.talentprotocol.com';
+export const BASESCAN_API_URL = 'https://api.basescan.org/api';
 
 export const IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud',
