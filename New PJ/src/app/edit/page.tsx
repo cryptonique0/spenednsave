@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { CONTRACT_ADDRESS, ON_CHAIN_RESUME_ABI } from '@/lib/contract';
 import { ConnectWallet } from '@/components/ConnectWallet';
+import ShareProfile from '@/components/ShareProfile';
+import ExportButton from '@/components/ExportButton';
 
 export default function EditProfilePage() {
   const { address, isConnected } = useAccount();
@@ -60,6 +62,14 @@ export default function EditProfilePage() {
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-4xl font-bold mb-8">Edit Your Profile</h1>
+
+      {/* Share / Export Actions */}
+      {address && (
+        <div className="flex items-center gap-3 mb-6">
+          <ShareProfile address={address} />
+          <ExportButton selector=".glass-effect" />
+        </div>
+      )}
 
       <div className="glass-effect p-8 rounded-xl space-y-6">
         <div>
