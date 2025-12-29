@@ -6,6 +6,7 @@ import { useDepositETH, useVaultETHBalance, useUserContracts, useVaultQuorum } f
 import { SpendVaultABI } from "@/lib/abis/SpendVault";
 import { formatEther, type Address } from "viem";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export function DashboardSaverView() {
     const { address } = useAccount();
@@ -237,9 +238,9 @@ export function DashboardSaverView() {
                         <p className="text-slate-400 text-sm leading-relaxed text-center">
                             {quorum ? `${quorum} of ${totalGuardians} signatures required` : "Loading guardian info..."}
                         </p>
-                        <a href="/guardians" className="block w-full mt-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-medium transition-colors text-center">
+                        <Link href="/guardians" className="block w-full mt-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-medium transition-colors text-center">
                             Manage Guardians
-                        </a>
+                        </Link>
                     </div>
                 </section>
             </div>
