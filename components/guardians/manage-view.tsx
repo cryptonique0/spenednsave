@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useUserContracts, useAddGuardian, useVaultQuorum } from "@/lib/hooks/useContracts";
 import { Users, ShieldCheck, Clock, Plus, Trash2, Key, History } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Guardian {
     id: string;
@@ -13,8 +14,8 @@ interface Guardian {
 }
 
 export function ManageGuardiansView() {
-    const { address } = useAccount();
-    const { data: userContracts } = useUserContracts(address as any);
+    const { address, isConnected } = useAccount();
+    const { data: userContracts, isLoading: isLoadingContracts } = useUserContracts(address as any);
     const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
     const { data: quorum } = useVaultQuorum(vaultAddress);
@@ -28,14 +29,16 @@ export function ManageGuardiansView() {
     // Close modal and reset form after successful add
     useEffect(() => {
         if (isSuccess) {
+            const addedAddress = newGuardian.address;
+            const addedName = newGuardian.name;
             setNewGuardian({ name: "", address: "" });
             setIsAdding(false);
             // Add to local list
-            if (newGuardian.address) {
+            if (addedAddress) {
                 setGuardians(prev => [...prev, {
-                    id: newGuardian.address,
-                    name: newGuardian.name || "Guardian",
-                    address: newGuardian.address,
+                    id: addedAddress,
+                    name: addedName || "Guardian",
+                    address: addedAddress,
                     status: 'active'
                 }]);
             }
@@ -55,6 +58,47 @@ export function ManageGuardiansView() {
     const handleRevoke = (id: string) => {
         alert("Revoke guardian functionality requires the burn() function to be called with the tokenId. This feature needs guardian token enumeration.");
     };
+
+    // Show loading state
+    if (!isConnected) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <p className="text-slate-400 text-lg mb-4">Please connect your wallet</p>
+                    <p className="text-slate-500 text-sm">Connect your wallet to manage guardians</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isLoadingContracts) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-4">
+                    <Spinner className="w-8 h-8 text-primary" />
+                    <p className="text-slate-400">Loading your vault...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!vaultAddress || !guardianTokenAddress) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="size-16 rounded-full bg-surface-border/50 flex items-center justify-center text-slate-500 mx-auto mb-4">
+                        <Users size={32} />
+                    </div>
+                    <p className="text-slate-400 text-lg mb-2">No vault found</p>
+                    <p className="text-slate-500 text-sm mb-6">You need to create a vault first</p>
+                    <a href="/vault/setup" className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-xl font-bold">
+                        <Plus size={20} />
+                        Create Vault
+                    </a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full flex flex-col gap-8">
@@ -95,7 +139,7 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Policy</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum?.toString() || "2"} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardians.length || "3"}</span></h3>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum?.toString() || "..."} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardians.length || "..."}</span></h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Signatures Required</p>
                     </div>
                 </div>
