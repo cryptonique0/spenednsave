@@ -4,12 +4,12 @@ import { SetupWizard } from "@/components/vault-setup/setup-wizard";
 
 export default function VaultSetupPage() {
     return (
-        <>
+        <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
                 <SetupWizard />
             </main>
             <Footer />
-        </>
+        </div>
     );
 }
