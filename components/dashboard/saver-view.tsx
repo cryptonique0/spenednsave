@@ -1,13 +1,18 @@
 "use client";
 
 import { Users, Lock, CreditCard, ArrowRight, ShieldCheck } from "lucide-react";
-import { useDepositETH, useVaultETHBalance } from "@/lib/hooks/useContracts";
+import { useAccount } from "wagmi";
+import { useDepositETH, useVaultETHBalance, useUserContracts } from "@/lib/hooks/useContracts";
 import { formatEther } from "viem";
 import { useState } from "react";
 
 export function DashboardSaverView() {
-    const { deposit, isPending, isConfirming, isSuccess } = useDepositETH();
-    const { data: vaultBalance } = useVaultETHBalance();
+    const { address } = useAccount();
+    const { data: userContracts } = useUserContracts(address as any);
+    const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+    
+    const { deposit, isPending, isConfirming, isSuccess } = useDepositETH(vaultAddress);
+    const { data: vaultBalance } = useVaultETHBalance(vaultAddress);
     const [depositAmount, setDepositAmount] = useState("0.01");
 
     const handleDeposit = () => {

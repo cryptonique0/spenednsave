@@ -7,7 +7,7 @@
 
 // Base Sepolia Testnet (Chain ID: 84532)
 export const CONTRACTS_BASE_SEPOLIA = {
-    VaultFactory: '0x0000000000000000000000000000000000000000', // TODO: Update after deployment
+    VaultFactory: '0x333dA20da292858B7AfA2Af51c6dbF000B7eb23f', // TODO: Update after deployment
 } as const;
 
 // Base Mainnet (Chain ID: 8453)

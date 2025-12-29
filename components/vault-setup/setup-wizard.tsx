@@ -11,8 +11,8 @@ import { useCreateVault, useUserContracts } from "@/lib/hooks/useContracts";
 
 export function SetupWizard() {
     const { address } = useAccount();
-    const { createVault, isPending, isConfirming, isSuccess, error } = useCreateVault();
-    const { data: userContracts } = useUserContracts(address as any);
+    const { createVault, isPending, isConfirming, isSuccess, error, hash } = useCreateVault();
+    const { data: userContracts, refetch } = useUserContracts(address as any);
 
     const [step, setStep] = useState(1);
     const [isDeployed, setIsDeployed] = useState(false);
@@ -51,16 +51,24 @@ export function SetupWizard() {
         }
     };
 
-    // After tx success, read back user contracts from factory and show success
+    // After tx success, refetch user contracts and show success
     useEffect(() => {
-        if (isSuccess && userContracts && Array.isArray(userContracts)) {
-            const [guardianToken, vault] = userContracts as any;
-            setDeployedGuardianTokenAddress(guardianToken as string);
-            setDeployedVaultAddress(vault as string);
-            setIsDeployed(true);
-            setShowSuccess(true);
+        async function fetchContracts() {
+            if (isSuccess && address) {
+                // Wait a moment for indexing, then refetch
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const result = await refetch();
+                if (result.data && Array.isArray(result.data)) {
+                    const [guardianToken, vault] = result.data as any;
+                    setDeployedGuardianTokenAddress(guardianToken as string);
+                    setDeployedVaultAddress(vault as string);
+                    setIsDeployed(true);
+                    setShowSuccess(true);
+                }
+            }
         }
-    }, [isSuccess, userContracts]);
+        fetchContracts();
+    }, [isSuccess, address, refetch]);
 
     if (showSuccess) {
         return <SuccessView vaultName={formData.name} vaultAddress={deployedVaultAddress} />;
@@ -159,6 +167,21 @@ function DeploymentProgressView() {
 }
 
 function SuccessView({ vaultName, vaultAddress }: { vaultName: string; vaultAddress?: string | null }) {
+    const [copied, setCopied] = useState(false);
+
+    const copyAddress = () => {
+        if (vaultAddress) {
+            navigator.clipboard.writeText(vaultAddress);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    const formatAddress = (addr: string) => {
+        if (!addr || addr === "0x0000000000000000000000000000000000000000") return "Loading...";
+        return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    };
+
     return (
         <div className="w-full max-w-2xl mx-auto py-8 px-4 flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
             <div className="size-24 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
@@ -166,7 +189,7 @@ function SuccessView({ vaultName, vaultAddress }: { vaultName: string; vaultAddr
             </div>
             <h1 className="text-4xl font-bold text-white mb-4">Vault Ready!</h1>
             <p className="text-slate-400 text-lg max-w-md mx-auto mb-8">
-                <strong className="text-white">{vaultName}</strong> has been successfully deployed and secured on Base.
+                <strong className="text-white">{vaultName || "Your vault"}</strong> has been successfully deployed and secured on Base.
             </p>
 
             <div className="bg-surface-dark border border-surface-border rounded-2xl p-6 w-full max-w-md mb-8">
@@ -174,12 +197,20 @@ function SuccessView({ vaultName, vaultAddress }: { vaultName: string; vaultAddr
                     <div className="size-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                         <span className="material-symbols-outlined">account_balance_wallet</span>
                     </div>
-                    <div className="text-left">
+                    <div className="text-left flex-1">
                         <p className="text-sm text-slate-500 font-medium">Vault Address</p>
-                        <p className="text-white font-mono text-sm">{vaultAddress ? vaultAddress : "Pending..."}</p>
+                        <p className="text-white font-mono text-sm" title={vaultAddress || ""}>
+                            {vaultAddress ? formatAddress(vaultAddress) : "Loading..."}
+                        </p>
                     </div>
-                    <button className="ml-auto text-slate-400 hover:text-white">
-                        <span className="material-symbols-outlined text-lg">content_copy</span>
+                    <button 
+                        onClick={copyAddress}
+                        className="ml-auto text-slate-400 hover:text-white transition-colors"
+                        disabled={!vaultAddress || vaultAddress === "0x0000000000000000000000000000000000000000"}
+                    >
+                        <span className="material-symbols-outlined text-lg">
+                            {copied ? "check" : "content_copy"}
+                        </span>
                     </button>
                 </div>
                 <p className="text-xs text-slate-500 border-t border-surface-border pt-4 mt-4">
