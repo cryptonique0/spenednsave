@@ -1,7 +1,7 @@
 "use client";
 
 import { Users, Lock, CreditCard, ArrowRight, ShieldCheck } from "lucide-react";
-import { useAccount, useWatchContractEvent } from "wagmi";
+import { useAccount, useWatchContractEvent, usePublicClient, useBlockNumber } from "wagmi";
 import { useDepositETH, useVaultETHBalance, useUserContracts, useVaultQuorum } from "@/lib/hooks/useContracts";
 import { SpendVaultABI } from "@/lib/abis/SpendVault";
 import { formatEther, type Address } from "viem";
@@ -11,6 +11,8 @@ export function DashboardSaverView() {
     const { address } = useAccount();
     const { data: userContracts } = useUserContracts(address as any);
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+    const publicClient = usePublicClient();
+    const { data: currentBlock } = useBlockNumber();
     
     const { deposit, isPending, isConfirming, isSuccess, hash } = useDepositETH(vaultAddress);
     const { data: vaultBalance, refetch: refetchBalance } = useVaultETHBalance(vaultAddress);
@@ -18,6 +20,46 @@ export function DashboardSaverView() {
     const [depositAmount, setDepositAmount] = useState("0.01");
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [activities, setActivities] = useState<any[]>([]);
+
+    // Fetch historical Deposited events
+    useEffect(() => {
+        async function fetchHistoricalEvents() {
+            if (!vaultAddress || !publicClient || !currentBlock) return;
+            
+            try {
+                const fromBlock = currentBlock - 10000n > 0n ? currentBlock - 10000n : 0n;
+                const logs = await publicClient.getLogs({
+                    address: vaultAddress as Address,
+                    event: {
+                        type: 'event',
+                        name: 'Deposited',
+                        inputs: [
+                            { type: 'address', indexed: true, name: 'token' },
+                            { type: 'address', indexed: true, name: 'from' },
+                            { type: 'uint256', indexed: false, name: 'amount' },
+                        ],
+                    },
+                    fromBlock,
+                    toBlock: 'latest',
+                });
+
+                const historicalActivities = logs.map((log: any) => ({
+                    type: 'deposit',
+                    from: log.args.from,
+                    amount: log.args.amount,
+                    token: log.args.token,
+                    blockNumber: log.blockNumber,
+                    timestamp: Date.now() - Number(currentBlock - log.blockNumber) * 2000, // Approximate
+                })).reverse();
+
+                setActivities(historicalActivities.slice(0, 10));
+            } catch (error) {
+                console.error('Error fetching historical events:', error);
+            }
+        }
+        
+        fetchHistoricalEvents();
+    }, [vaultAddress, publicClient, currentBlock]);
 
     // Watch for Deposited events
     useWatchContractEvent({
