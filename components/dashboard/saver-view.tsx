@@ -255,7 +255,8 @@ export function DashboardSaverView() {
                                 const timeAgo = Math.floor((Date.now() - activity.timestamp) / 1000);
                                 const timeString = timeAgo < 60 ? 'Just now' : 
                                                  timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
-                                                 `${Math.floor(timeAgo / 3600)}h ago`;
+                                                 timeAgo < 86400 ? `${Math.floor(timeAgo / 3600)}h ago` :
+                                                 `${Math.floor(timeAgo / 86400)}d ago`;
                                 
                                 return (
                                     <div key={`${activity.blockNumber}-${i}`} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
@@ -269,16 +270,23 @@ export function DashboardSaverView() {
                                                 <p className="text-white font-medium">
                                                     {isDeposit ? 'Deposit' : 'Guardian Added'}
                                                 </p>
-                                                <p className="text-slate-500 text-xs">{timeString}</p>
+                                                {isGuardianAdded && activity.guardian && (
+                                                    <p className="text-slate-400 text-sm">
+                                                        You added {activity.guardian.slice(0, 6)}...{activity.guardian.slice(-4)} as guardian
+                                                    </p>
+                                                )}
+                                                {isDeposit && (
+                                                    <p className="text-slate-400 text-sm">
+                                                        {activity.from && activity.from.toLowerCase() === address?.toLowerCase() 
+                                                            ? 'You deposited to your vault' 
+                                                            : `From ${activity.from?.slice(0, 6)}...${activity.from?.slice(-4)}`}
+                                                    </p>
+                                                )}
+                                                <p className="text-slate-500 text-xs mt-0.5">{timeString}</p>
                                             </div>
                                         </div>
                                         {isDeposit && (
                                             <span className="text-emerald-400 font-medium">+{parseFloat(amount).toFixed(4)} ETH</span>
-                                        )}
-                                        {isGuardianAdded && activity.guardian && (
-                                            <span className="text-blue-400 font-mono text-xs">
-                                                {activity.guardian.slice(0, 6)}...{activity.guardian.slice(-4)}
-                                            </span>
                                         )}
                                     </div>
                                 );
