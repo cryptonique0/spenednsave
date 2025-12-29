@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient, useBlockNumber } from "wagmi";
 import { useUserContracts, useAddGuardian, useVaultQuorum } from "@/lib/hooks/useContracts";
+import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
 import { Users, ShieldCheck, Clock, Plus, Trash2, Key, History } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { type Address } from "viem";
 
 interface Guardian {
     id: string;
@@ -19,12 +21,79 @@ export function ManageGuardiansView() {
     const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
     const { data: quorum } = useVaultQuorum(vaultAddress);
+    const publicClient = usePublicClient();
+    const { data: currentBlock } = useBlockNumber();
 
     const { addGuardian, isPending, isConfirming, isSuccess } = useAddGuardian(guardianTokenAddress);
     
     const [guardians, setGuardians] = useState<Guardian[]>([]);
+    const [guardianCount, setGuardianCount] = useState(0);
     const [isAdding, setIsAdding] = useState(false);
     const [newGuardian, setNewGuardian] = useState({ name: "", address: "" });
+
+    // Fetch historical guardian events
+    useEffect(() => {
+        async function fetchGuardianEvents() {
+            if (!guardianTokenAddress || !publicClient || !currentBlock) return;
+            
+            try {
+                const fromBlock = currentBlock - 10000n > 0n ? currentBlock - 10000n : 0n;
+                
+                const addedLogs = await publicClient.getLogs({
+                    address: guardianTokenAddress as Address,
+                    event: {
+                        type: 'event',
+                        name: 'GuardianAdded',
+                        inputs: [
+                            { type: 'address', indexed: true, name: 'guardian' },
+                            { type: 'uint256', indexed: false, name: 'tokenId' },
+                        ],
+                    },
+                    fromBlock,
+                    toBlock: 'latest',
+                });
+
+                const removedLogs = await publicClient.getLogs({
+                    address: guardianTokenAddress as Address,
+                    event: {
+                        type: 'event',
+                        name: 'GuardianRemoved',
+                        inputs: [
+                            { type: 'address', indexed: true, name: 'guardian' },
+                            { type: 'uint256', indexed: false, name: 'tokenId' },
+                        ],
+                    },
+                    fromBlock,
+                    toBlock: 'latest',
+                });
+
+                // Calculate net guardians
+                const netCount = addedLogs.length - removedLogs.length;
+                setGuardianCount(netCount);
+
+                // Build guardian list from events
+                const guardianMap = new Map();
+                addedLogs.forEach((log: any) => {
+                    const addr = log.args.guardian;
+                    guardianMap.set(addr, {
+                        id: addr,
+                        name: `Guardian ${addr.slice(0, 6)}`,
+                        address: addr,
+                        status: 'active' as const
+                    });
+                });
+                removedLogs.forEach((log: any) => {
+                    guardianMap.delete(log.args.guardian);
+                });
+
+                setGuardians(Array.from(guardianMap.values()));
+            } catch (error) {
+                console.error('Error fetching guardian events:', error);
+            }
+        }
+        
+        fetchGuardianEvents();
+    }, [guardianTokenAddress, publicClient, currentBlock]);
 
     // Close modal and reset form after successful add
     useEffect(() => {
@@ -126,7 +195,7 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{guardians.length}</h3>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{guardianCount}</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Guardians Added</p>
                     </div>
                 </div>
@@ -139,7 +208,7 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Policy</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum?.toString() || "..."} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardians.length || "..."}</span></h3>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum?.toString() || "..."} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardianCount || "..."}</span></h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Signatures Required</p>
                     </div>
                 </div>
