@@ -1,27 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, usePublicClient, useBlockNumber } from "wagmi";
+import { useAccount } from "wagmi";
 import { useUserContracts, useAddGuardian, useVaultQuorum } from "@/lib/hooks/useContracts";
-import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
+import { useGuardians } from "@/lib/hooks/useVaultData";
 import { Users, ShieldCheck, Clock, Plus, Trash2, Key, History } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { type Address } from "viem";
-
-interface Guardian {
-    id: string;
-    name: string;
-    address: string;
-    status: 'active' | 'pending';
-}
-
-interface RecentEvent {
-    id: string;
-    type: 'added' | 'removed';
-    guardian: Address;
-    timestamp: number;
-    blockNumber: bigint;
-}
 
 export function ManageGuardiansView() {
     const { address, isConnected } = useAccount();
@@ -29,152 +14,20 @@ export function ManageGuardiansView() {
     const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
     const { data: quorum } = useVaultQuorum(vaultAddress);
-    const publicClient = usePublicClient();
-    const { data: currentBlock } = useBlockNumber();
 
     const { addGuardian, isPending, isConfirming, isSuccess } = useAddGuardian(guardianTokenAddress);
+    const { guardians: guardiansList, isLoading: isLoadingGuardians } = useGuardians(guardianTokenAddress);
     
-    const [guardians, setGuardians] = useState<Guardian[]>([]);
-    const [guardianCount, setGuardianCount] = useState(0);
-    const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
-    const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
     const [isAdding, setIsAdding] = useState(false);
     const [newGuardian, setNewGuardian] = useState({ name: "", address: "" });
 
-    // Fetch historical guardian events
-    useEffect(() => {
-        async function fetchGuardianEvents() {
-            if (!guardianTokenAddress || !publicClient || !currentBlock) return;
-            
-            try {
-                const fromBlock = currentBlock - 10000n > 0n ? currentBlock - 10000n : 0n;
-                
-                const addedLogs = await publicClient.getLogs({
-                    address: guardianTokenAddress as Address,
-                    event: {
-                        type: 'event',
-                        name: 'GuardianAdded',
-                        inputs: [
-                            { type: 'address', indexed: true, name: 'guardian' },
-                            { type: 'uint256', indexed: false, name: 'tokenId' },
-                        ],
-                    },
-                    fromBlock,
-                    toBlock: 'latest',
-                });
-
-                const removedLogs = await publicClient.getLogs({
-                    address: guardianTokenAddress as Address,
-                    event: {
-                        type: 'event',
-                        name: 'GuardianRemoved',
-                        inputs: [
-                            { type: 'address', indexed: true, name: 'guardian' },
-                            { type: 'uint256', indexed: false, name: 'tokenId' },
-                        ],
-                    },
-                    fromBlock,
-                    toBlock: 'latest',
-                });
-
-                // Calculate net guardians
-                const netCount = addedLogs.length - removedLogs.length;
-                setGuardianCount(netCount);
-
-                // Build guardian list from events
-                const guardianMap = new Map();
-                addedLogs.forEach((log: any) => {
-                    const addr = log.args.guardian;
-                    guardianMap.set(addr, {
-                        id: addr,
-                        name: `Guardian ${addr.slice(0, 6)}`,
-                        address: addr,
-                        status: 'active' as const
-                    });
-                });
-                removedLogs.forEach((log: any) => {
-                    guardianMap.delete(log.args.guardian);
-                });
-
-                setGuardians(Array.from(guardianMap.values()));
-
-                // Build recent events list
-                const addedEvents: RecentEvent[] = addedLogs.map((log: any) => ({
-                    id: `${log.transactionHash}-${log.logIndex}`,
-                    type: 'added' as const,
-                    guardian: log.args.guardian,
-                    blockNumber: log.blockNumber,
-                    timestamp: Date.now() - Number(currentBlock - log.blockNumber) * 2000,
-                }));
-
-                const removedEvents: RecentEvent[] = removedLogs.map((log: any) => ({
-                    id: `${log.transactionHash}-${log.logIndex}`,
-                    type: 'removed' as const,
-                    guardian: log.args.guardian,
-                    blockNumber: log.blockNumber,
-                    timestamp: Date.now() - Number(currentBlock - log.blockNumber) * 2000,
-                }));
-
-                const allEvents = [...addedEvents, ...removedEvents]
-                    .sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))
-                    .slice(0, 5); // Show last 5 events
-
-                setRecentEvents(allEvents);
-            } catch (error) {
-                console.error('Error fetching guardian events:', error);
-            }
-        }
-        
-        fetchGuardianEvents();
-    }, [guardianTokenAddress, publicClient, currentBlock]);
-
-    // Fetch pending withdrawal requests from localStorage
-    useEffect(() => {
-        function fetchPendingRequests() {
-            if (!vaultAddress) return;
-            
-            try {
-                const existingRequests = localStorage.getItem(`withdrawal-requests-${vaultAddress}`);
-                if (existingRequests) {
-                    const requests = JSON.parse(existingRequests);
-                    // Count requests that don't have enough signatures yet
-                    const pending = requests.filter((req: any) => {
-                        const sigCount = req.signaturesCount || req.signatures?.length || 0;
-                        return sigCount < (quorum ? Number(quorum) : 0);
-                    });
-                    setPendingRequestsCount(pending.length);
-                } else {
-                    setPendingRequestsCount(0);
-                }
-            } catch (error) {
-                console.error('Error fetching pending requests:', error);
-                setPendingRequestsCount(0);
-            }
-        }
-        
-        fetchPendingRequests();
-        
-        // Poll for updates every 3 seconds
-        const interval = setInterval(fetchPendingRequests, 3000);
-        return () => clearInterval(interval);
-    }, [vaultAddress, quorum]);
+    const guardianCount = guardiansList.length;
 
     // Close modal and reset form after successful add
     useEffect(() => {
         if (isSuccess) {
-            const addedAddress = newGuardian.address;
-            const addedName = newGuardian.name;
             setNewGuardian({ name: "", address: "" });
             setIsAdding(false);
-            // Add to local list
-            if (addedAddress) {
-                setGuardians(prev => [...prev, {
-                    id: addedAddress,
-                    name: addedName || "Guardian",
-                    address: addedAddress,
-                    status: 'active'
-                }]);
-            }
         }
     }, [isSuccess]);
 
@@ -188,8 +41,8 @@ export function ManageGuardiansView() {
         }
     };
 
-    const handleRevoke = (id: string) => {
-        alert("Revoke guardian functionality requires the burn() function to be called with the tokenId. This feature needs guardian token enumeration.");
+    const handleRevoke = (tokenId: bigint) => {
+        alert(`Revoke functionality coming soon. TokenId: ${tokenId}`);
     };
 
     // Show loading state
