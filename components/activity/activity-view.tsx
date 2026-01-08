@@ -15,57 +15,20 @@ export function ActivityLogView() {
     
     const { activities, isLoading } = useVaultActivity(vaultAddress, guardianTokenAddress, 100);
     const [filterStatus, setFilterStatus] = useState<'all' | 'deposits' | 'withdrawals' | 'guardians'>('all');
-                    timestamp: Date.now() - Number(currentBlock - log.blockNumber) * 2000,
-                    txHash: log.transactionHash,
-                }));
 
-                const guardianAddedActivities: Activity[] = guardianAddedLogs.map((log: any) => ({
-                    id: `${log.transactionHash}-${log.logIndex}`,
-                    type: 'Guardian Added',
-                    guardian: log.args.guardian,
-                    tokenId: log.args.tokenId,
-                    blockNumber: log.blockNumber,
-                    timestamp: Date.now() - Number(currentBlock - log.blockNumber) * 2000,
-                    txHash: log.transactionHash,
-                }));
-
-                const guardianRemovedActivities: Activity[] = guardianRemovedLogs.map((log: any) => ({
-                    id: `${log.transactionHash}-${log.logIndex}`,
-                    type: 'Guardian Removed',
-                    guardian: log.args.guardian,
-                    tokenId: log.args.tokenId,
-                    blockNumber: log.blockNumber,
-                    timestamp: Date.now() - Number(currentBlock - log.blockNumber) * 2000,
-                    txHash: log.transactionHash,
-                }));
-
-                const allActivities = [...depositActivities, ...guardianAddedActivities, ...guardianRemovedActivities]
-                    .sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber));
-
-                setActivities(allActivities);
-            } catch (error) {
-                console.error('Error fetching historical events:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        
-        fetchHistoricalEvents();
-    }, [vaultAddress, guardianTokenAddress, publicClient, currentBlock]);
-
-    // Calculate stats
+    // Calculate stats from activities
     const totalDeposits = activities
-        .filter(a => a.type === 'Deposit' && a.amount)
-        .reduce((sum, a) => sum + (a.amount || 0n), 0n);
+        .filter(a => a.type === 'deposit' && a.data?.amount)
+        .reduce((sum, a) => sum + (a.data.amount || 0n), 0n);
     
-    const totalGuardians = activities.filter(a => a.type === 'Guardian Added').length;
+    const totalGuardians = activities.filter(a => a.type === 'guardian_added').length;
 
     // Filter activities
     const filteredActivities = activities.filter(activity => {
         if (filterStatus === 'all') return true;
-        if (filterStatus === 'deposits') return activity.type === 'Deposit';
-        if (filterStatus === 'withdrawals') return activity.type === 'Withdrawal';
-        if (filterStatus === 'guardians') return activity.type === 'Guardian Added' || activity.type === 'Guardian Removed';
+        if (filterStatus === 'deposits') return activity.type === 'deposit';
+        if (filterStatus === 'withdrawals') return activity.type === 'withdrawal';
+        if (filterStatus === 'guardians') return activity.type === 'guardian_added';
         return true;
     });
 
@@ -178,35 +141,40 @@ export function ActivityLogView() {
                 </div>
             ) : (
                 <div className="flex flex-col gap-4">
-                    {filteredActivities.map((activity) => {
-                        const isDeposit = activity.type === 'Deposit';
-                        const isGuardian = activity.type === 'Guardian Added' || activity.type === 'Guardian Removed';
+                    {filteredActivities.map((activity, idx) => {
+                        const isDeposit = activity.type === 'deposit';
+                        const isWithdrawal = activity.type === 'withdrawal';
+                        const isGuardian = activity.type === 'guardian_added';
                         
                         return (
-                            <div key={activity.id} className="rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border overflow-hidden shadow-sm hover:shadow-md transition-all">
+                            <div key={`${activity.blockNumber}-${idx}`} className="rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border overflow-hidden shadow-sm hover:shadow-md transition-all">
                                 <div className="flex items-center justify-between p-5">
                                     <div className="flex items-center gap-4 md:gap-6">
                                         <div className={`size-12 rounded-2xl flex items-center justify-center shrink-0 ${
                                             isDeposit ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500' :
-                                            isGuardian && activity.type === 'Guardian Added' ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500' :
-                                            'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-500'
+                                            isWithdrawal ? 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-500' :
+                                            'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500'
                                         }`}>
-                                            {isDeposit ? <ArrowDownLeft size={24} /> :
-                                             activity.type === 'Guardian Added' ? <CheckCircle size={24} /> :
-                                             <XCircle size={24} />}
+                                            {isDeposit && <ArrowDownLeft size={24} />}
+                                            {isWithdrawal && <ArrowUpRight size={24} />}
+                                            {isGuardian && <CheckCircle size={24} />}
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-900 dark:text-white text-lg">
-                                                {isDeposit && activity.amount ? `+${parseFloat(formatEther(activity.amount)).toFixed(4)} ETH` : activity.type}
+                                                {isDeposit || isWithdrawal 
+                                                    ? `${isDeposit ? '+' : '-'}${parseFloat(formatEther(activity.data.amount)).toFixed(4)} ETH` 
+                                                    : 'Guardian Added'}
                                             </span>
                                             <span className="text-sm text-slate-500 dark:text-slate-400">
-                                                {isDeposit && activity.from 
-                                                    ? activity.from.toLowerCase() === address?.toLowerCase()
+                                                {isDeposit && activity.data?.from 
+                                                    ? activity.data.from.toLowerCase() === address?.toLowerCase()
                                                         ? 'You deposited'
-                                                        : `from ${activity.from.slice(0, 6)}...${activity.from.slice(-4)}`
-                                                    : isGuardian && activity.guardian
-                                                        ? `${activity.guardian.slice(0, 6)}...${activity.guardian.slice(-4)}`
-                                                        : 'Transaction'
+                                                        : `from ${activity.data.from.slice(0, 6)}...${activity.data.from.slice(-4)}`
+                                                    : isWithdrawal && activity.data?.reason
+                                                        ? activity.data.reason
+                                                        : isGuardian && activity.data?.address
+                                                            ? `${activity.data.address.slice(0, 6)}...${activity.data.address.slice(-4)}`
+                                                            : 'Transaction'
                                                 }
                                             </span>
                                         </div>
@@ -221,14 +189,16 @@ export function ActivityLogView() {
                                                 {formatTime(activity.timestamp)}
                                             </span>
                                         </div>
-                                        <a 
-                                            href={`https://sepolia.basescan.org/tx/${activity.txHash}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:text-primary-hover text-sm font-medium"
-                                        >
-                                            View Tx →
-                                        </a>
+                                        {activity.data?.txHash && (
+                                            <a 
+                                                href={`https://sepolia.basescan.org/tx/${activity.data.txHash}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary hover:text-primary-hover text-sm font-medium"
+                                            >
+                                                View Tx →
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             </div>
