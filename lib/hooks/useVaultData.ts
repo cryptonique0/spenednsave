@@ -2,63 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { usePublicClient, useBlockNumber } from 'wagmi';
-import { type Address, type Hex, type PublicClient, type Log } from 'viem';
+import { type Address, type Hex } from 'viem';
 import { GuardianSBTABI } from '@/lib/abis/GuardianSBT';
 import { SpendVaultABI } from '@/lib/abis/SpendVault';
-
-const MAX_BLOCK_RANGE = 100000n;
-
-/**
- * Helper function to fetch logs in chunks to avoid exceeding RPC block range limits
- */
-async function getLogsInChunks(
-    publicClient: PublicClient,
-    params: Omit<Parameters<PublicClient['getLogs']>[0], 'fromBlock' | 'toBlock'>,
-    currentBlock: bigint
-): Promise<Log[]> {
-    const startBlock = 0n;
-    const endBlock = currentBlock;
-    const totalBlocks = endBlock - startBlock;
-
-    // If the range is within the limit, fetch all at once
-    if (totalBlocks <= MAX_BLOCK_RANGE) {
-        return await publicClient.getLogs({
-            ...params,
-            fromBlock: startBlock,
-            toBlock: endBlock,
-        } as any);
-    }
-
-    // Otherwise, chunk the requests
-    const allLogs: Log[] = [];
-    let currentFrom = startBlock;
-
-    while (currentFrom <= endBlock) {
-        const currentTo = currentFrom + MAX_BLOCK_RANGE - 1n > endBlock 
-            ? endBlock 
-            : currentFrom + MAX_BLOCK_RANGE - 1n;
-
-        console.log(`[getLogsInChunks] Fetching logs from block ${currentFrom} to ${currentTo}`);
-
-        try {
-            const logs = await publicClient.getLogs({
-                ...params,
-                fromBlock: currentFrom,
-                toBlock: currentTo,
-            } as any);
-
-            allLogs.push(...logs);
-            console.log(`[getLogsInChunks] Found ${logs.length} logs in this chunk (total: ${allLogs.length})`);
-        } catch (error) {
-            console.error(`[getLogsInChunks] Error fetching logs from ${currentFrom} to ${currentTo}:`, error);
-            throw error;
-        }
-
-        currentFrom = currentTo + 1n;
-    }
-
-    return allLogs;
-}
 
 export interface Guardian {
     address: Address;
@@ -112,32 +58,20 @@ export function useGuardians(guardianTokenAddress?: Address) {
                 
                 console.log('[useGuardians] Fetching all guardians from', guardianTokenAddress);
                 
-                // Fetch logs with proper ABI definitions using chunking for large block ranges
-                const guardianAddedEvent = GuardianSBTABI.find((a: any) => a.name === 'GuardianAdded');
-                const guardianRemovedEvent = GuardianSBTABI.find((a: any) => a.name === 'GuardianRemoved');
-                
-                if (!guardianAddedEvent || !guardianRemovedEvent) {
-                    console.error('[useGuardians] Could not find event in ABI');
-                    throw new Error('GuardianAdded or GuardianRemoved event not found in ABI');
-                }
-                
-                const addedLogs = await getLogsInChunks(
-                    publicClient,
-                    {
-                        address: guardianTokenAddress,
-                        event: guardianAddedEvent as any,
-                    },
-                    currentBlock
-                );
+                // Fetch logs with proper ABI definitions
+                const addedLogs = await publicClient.getLogs({
+                    address: guardianTokenAddress,
+                    event: GuardianSBTABI.find((a: any) => a.name === 'GuardianAdded') as any,
+                    fromBlock: 0n,
+                    toBlock: 'latest',
+                });
 
-                const removedLogs = await getLogsInChunks(
-                    publicClient,
-                    {
-                        address: guardianTokenAddress,
-                        event: guardianRemovedEvent as any,
-                    },
-                    currentBlock
-                );
+                const removedLogs = await publicClient.getLogs({
+                    address: guardianTokenAddress,
+                    event: GuardianSBTABI.find((a: any) => a.name === 'GuardianRemoved') as any,
+                    fromBlock: 0n,
+                    toBlock: 'latest',
+                });
 
                 console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
                 console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
@@ -264,20 +198,12 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 const cacheKey = `withdrawals-cache-${vaultAddress.toLowerCase()}`;
                 console.log('[useWithdrawalHistory] Fetching withdrawals for vault:', vaultAddress);
                 
-                const withdrawnEvent = SpendVaultABI.find((a: any) => a.name === 'Withdrawn');
-                if (!withdrawnEvent) {
-                    console.error('[useWithdrawalHistory] Withdrawn event not found in ABI');
-                    throw new Error('Withdrawn event not found in SpendVault ABI');
-                }
-                
-                const withdrawalLogs = await getLogsInChunks(
-                    publicClient,
-                    {
-                        address: vaultAddress,
-                        event: withdrawnEvent as any,
-                    },
-                    currentBlock
-                );
+                const withdrawalLogs = await publicClient.getLogs({
+                    address: vaultAddress,
+                    event: SpendVaultABI.find((a: any) => a.name === 'Withdrawn') as any,
+                    fromBlock: 0n,
+                    toBlock: 'latest',
+                });
 
                 console.log('[useWithdrawalHistory] Found', withdrawalLogs.length, 'withdrawal events');
 
@@ -380,20 +306,12 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 const cacheKey = `deposits-cache-${vaultAddress.toLowerCase()}`;
                 console.log('[useDepositHistory] Fetching deposits for vault:', vaultAddress);
                 
-                const depositedEvent = SpendVaultABI.find((a: any) => a.name === 'Deposited');
-                if (!depositedEvent) {
-                    console.error('[useDepositHistory] Deposited event not found in ABI');
-                    throw new Error('Deposited event not found in SpendVault ABI');
-                }
-                
-                const depositLogs = await getLogsInChunks(
-                    publicClient,
-                    {
-                        address: vaultAddress,
-                        event: depositedEvent as any,
-                    },
-                    currentBlock
-                );
+                const depositLogs = await publicClient.getLogs({
+                    address: vaultAddress,
+                    event: SpendVaultABI.find((a: any) => a.name === 'Deposited') as any,
+                    fromBlock: 0n,
+                    toBlock: 'latest',
+                });
 
                 console.log('[useDepositHistory] Found', depositLogs.length, 'deposit events');
 
