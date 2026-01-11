@@ -22,6 +22,13 @@ export function ManageGuardiansView() {
     const [newGuardian, setNewGuardian] = useState({ name: "", address: "" });
 
     const guardianCount = guardiansList.length;
+    const pendingRequestsCount = 0; // TODO: Fetch from contract when available
+    const recentEvents: Array<{ id: string; type: 'added' | 'removed'; guardian: string; timestamp: number }> = guardiansList.map((g, i) => ({
+        id: g.address,
+        type: 'added',
+        guardian: g.address,
+        timestamp: g.addedAt,
+    })).reverse().slice(0, 5);
 
     // Close modal and reset form after successful add
     useEffect(() => {
@@ -262,7 +269,7 @@ export function ManageGuardiansView() {
                             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                                 <div 
                                     className="h-full bg-primary rounded-full" 
-                                    style={{ width: quorum && guardians.length ? `${(Number(quorum) / guardians.length) * 100}%` : '66%' }}
+                                    style={{ width: quorum && guardiansList.length ? `${(Number(quorum) / guardiansList.length) * 100}%` : '66%' }}
                                 ></div>
                             </div>
                         </div>
