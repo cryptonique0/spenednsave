@@ -113,6 +113,9 @@ export function useGuardians(guardianTokenAddress?: Address) {
                 console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
                 console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
 
+                console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
+                console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
+
                 // Build map of current guardians (added but not removed)
                 const guardianMap = new Map<string, Guardian>();
                 const removedSet = new Set<string>();
@@ -243,6 +246,19 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 // Get current block number
                 const currentBlock = await publicClient.getBlockNumber();
                 
+                // Get the Withdrawn event topic  
+                const withdrawnTopic = getEventSelector({ 
+                    name: 'Withdrawn', 
+                    type: 'event', 
+                    inputs: [
+                        { indexed: true, name: 'token', type: 'address' },
+                        { indexed: true, name: 'recipient', type: 'address' },
+                        { indexed: false, name: 'amount', type: 'uint256' },
+                        { indexed: false, name: 'reason', type: 'string' },
+                    ] 
+                });
+                console.log('[useWithdrawalHistory] Withdrawn event topic:', withdrawnTopic);
+                
                 // Fetch logs in chunks of 100,000 blocks (RPC limit)
                 const CHUNK_SIZE = 100000n;
                 const allLogs: any[] = [];
@@ -254,6 +270,7 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                     try {
                         const chunkLogs = await publicClient.getLogs({
                             address: vaultAddress,
+                            topics: [withdrawnTopic],
                             fromBlock,
                             toBlock,
                         });
@@ -385,6 +402,18 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 const currentBlockNum = await publicClient.getBlockNumber();
                 console.log('[useDepositHistory] Current block:', currentBlockNum);
                 
+                // Get the Deposited event topic
+                const depositedTopic = getEventSelector({ 
+                    name: 'Deposited', 
+                    type: 'event', 
+                    inputs: [
+                        { indexed: true, name: 'token', type: 'address' },
+                        { indexed: true, name: 'from', type: 'address' },
+                        { indexed: false, name: 'amount', type: 'uint256' },
+                    ] 
+                });
+                console.log('[useDepositHistory] Deposited event topic:', depositedTopic);
+                
                 // Fetch logs in chunks of 100,000 blocks (RPC limit)
                 const CHUNK_SIZE = 100000n;
                 const allLogs: any[] = [];
@@ -399,6 +428,7 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                     try {
                         const chunkLogs = await publicClient.getLogs({
                             address: vaultAddress,
+                            topics: [depositedTopic],
                             fromBlock,
                             toBlock,
                         });
@@ -414,9 +444,24 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 
                 console.log('[useDepositHistory] Total logs from vault:', allLogs.length);
                 
+                // Store debug info in localStorage for inspection
+                try {
+                    localStorage.setItem(`deposits-debug-${vaultAddress.toLowerCase()}`, JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        vaultAddress,
+                        currentBlock: String(currentBlockNum),
+                        logsFound: allLogs.length,
+                        depositedTopic,
+                    }));
+                } catch (e) {
+                    console.warn('[useDepositHistory] Failed to store debug info:', e);
+                }
+                
                 // The Deposited event signature: keccak256("Deposited(address,address,uint256)")
                 // This is 0xb71b7d3b... but we'll decode all logs and filter by event name
                 const depositEvents: DepositEvent[] = [];
+                
+                console.log('[useDepositHistory] Processing', allLogs.length, 'logs...');
                 
                 for (const log of allLogs) {
                     try {
@@ -426,6 +471,8 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                             data: log.data,
                             topics: log.topics,
                         } as any);
+                        
+                        console.log('[useDepositHistory] Decoded log:', decoded);
                         
                         if ((decoded as any).eventName === 'Deposited') {
                             const args = (decoded as any).args;
@@ -512,7 +559,19 @@ export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: 
     const { guardians, isLoading: guardiansLoading } = useGuardians(guardianTokenAddress);
 
     const [activities, setActivities] = useState<any[]>([]);
-    const isLoading = depositsLoading || withdrawalsLoading || guardiansLoading;
+    const [loadingTimeout, setLoadingTimeout] = useState(false);
+    
+    // Force loading state to false after 10 seconds
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            console.log('[useVaultActivity] Loading timeout - forcing completion');
+            setLoadingTimeout(true);
+        }, 10000);
+        
+        return () => clearTimeout(timeout);
+    }, []);
+    
+    const isLoading = (depositsLoading || withdrawalsLoading || guardiansLoading) && !loadingTimeout;
 
     const refetch = () => {
         refetchDeposits();

@@ -9,6 +9,7 @@ import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
 import { formatEther, type Address } from "viem";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { debugDepositEvents, getDebugInfo } from "@/lib/debug-rpc";
 
 export function DashboardSaverView() {
     const { address } = useAccount();
@@ -169,18 +170,44 @@ export function DashboardSaverView() {
                 <section className="lg:col-span-2 flex flex-col gap-6">
                     <div className="flex items-center justify-between">
                         <h3 className="text-white text-xl font-bold">Recent Activity</h3>
-                        <button 
-                            onClick={() => {
-                                console.log('[DashboardSaverView] Manual refresh clicked');
-                                refetchActivities();
-                            }}
-                            className="text-primary text-sm font-medium hover:text-primary-hover flex items-center gap-1"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Refresh
-                        </button>
+                        <div className="flex gap-2">
+                            {vaultAddress && (
+                                <>
+                                    <button 
+                                        onClick={() => {
+                                            console.log('[DashboardSaverView] Get stored debug info');
+                                            getDebugInfo(vaultAddress);
+                                        }}
+                                        className="text-blue-500 text-xs font-medium hover:text-blue-400 px-2 py-1 bg-blue-500/10 rounded border border-blue-500/30"
+                                        title="Show stored debug info from localStorage"
+                                    >
+                                        Show Debug Info
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            console.log('[DashboardSaverView] Debug RPC clicked for vault:', vaultAddress);
+                                            debugDepositEvents(vaultAddress);
+                                        }}
+                                        className="text-orange-500 text-xs font-medium hover:text-orange-400 px-2 py-1 bg-orange-500/10 rounded border border-orange-500/30"
+                                        title="Check browser console for detailed RPC debugging info"
+                                    >
+                                        Debug RPC
+                                    </button>
+                                </>
+                            )}
+                            <button 
+                                onClick={() => {
+                                    console.log('[DashboardSaverView] Manual refresh clicked');
+                                    refetchActivities();
+                                }}
+                                className="text-primary text-sm font-medium hover:text-primary-hover flex items-center gap-1"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
                     </div>
 
                     {activitiesLoading ? (
@@ -270,7 +297,7 @@ export function DashboardSaverView() {
                             <>
                                 <p className="text-slate-400 text-sm leading-relaxed text-center">
                                     {guardians.length > 0 
-                                        ? `${quorum && typeof quorum === 'bigint' ? Number(quorum) : 0} of ${totalGuardians} signatures required`
+                                        ? `${quorum ? Number(quorum) : 0} of ${totalGuardians} signatures required`
                                         : 'No guardians added yet'}
                                 </p>
                                 {guardians.length > 0 && (
