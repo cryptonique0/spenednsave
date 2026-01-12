@@ -16,6 +16,12 @@ export function ActivityLogView() {
     const { activities, isLoading } = useVaultActivity(vaultAddress, guardianTokenAddress, 100);
     const [filterStatus, setFilterStatus] = useState<'all' | 'deposits' | 'withdrawals' | 'guardians'>('all');
 
+    // Debug logging
+    console.log('[ActivityLogView] vaultAddress:', vaultAddress);
+    console.log('[ActivityLogView] guardianTokenAddress:', guardianTokenAddress);
+    console.log('[ActivityLogView] activities:', activities);
+    console.log('[ActivityLogView] isLoading:', isLoading);
+
     // Calculate stats from activities
     const totalDeposits = activities
         .filter(a => a.type === 'deposit' && a.data?.amount)

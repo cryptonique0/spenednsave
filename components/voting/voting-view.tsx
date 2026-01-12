@@ -49,7 +49,8 @@ export function VotingView() {
                     
                     const signatures = req.signatures || [];
                     // Filter out already signed requests by this guardian
-                    return !signatures.some((sig: any) => sig.signer === address);
+                    // Don't count owner signatures when checking if guardian has signed
+                    return !signatures.some((sig: any) => sig.signer === address && sig.role === 'guardian');
                 });
                 
                 if (pending.length > 0) {
@@ -69,7 +70,7 @@ export function VotingView() {
 
     useEffect(() => {
         if (isSignSuccess && signature && pendingRequests.length > 0) {
-            // Save signature to localStorage
+            // Save guardian signature to localStorage
             try {
                 const currentRequest = pendingRequests[0];
                 const storedRequests = localStorage.getItem(`withdrawal-requests-${vaultAddress}`);
@@ -77,12 +78,14 @@ export function VotingView() {
                     const requests = JSON.parse(storedRequests);
                     const updatedRequests = requests.map((req: any) => {
                         if (req.id === currentRequest.id) {
+                            const guardianSignatures = (req.signatures || []).filter((s: any) => s.role !== 'owner');
                             return {
                                 ...req,
                                 signatures: [
                                     ...(req.signatures || []),
-                                    { signer: address, signature, timestamp: Date.now() }
-                                ]
+                                    { signer: address, signature, timestamp: Date.now(), role: 'guardian' }
+                                ],
+                                signaturesCount: guardianSignatures.length + 1 // Count only guardian signatures
                             };
                         }
                         return req;
@@ -120,12 +123,19 @@ export function VotingView() {
             ],
         };
 
+        // Sign the withdrawal request
         try {
             signTypedData({
                 domain,
                 types,
                 primaryType: 'Withdrawal',
-                message: request,
+                message: {
+                    token: request.token as Address,
+                    amount: BigInt(request.amount), // Convert string back to BigInt
+                    recipient: request.recipient as Address,
+                    nonce: BigInt(request.nonce), // Convert string back to BigInt
+                    reason: request.reason,
+                },
             });
         } catch (error) {
             console.error("Signature failed", error);
@@ -238,7 +248,7 @@ export function VotingView() {
                                 const requests = JSON.parse(storedRequests);
                                 const pending = requests.filter((req: any) => {
                                     const signatures = req.signatures || [];
-                                    return !signatures.some((sig: any) => sig.signer === address);
+                                    return !signatures.some((sig: any) => sig.signer === address && sig.role === 'guardian');
                                 });
                                 if (pending.length > 0) {
                                     setPendingRequests(pending);

@@ -29,9 +29,37 @@ export function WithdrawalForm() {
     // Handle successful signature
     useEffect(() => {
         if (isSignSuccess && signature && withdrawalData) {
+            // Save withdrawal request to localStorage with owner's signature
+            // In production, this would be saved to a backend or IPFS
+            try {
+                const requestId = `${vaultAddress}-${Date.now()}`;
+                const requestData = {
+                    id: requestId,
+                    token: withdrawalData.token,
+                    amount: withdrawalData.amount.toString(), // Convert BigInt to string
+                    recipient: withdrawalData.recipient,
+                    nonce: withdrawalData.nonce.toString(), // Convert BigInt to string
+                    reason: withdrawalData.reason,
+                    owner: address,
+                    vaultAddress,
+                    createdAt: Date.now(),
+                    signatures: [
+                        { signer: address, signature, timestamp: Date.now(), role: 'owner' }
+                    ],
+                    signaturesCount: 0 // Guardian signatures count
+                };
+                
+                const existingRequests = localStorage.getItem(`withdrawal-requests-${vaultAddress}`);
+                const requests = existingRequests ? JSON.parse(existingRequests) : [];
+                requests.push(requestData);
+                localStorage.setItem(`withdrawal-requests-${vaultAddress}`, JSON.stringify(requests));
+            } catch (error) {
+                console.error('Error saving withdrawal request:', error);
+            }
+            
             setStep('success');
         }
-    }, [isSignSuccess, signature, withdrawalData]);
+    }, [isSignSuccess, signature, withdrawalData, vaultAddress, address]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,35 +93,47 @@ export function WithdrawalForm() {
 
         setWithdrawalData(withdrawalRequest);
         
-        // Save withdrawal request to localStorage
-        // In production, this would be saved to a backend or IPFS
-        try {
-            const requestId = `${vaultAddress}-${Date.now()}`;
-            const requestData = {
-                id: requestId,
-                token: withdrawalRequest.token,
-                amount: withdrawalRequest.amount.toString(), // Convert BigInt to string
-                recipient: withdrawalRequest.recipient,
-                nonce: withdrawalRequest.nonce.toString(), // Convert BigInt to string
-                reason: withdrawalRequest.reason,
-                owner: address,
-                vaultAddress,
-                createdAt: Date.now(),
-                signatures: [],
-                signaturesCount: 0
-            };
-            
-            const existingRequests = localStorage.getItem(`withdrawal-requests-${vaultAddress}`);
-            const requests = existingRequests ? JSON.parse(existingRequests) : [];
-            requests.push(requestData);
-            localStorage.setItem(`withdrawal-requests-${vaultAddress}`, JSON.stringify(requests));
-        } catch (error) {
-            console.error('Error saving withdrawal request:', error);
-        }
+        // Move to signing step to get owner's signature
+        setStep('signing');
         
-        // Move directly to success - no signature needed from owner
-        // Guardians will sign the withdrawal request
-        setStep('success');
+        // EIP-712 domain
+        const domain = {
+            name: 'SpendGuard',
+            version: '1',
+            chainId: chainId,
+            verifyingContract: vaultAddress as Address,
+        };
+
+        // EIP-712 types
+        const types = {
+            Withdrawal: [
+                { name: 'token', type: 'address' },
+                { name: 'amount', type: 'uint256' },
+                { name: 'recipient', type: 'address' },
+                { name: 'nonce', type: 'uint256' },
+                { name: 'reason', type: 'string' },
+            ],
+        };
+
+        // Sign the withdrawal request
+        try {
+            signTypedData({
+                domain,
+                types,
+                primaryType: 'Withdrawal',
+                message: {
+                    token: withdrawalRequest.token,
+                    amount: withdrawalRequest.amount,
+                    recipient: withdrawalRequest.recipient,
+                    nonce: withdrawalRequest.nonce,
+                    reason: withdrawalRequest.reason,
+                },
+            });
+        } catch (error) {
+            console.error("Signature failed", error);
+            alert("Failed to sign withdrawal request");
+            setStep('form');
+        }
     };
 
     const copyToClipboard = (text: string) => {

@@ -24,7 +24,7 @@ export function DashboardSaverView() {
     
     // Use new hooks for guardians and activity
     const { guardians, isLoading: guardiansLoading, error: guardiansError } = useGuardians(guardianTokenAddress);
-    const { activities, isLoading: activitiesLoading } = useVaultActivity(vaultAddress, guardianTokenAddress, 10);
+    const { activities, isLoading: activitiesLoading, refetch: refetchActivities } = useVaultActivity(vaultAddress, guardianTokenAddress, 10);
 
     // Debug logging
     useEffect(() => {
@@ -43,8 +43,10 @@ export function DashboardSaverView() {
         eventName: 'Deposited',
         enabled: !!vaultAddress,
         onLogs(logs) {
-            // Refetch balance when new deposits come in
+            console.log('[DashboardSaverView] Deposited event detected!', logs);
+            // Refetch balance and activities when new deposits come in
             refetchBalance();
+            refetchActivities();
         },
     });
 
@@ -55,20 +57,23 @@ export function DashboardSaverView() {
         eventName: 'GuardianAdded',
         enabled: !!guardianTokenAddress,
         onLogs(logs) {
-            // Activities will auto-update via the useVaultActivity hook
+            // Refetch activities when guardians are added
+            refetchActivities();
         },
     });
 
     // Refetch balance after successful deposit
     useEffect(() => {
         if (isSuccess) {
+            console.log('[DashboardSaverView] Deposit successful, refetching...');
             // Wait a bit for the transaction to be indexed
             const timer = setTimeout(() => {
                 refetchBalance();
+                refetchActivities();
             }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [isSuccess, refetchBalance]);
+    }, [isSuccess, refetchBalance, refetchActivities]);
 
     const handleDeposit = () => {
         try {
@@ -164,7 +169,18 @@ export function DashboardSaverView() {
                 <section className="lg:col-span-2 flex flex-col gap-6">
                     <div className="flex items-center justify-between">
                         <h3 className="text-white text-xl font-bold">Recent Activity</h3>
-                        <button className="text-primary text-sm font-medium hover:text-primary-hover">View All</button>
+                        <button 
+                            onClick={() => {
+                                console.log('[DashboardSaverView] Manual refresh clicked');
+                                refetchActivities();
+                            }}
+                            className="text-primary text-sm font-medium hover:text-primary-hover flex items-center gap-1"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                        </button>
                     </div>
 
                     {activitiesLoading ? (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePublicClient, useBlockNumber } from 'wagmi';
-import { type Address, type Hex } from 'viem';
+import { type Address, type Hex, getEventSelector, decodeEventLog } from 'viem';
 import { GuardianSBTABI } from '@/lib/abis/GuardianSBT';
 import { SpendVaultABI } from '@/lib/abis/SpendVault';
 
@@ -58,20 +58,59 @@ export function useGuardians(guardianTokenAddress?: Address) {
                 
                 console.log('[useGuardians] Fetching all guardians from', guardianTokenAddress);
                 
-                // Fetch logs with proper ABI definitions
-                const addedLogs = await publicClient.getLogs({
-                    address: guardianTokenAddress,
-                    event: GuardianSBTABI.find((a: any) => a.name === 'GuardianAdded') as any,
-                    fromBlock: 0n,
-                    toBlock: 'latest',
-                });
-
-                const removedLogs = await publicClient.getLogs({
-                    address: guardianTokenAddress,
-                    event: GuardianSBTABI.find((a: any) => a.name === 'GuardianRemoved') as any,
-                    fromBlock: 0n,
-                    toBlock: 'latest',
-                });
+                // Get current block number
+                const currentBlock = await publicClient.getBlockNumber();
+                
+                // Find the GuardianAdded event topic
+                const guardianAddedTopic = getEventSelector({ name: 'GuardianAdded', type: 'event', inputs: [
+                    { indexed: true, name: 'guardian', type: 'address' },
+                    { indexed: false, name: 'tokenId', type: 'uint256' },
+                ] });
+                
+                // Fetch logs in chunks of 100,000 blocks (RPC limit)
+                const CHUNK_SIZE = 100000n;
+                const addedLogs: any[] = [];
+                const removedLogs: any[] = [];
+                
+                let fromBlock = 0n;
+                while (fromBlock <= currentBlock) {
+                    const toBlock = currentBlock < fromBlock + CHUNK_SIZE - 1n ? currentBlock : fromBlock + CHUNK_SIZE - 1n;
+                    
+                    try {
+                        // Fetch GuardianAdded events
+                        const chunkAddedLogs = await publicClient.getLogs({
+                            address: guardianTokenAddress,
+                            topics: [guardianAddedTopic],
+                            fromBlock,
+                            toBlock,
+                        });
+                        addedLogs.push(...chunkAddedLogs);
+                    } catch (chunkErr) {
+                        console.error('[useGuardians] Error fetching GuardianAdded chunk:', chunkErr);
+                    }
+                    
+                    try {
+                        // Fetch GuardianRemoved events
+                        const guardianRemovedTopic = getEventSelector({ name: 'GuardianRemoved', type: 'event', inputs: [
+                            { indexed: true, name: 'guardian', type: 'address' },
+                            { indexed: false, name: 'tokenId', type: 'uint256' },
+                        ] });
+                        const chunkRemovedLogs = await publicClient.getLogs({
+                            address: guardianTokenAddress,
+                            topics: [guardianRemovedTopic],
+                            fromBlock,
+                            toBlock,
+                        });
+                        removedLogs.push(...chunkRemovedLogs);
+                    } catch (chunkErr) {
+                        console.error('[useGuardians] Error fetching GuardianRemoved chunk:', chunkErr);
+                    }
+                    
+                    fromBlock = toBlock + 1n;
+                }
+                
+                console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
+                console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
 
                 console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
                 console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
@@ -183,10 +222,15 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
     const [withdrawals, setWithdrawals] = useState<WithdrawalEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refetch = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
 
     useEffect(() => {
         async function fetchWithdrawals() {
-            if (!vaultAddress || !publicClient || !currentBlock) {
+            if (!vaultAddress || !publicClient) {
                 setWithdrawals([]);
                 return;
             }
@@ -198,44 +242,72 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 const cacheKey = `withdrawals-cache-${vaultAddress.toLowerCase()}`;
                 console.log('[useWithdrawalHistory] Fetching withdrawals for vault:', vaultAddress);
                 
-                const withdrawalLogs = await publicClient.getLogs({
-                    address: vaultAddress,
-                    event: SpendVaultABI.find((a: any) => a.name === 'Withdrawn') as any,
-                    fromBlock: 0n,
-                    toBlock: 'latest',
-                });
-
-                console.log('[useWithdrawalHistory] Found', withdrawalLogs.length, 'withdrawal events');
-
-                // Batch fetch blocks for withdrawals
-                const blockNumbers = [...new Set(withdrawalLogs.map(log => log.blockNumber).filter(n => n !== null && n !== undefined) as bigint[])];
-                const blockPromises = blockNumbers.map(blockNum => 
-                    publicClient.getBlock({ blockNumber: blockNum })
-                );
-                const blocks = await Promise.all(blockPromises);
-                const blockMap = new Map(blockNumbers.map((num, i) => [num, blocks[i]]));
-
-                const withdrawalEvents: WithdrawalEvent[] = [];
-                for (const log of withdrawalLogs) {
-                    const args = (log as any).args;
-                    const blockNumber = log.blockNumber;
-                    const transactionHash = log.transactionHash;
+                // Get current block number
+                const currentBlock = await publicClient.getBlockNumber();
+                
+                // Fetch logs in chunks of 100,000 blocks (RPC limit)
+                const CHUNK_SIZE = 100000n;
+                const allLogs: any[] = [];
+                
+                let fromBlock = 0n;
+                while (fromBlock <= currentBlock) {
+                    const toBlock = currentBlock < fromBlock + CHUNK_SIZE - 1n ? currentBlock : fromBlock + CHUNK_SIZE - 1n;
                     
-                    if (!args || blockNumber === null || transactionHash === null) continue;
-                    
-                    const block = blockMap.get(blockNumber);
-                    if (block) {
-                        withdrawalEvents.push({
-                            token: args.token as Address,
-                            recipient: args.recipient as Address,
-                            amount: args.amount as bigint,
-                            reason: args.reason as string,
-                            timestamp: Number(block.timestamp) * 1000,
-                            blockNumber,
-                            txHash: transactionHash as Hex,
+                    try {
+                        const chunkLogs = await publicClient.getLogs({
+                            address: vaultAddress,
+                            fromBlock,
+                            toBlock,
                         });
+                        allLogs.push(...chunkLogs);
+                    } catch (chunkErr) {
+                        console.error('[useWithdrawalHistory] Error fetching chunk:', chunkErr);
+                    }
+                    
+                    fromBlock = toBlock + 1n;
+                }
+                
+                console.log('[useWithdrawalHistory] Total logs from vault:', allLogs.length);
+                
+                const withdrawalEvents: WithdrawalEvent[] = [];
+                
+                for (const log of allLogs) {
+                    try {
+                        // Try to decode as Withdrawn event
+                        const decoded = decodeEventLog({
+                            abi: SpendVaultABI,
+                            data: log.data,
+                            topics: log.topics,
+                        } as any);
+                        
+                        if ((decoded as any).eventName === 'Withdrawn') {
+                            const args = (decoded as any).args;
+                            const blockNumber = log.blockNumber;
+                            const transactionHash = log.transactionHash;
+                            
+                            if (blockNumber && transactionHash) {
+                                // Get block to get timestamp
+                                const block = await publicClient.getBlock({ blockNumber });
+                                if (block) {
+                                    withdrawalEvents.push({
+                                        token: args.token as Address,
+                                        recipient: args.recipient as Address,
+                                        amount: args.amount as bigint,
+                                        reason: args.reason as string,
+                                        timestamp: Number(block.timestamp) * 1000,
+                                        blockNumber,
+                                        txHash: transactionHash as Hex,
+                                    });
+                                }
+                            }
+                        }
+                    } catch (decodeErr) {
+                        // Not a Withdrawn event, continue
+                        continue;
                     }
                 }
+                
+                console.log('[useWithdrawalHistory] Found', withdrawalEvents.length, 'Withdrawn events');
 
                 const finalWithdrawals = withdrawalEvents.slice(-limit);
                 setWithdrawals(finalWithdrawals.sort((a, b) => Number(b.blockNumber - a.blockNumber)));
@@ -277,9 +349,9 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
         }
 
         fetchWithdrawals();
-    }, [vaultAddress, publicClient, currentBlock, limit]);
+    }, [vaultAddress, publicClient, currentBlock, limit, refreshTrigger]);
 
-    return { withdrawals, isLoading, error };
+    return { withdrawals, isLoading, error, refetch };
 }
 
 /**
@@ -291,10 +363,15 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
     const [deposits, setDeposits] = useState<DepositEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refetch = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
 
     useEffect(() => {
         async function fetchDeposits() {
-            if (!vaultAddress || !publicClient || !currentBlock) {
+            if (!vaultAddress || !publicClient) {
                 setDeposits([]);
                 return;
             }
@@ -305,43 +382,83 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
             try {
                 const cacheKey = `deposits-cache-${vaultAddress.toLowerCase()}`;
                 console.log('[useDepositHistory] Fetching deposits for vault:', vaultAddress);
+                console.log('[useDepositHistory] PublicClient available:', !!publicClient);
                 
-                const depositLogs = await publicClient.getLogs({
-                    address: vaultAddress,
-                    event: SpendVaultABI.find((a: any) => a.name === 'Deposited') as any,
-                    fromBlock: 0n,
-                    toBlock: 'latest',
-                });
-
-                console.log('[useDepositHistory] Found', depositLogs.length, 'deposit events');
-
-                // Batch fetch blocks for deposits
-                const blockNumbers = [...new Set(depositLogs.map(log => log.blockNumber).filter(n => n !== null && n !== undefined) as bigint[])];
-                const blockPromises = blockNumbers.map(blockNum => 
-                    publicClient.getBlock({ blockNumber: blockNum })
-                );
-                const blocks = await Promise.all(blockPromises);
-                const blockMap = new Map(blockNumbers.map((num, i) => [num, blocks[i]]));
-
-                const depositEvents: DepositEvent[] = [];
-                for (const log of depositLogs) {
-                    const args = (log as any).args;
-                    const blockNumber = log.blockNumber;
-                    const transactionHash = log.transactionHash;
+                // Get current block number
+                const currentBlockNum = await publicClient.getBlockNumber();
+                console.log('[useDepositHistory] Current block:', currentBlockNum);
+                
+                // Fetch logs in chunks of 100,000 blocks (RPC limit)
+                const CHUNK_SIZE = 100000n;
+                const allLogs: any[] = [];
+                
+                let fromBlock = 0n;
+                console.log('[useDepositHistory] Starting chunked fetch with fromBlock:', fromBlock, 'currentBlock:', currentBlockNum);
+                
+                while (fromBlock <= currentBlockNum) {
+                    const toBlock = currentBlockNum < fromBlock + CHUNK_SIZE - 1n ? currentBlockNum : fromBlock + CHUNK_SIZE - 1n;
+                    console.log('[useDepositHistory] Fetching chunk from', String(fromBlock), 'to', String(toBlock));
                     
-                    if (!args || blockNumber === null || transactionHash === null) continue;
-                    
-                    const block = blockMap.get(blockNumber);
-                    if (block) {
-                        depositEvents.push({
-                            token: args.token as Address,
-                            from: args.from as Address,
-                            amount: args.amount as bigint,
-                            timestamp: Number(block.timestamp) * 1000,
-                            blockNumber,
-                            txHash: transactionHash as Hex,
+                    try {
+                        const chunkLogs = await publicClient.getLogs({
+                            address: vaultAddress,
+                            fromBlock,
+                            toBlock,
                         });
+                        console.log('[useDepositHistory] Found', chunkLogs.length, 'logs in chunk');
+                        allLogs.push(...chunkLogs);
+                    } catch (chunkErr) {
+                        console.error('[useDepositHistory] Error fetching chunk:', chunkErr);
                     }
+                    
+                    fromBlock = toBlock + 1n;
+                    console.log('[useDepositHistory] Next fromBlock:', String(fromBlock));
+                }
+                
+                console.log('[useDepositHistory] Total logs from vault:', allLogs.length);
+                
+                // The Deposited event signature: keccak256("Deposited(address,address,uint256)")
+                // This is 0xb71b7d3b... but we'll decode all logs and filter by event name
+                const depositEvents: DepositEvent[] = [];
+                
+                for (const log of allLogs) {
+                    try {
+                        // Try to decode as Deposited event
+                        const decoded = decodeEventLog({
+                            abi: SpendVaultABI,
+                            data: log.data,
+                            topics: log.topics,
+                        } as any);
+                        
+                        if ((decoded as any).eventName === 'Deposited') {
+                            const args = (decoded as any).args;
+                            const blockNumber = log.blockNumber;
+                            const transactionHash = log.transactionHash;
+                            
+                            if (blockNumber && transactionHash) {
+                                // Get block to get timestamp
+                                const block = await publicClient.getBlock({ blockNumber });
+                                if (block) {
+                                    depositEvents.push({
+                                        token: args.token as Address,
+                                        from: args.from as Address,
+                                        amount: args.amount as bigint,
+                                        timestamp: Number(block.timestamp) * 1000,
+                                        blockNumber,
+                                        txHash: transactionHash as Hex,
+                                    });
+                                }
+                            }
+                        }
+                    } catch (decodeErr) {
+                        // Not a Deposited event, continue
+                        continue;
+                    }
+                }
+                
+                console.log('[useDepositHistory] Found', depositEvents.length, 'Deposited events after decoding');
+                if (depositEvents.length > 0) {
+                    console.log('[useDepositHistory] First deposit event:', depositEvents[0]);
                 }
 
                 const finalDeposits = depositEvents.slice(-limit);
@@ -384,35 +501,43 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
         }
 
         fetchDeposits();
-    }, [vaultAddress, publicClient, currentBlock, limit]);
+    }, [vaultAddress, publicClient, currentBlock, limit, refreshTrigger]);
 
-    return { deposits, isLoading, error };
+    return { deposits, isLoading, error, refetch };
 }
 
 /**
  * Hook to get all activity (deposits, withdrawals, guardian changes)
  */
 export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: Address, limit = 50) {
-    const { deposits, isLoading: depositsLoading } = useDepositHistory(vaultAddress, limit);
-    const { withdrawals, isLoading: withdrawalsLoading } = useWithdrawalHistory(vaultAddress, limit);
+    const { deposits, isLoading: depositsLoading, refetch: refetchDeposits } = useDepositHistory(vaultAddress, limit);
+    const { withdrawals, isLoading: withdrawalsLoading, refetch: refetchWithdrawals } = useWithdrawalHistory(vaultAddress, limit);
     const { guardians, isLoading: guardiansLoading } = useGuardians(guardianTokenAddress);
 
     const [activities, setActivities] = useState<any[]>([]);
     const isLoading = depositsLoading || withdrawalsLoading || guardiansLoading;
 
+    const refetch = () => {
+        refetchDeposits();
+        refetchWithdrawals();
+    };
+
     useEffect(() => {
         console.log('[useVaultActivity] Combining activities...');
-        console.log('[useVaultActivity] deposits:', deposits.length);
-        console.log('[useVaultActivity] withdrawals:', withdrawals.length);
-        console.log('[useVaultActivity] guardians:', guardians.length);
+        console.log('[useVaultActivity] deposits:', deposits.length, deposits);
+        console.log('[useVaultActivity] withdrawals:', withdrawals.length, withdrawals);
+        console.log('[useVaultActivity] guardians:', guardians.length, guardians);
         
         const allActivities = [
-            ...deposits.map(d => ({
-                type: 'deposit' as const,
-                timestamp: d.timestamp,
-                blockNumber: d.blockNumber,
-                data: d,
-            })),
+            ...deposits.map(d => {
+                console.log('[useVaultActivity] Mapping deposit:', d);
+                return {
+                    type: 'deposit' as const,
+                    timestamp: d.timestamp,
+                    blockNumber: d.blockNumber,
+                    data: d,
+                };
+            }),
             ...withdrawals.map(w => ({
                 type: 'withdrawal' as const,
                 timestamp: w.timestamp,
@@ -429,11 +554,12 @@ export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: 
 
         allActivities.sort((a, b) => b.timestamp - a.timestamp);
         const limited = allActivities.slice(0, limit);
-        console.log('[useVaultActivity] Final activities:', limited.length);
+        console.log('[useVaultActivity] Final activities count:', limited.length);
+        console.log('[useVaultActivity] Final activities:', limited);
         setActivities(limited);
     }, [deposits, withdrawals, guardians, limit]);
 
-    return { activities, isLoading };
+    return { activities, isLoading, refetch };
 }
 
 /**
