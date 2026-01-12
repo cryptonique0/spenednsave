@@ -9,7 +9,7 @@ import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
 import { formatEther, type Address } from "viem";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { debugDepositEvents } from "@/lib/debug-rpc";
+import { debugDepositEvents, getDebugInfo } from "@/lib/debug-rpc";
 
 export function DashboardSaverView() {
     const { address } = useAccount();
@@ -172,16 +172,28 @@ export function DashboardSaverView() {
                         <h3 className="text-white text-xl font-bold">Recent Activity</h3>
                         <div className="flex gap-2">
                             {vaultAddress && (
-                                <button 
-                                    onClick={() => {
-                                        console.log('[DashboardSaverView] Debug RPC clicked for vault:', vaultAddress);
-                                        debugDepositEvents(vaultAddress);
-                                    }}
-                                    className="text-orange-500 text-xs font-medium hover:text-orange-400 px-2 py-1 bg-orange-500/10 rounded border border-orange-500/30"
-                                    title="Check browser console for detailed RPC debugging info"
-                                >
-                                    Debug RPC
-                                </button>
+                                <>
+                                    <button 
+                                        onClick={() => {
+                                            console.log('[DashboardSaverView] Get stored debug info');
+                                            getDebugInfo(vaultAddress);
+                                        }}
+                                        className="text-blue-500 text-xs font-medium hover:text-blue-400 px-2 py-1 bg-blue-500/10 rounded border border-blue-500/30"
+                                        title="Show stored debug info from localStorage"
+                                    >
+                                        Show Debug Info
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            console.log('[DashboardSaverView] Debug RPC clicked for vault:', vaultAddress);
+                                            debugDepositEvents(vaultAddress);
+                                        }}
+                                        className="text-orange-500 text-xs font-medium hover:text-orange-400 px-2 py-1 bg-orange-500/10 rounded border border-orange-500/30"
+                                        title="Check browser console for detailed RPC debugging info"
+                                    >
+                                        Debug RPC
+                                    </button>
+                                </>
                             )}
                             <button 
                                 onClick={() => {

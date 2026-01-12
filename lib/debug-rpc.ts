@@ -11,6 +11,26 @@ const client = createPublicClient({
   transport: http(),
 });
 
+export function getDebugInfo(vaultAddress: string) {
+  try {
+    const key = `deposits-debug-${vaultAddress.toLowerCase()}`;
+    const info = localStorage.getItem(key);
+    if (info) {
+      const data = JSON.parse(info);
+      console.log('===== STORED DEBUG INFO =====');
+      console.log(JSON.stringify(data, null, 2));
+      return data;
+    } else {
+      console.log('No debug info found in localStorage for:', key);
+      console.log('Try running debugDepositEvents() first');
+      return null;
+    }
+  } catch (e) {
+    console.error('Error retrieving debug info:', e);
+    return null;
+  }
+}
+
 export async function debugDepositEvents(vaultAddress: string) {
   console.log('=== DEBUGGING DEPOSIT EVENTS ===');
   console.log('Vault Address:', vaultAddress);
