@@ -7,7 +7,8 @@ import {
     GuardianSignatureService, 
     createGuardianSignatureService 
 } from '@/lib/services/guardian-signatures';
-import { SignatureStorageService } from '@/lib/services/signature-storage';
+// import { SignatureStorageService } from '@/lib/services/signature-storage';
+import { GuardianSignatureDB } from '@/lib/services/guardian-signature-db';
 import type { 
     WithdrawalRequest, 
     PendingWithdrawalRequest,
@@ -39,7 +40,8 @@ export function useGuardianSignatures(vaultAddress?: Address) {
      */
     const getPendingRequests = useCallback((): PendingWithdrawalRequest[] => {
         if (!vaultAddress) return [];
-        return SignatureStorageService.getVaultPendingRequests(vaultAddress);
+        // Use DB for persistent storage
+        return GuardianSignatureDB.getPendingRequests().filter(req => req.vaultAddress.toLowerCase() === vaultAddress.toLowerCase());
     }, [vaultAddress]);
 
     /**
@@ -111,11 +113,8 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             };
 
             const timestamp = Date.now();
-            const requestId = SignatureStorageService.generateRequestId(
-                vaultAddress,
-                nonce,
-                timestamp
-            );
+            // Use the same ID generation logic
+            const requestId = `${vaultAddress}-${nonce}-${timestamp}`;
 
             const pendingRequest: PendingWithdrawalRequest = {
                 id: requestId,
@@ -129,7 +128,7 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             };
 
             // Save to storage
-            SignatureStorageService.savePendingRequest(pendingRequest);
+            GuardianSignatureDB.savePendingRequest(pendingRequest);
 
             return pendingRequest;
         } catch (err) {
@@ -155,7 +154,7 @@ export function useGuardianSignatures(vaultAddress?: Address) {
         setError(null);
 
         try {
-            const pendingRequest = SignatureStorageService.getPendingRequest(requestId);
+            const pendingRequest = GuardianSignatureDB.getPendingRequest(requestId);
             if (!pendingRequest) {
                 throw new Error('Request not found');
             }
@@ -167,10 +166,17 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             );
 
             // Add signature to storage
-            SignatureStorageService.addSignatureToPendingRequest(
-                requestId,
-                signedWithdrawal
-            );
+            // Add signature to the request and save
+            if (!pendingRequest) throw new Error('Request not found');
+            if (pendingRequest.signatures.some(sig => sig.signer.toLowerCase() === signedWithdrawal.signer.toLowerCase())) {
+                throw new Error('Guardian has already signed this request');
+            }
+            const updated = {
+                ...pendingRequest,
+                signatures: [...pendingRequest.signatures, signedWithdrawal],
+                status: pendingRequest.signatures.length + 1 >= pendingRequest.requiredQuorum ? 'approved' : pendingRequest.status,
+            };
+            GuardianSignatureDB.savePendingRequest(updated);
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : 'Failed to sign request';
             setError(errorMsg);
@@ -194,7 +200,7 @@ export function useGuardianSignatures(vaultAddress?: Address) {
         setError(null);
 
         try {
-            const pendingRequest = SignatureStorageService.getPendingRequest(requestId);
+            const pendingRequest = GuardianSignatureDB.getPendingRequest(requestId);
             if (!pendingRequest) {
                 throw new Error('Request not found');
             }
@@ -221,7 +227,14 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             }
 
             // Mark as executed
-            SignatureStorageService.markAsExecuted(requestId, txHash);
+            if (!pendingRequest) throw new Error('Request not found');
+            const executed = {
+                ...pendingRequest,
+                status: 'executed',
+                executedAt: Date.now(),
+                executionTxHash: txHash,
+            };
+            GuardianSignatureDB.savePendingRequest(executed);
 
             return txHash;
         } catch (err) {
@@ -247,7 +260,7 @@ export function useGuardianSignatures(vaultAddress?: Address) {
         setError(null);
 
         try {
-            const pendingRequest = SignatureStorageService.getPendingRequest(requestId);
+            const pendingRequest = GuardianSignatureDB.getPendingRequest(requestId);
             if (!pendingRequest) {
                 throw new Error('Request not found');
             }
@@ -327,14 +340,16 @@ export function useGuardianSignatures(vaultAddress?: Address) {
      * Reject a withdrawal request
      */
     const rejectRequest = useCallback((requestId: string): void => {
-        SignatureStorageService.markAsRejected(requestId);
+        if (pendingRequest) {
+            GuardianSignatureDB.savePendingRequest({ ...pendingRequest, status: 'rejected' });
+        }
     }, []);
 
     /**
      * Delete a withdrawal request
      */
     const deleteRequest = useCallback((requestId: string): void => {
-        SignatureStorageService.deletePendingRequest(requestId);
+        GuardianSignatureDB.deletePendingRequest(requestId);
     }, []);
 
     return {
