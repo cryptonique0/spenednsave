@@ -245,6 +245,19 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 // Get current block number
                 const currentBlock = await publicClient.getBlockNumber();
                 
+                // Get the Withdrawn event topic  
+                const withdrawnTopic = getEventSelector({ 
+                    name: 'Withdrawn', 
+                    type: 'event', 
+                    inputs: [
+                        { indexed: true, name: 'token', type: 'address' },
+                        { indexed: true, name: 'recipient', type: 'address' },
+                        { indexed: false, name: 'amount', type: 'uint256' },
+                        { indexed: false, name: 'reason', type: 'string' },
+                    ] 
+                });
+                console.log('[useWithdrawalHistory] Withdrawn event topic:', withdrawnTopic);
+                
                 // Fetch logs in chunks of 100,000 blocks (RPC limit)
                 const CHUNK_SIZE = 100000n;
                 const allLogs: any[] = [];
@@ -256,6 +269,7 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                     try {
                         const chunkLogs = await publicClient.getLogs({
                             address: vaultAddress,
+                            topics: [withdrawnTopic],
                             fromBlock,
                             toBlock,
                         });
@@ -388,6 +402,18 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 const currentBlockNum = await publicClient.getBlockNumber();
                 console.log('[useDepositHistory] Current block:', currentBlockNum);
                 
+                // Get the Deposited event topic
+                const depositedTopic = getEventSelector({ 
+                    name: 'Deposited', 
+                    type: 'event', 
+                    inputs: [
+                        { indexed: true, name: 'token', type: 'address' },
+                        { indexed: true, name: 'from', type: 'address' },
+                        { indexed: false, name: 'amount', type: 'uint256' },
+                    ] 
+                });
+                console.log('[useDepositHistory] Deposited event topic:', depositedTopic);
+                
                 // Fetch logs in chunks of 100,000 blocks (RPC limit)
                 const CHUNK_SIZE = 100000n;
                 const allLogs: any[] = [];
@@ -402,6 +428,7 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                     try {
                         const chunkLogs = await publicClient.getLogs({
                             address: vaultAddress,
+                            topics: [depositedTopic],
                             fromBlock,
                             toBlock,
                         });
@@ -421,6 +448,8 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 // This is 0xb71b7d3b... but we'll decode all logs and filter by event name
                 const depositEvents: DepositEvent[] = [];
                 
+                console.log('[useDepositHistory] Processing', allLogs.length, 'logs...');
+                
                 for (const log of allLogs) {
                     try {
                         // Try to decode as Deposited event
@@ -429,6 +458,8 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                             data: log.data,
                             topics: log.topics,
                         } as any);
+                        
+                        console.log('[useDepositHistory] Decoded log:', decoded);
                         
                         if ((decoded as any).eventName === 'Deposited') {
                             const args = (decoded as any).args;
