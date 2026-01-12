@@ -225,7 +225,7 @@ export function VotingView() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Vote Cast Successfully</h2>
                 <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-                    You have securely signed this withdrawal request. The requester will need {quorum?.toString() || '2'} total guardian signatures to execute the withdrawal.
+                    You have securely signed this withdrawal request. The requester will need {quorum && typeof quorum === 'bigint' ? quorum.toString() : '2'} total guardian signatures to execute the withdrawal.
                 </p>
                 <div className="p-4 bg-gray-50 dark:bg-surface-border/30 rounded-xl mb-6">
                     <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-2">Your Signature</p>
@@ -314,7 +314,7 @@ export function VotingView() {
                         <div className="w-full h-2 bg-gray-100 dark:bg-surface-border/50 rounded-full overflow-hidden">
                             <div 
                                 className="h-full bg-yellow-400 rounded-full transition-all duration-300"
-                                style={{ width: `${((pendingRequest.signatures?.length || 0) / (Number(quorum) || 1)) * 100}%` }}
+                                style={{ width: `${((pendingRequest.signatures?.length || 0) / (quorum && typeof quorum === 'bigint' ? Number(quorum) : 1)) * 100}%` }}
                             ></div>
                         </div>
                     </div>

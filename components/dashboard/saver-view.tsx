@@ -270,7 +270,7 @@ export function DashboardSaverView() {
                             <>
                                 <p className="text-slate-400 text-sm leading-relaxed text-center">
                                     {guardians.length > 0 
-                                        ? `${quorum ? Number(quorum) : 0} of ${totalGuardians} signatures required`
+                                        ? `${quorum && typeof quorum === 'bigint' ? Number(quorum) : 0} of ${totalGuardians} signatures required`
                                         : 'No guardians added yet'}
                                 </p>
                                 {guardians.length > 0 && (

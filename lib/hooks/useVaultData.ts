@@ -112,9 +112,6 @@ export function useGuardians(guardianTokenAddress?: Address) {
                 console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
                 console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
 
-                console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
-                console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
-
                 // Build map of current guardians (added but not removed)
                 const guardianMap = new Map<string, Guardian>();
                 const removedSet = new Set<string>();

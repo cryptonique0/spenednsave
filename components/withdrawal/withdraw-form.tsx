@@ -77,7 +77,7 @@ export function WithdrawalForm() {
         const amountInWei = parseEther(amount);
         
         // Check if user has sufficient balance
-        if (vaultBalance && amountInWei > vaultBalance) {
+        if (vaultBalance && typeof vaultBalance === 'bigint' && amountInWei > vaultBalance) {
             alert("Insufficient vault balance");
             return;
         }
@@ -87,7 +87,7 @@ export function WithdrawalForm() {
             token: '0x0000000000000000000000000000000000000000' as Address, // ETH
             amount: amountInWei,
             recipient: address,
-            nonce: currentNonce || 0n, // Use contract nonce
+            nonce: (typeof currentNonce === 'bigint' ? currentNonce : 0n), // Use contract nonce
             reason: reason || "Withdrawal request"
         };
 
@@ -264,7 +264,7 @@ export function WithdrawalForm() {
 
                     <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg p-3 mb-6">
                         <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                            <strong>Next Steps:</strong> Share this request with your guardians. They will need to sign the withdrawal request. Once {quorum?.toString() || '2'} guardians have signed, you can execute the withdrawal.
+                            <strong>Next Steps:</strong> Share this request with your guardians. They will need to sign the withdrawal request. Once {quorumValue} guardians have signed, you can execute the withdrawal.
                         </p>
                     </div>
 
@@ -306,8 +306,9 @@ export function WithdrawalForm() {
         )
     }
 
-    const balanceETH = vaultBalance ? formatEther(vaultBalance) : "0";
+    const balanceETH = (vaultBalance && typeof vaultBalance === 'bigint') ? formatEther(vaultBalance) : "0";
     const formattedBalance = parseFloat(balanceETH).toFixed(4);
+    const quorumValue = (quorum && typeof quorum === 'bigint') ? quorum.toString() : '2';
 
     return (
         <div className="w-full max-w-lg mx-auto">
@@ -374,7 +375,7 @@ export function WithdrawalForm() {
                 <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl p-4 flex gap-3 items-start">
                     <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
                     <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                        This withdrawal requires <strong>{quorum?.toString() || '2'} guardian signatures</strong> to be approved and executed.
+                        This withdrawal requires <strong>{quorumValue} guardian signatures</strong> to be approved and executed.
                     </p>
                 </div>
 

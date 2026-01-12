@@ -238,7 +238,7 @@ export function EmergencyView() {
                                     </h4>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                                         {canExecute 
-                                            ? `Vault balance: ${ethBalance ? formatEther(ethBalance) : '0'} ETH. Click below to withdraw all funds.`
+                                            ? `Vault balance: ${ethBalance && typeof ethBalance === 'bigint' ? formatEther(ethBalance) : '0'} ETH. Click below to withdraw all funds.`
                                             : 'Once the 30-day security hold expires, your funds will unlock for transfer.'
                                         }
                                     </p>

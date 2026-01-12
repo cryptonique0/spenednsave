@@ -113,7 +113,7 @@ export function RequestDetailView() {
     
     const guardianSignatures = (request.signatures || []).filter((s: any) => s.role === 'guardian');
     const signaturesCollected = guardianSignatures.length;
-    const requiredQuorum = quorum ? Number(quorum) : 2;
+    const requiredQuorum = quorum && typeof quorum === 'bigint' ? Number(quorum) : 2;
     const canExecute = signaturesCollected >= requiredQuorum;
     const amountETH = parseFloat(formatEther(BigInt(request.amount))).toFixed(4);
     

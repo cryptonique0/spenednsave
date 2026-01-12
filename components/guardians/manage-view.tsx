@@ -25,7 +25,7 @@ export function ManageGuardiansView() {
     const pendingRequestsCount = 0; // TODO: Fetch from contract when available
     const recentEvents: Array<{ id: string; type: 'added' | 'removed'; guardian: string; timestamp: number }> = guardiansList.map((g, i) => ({
         id: g.address,
-        type: 'added',
+        type: 'added' as const,
         guardian: g.address,
         timestamp: g.addedAt,
     })).reverse().slice(0, 5);
@@ -132,7 +132,7 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Policy</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum?.toString() || "..."} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardianCount || "..."}</span></h3>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum && typeof quorum === 'bigint' ? quorum.toString() : "..."} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardianCount || "..."}</span></h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Signatures Required</p>
                     </div>
                 </div>
@@ -264,12 +264,12 @@ export function ManageGuardiansView() {
                         <div className="bg-black/20 rounded-xl p-4 mb-4">
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-slate-400">Current Threshold</span>
-                                <span className="text-white font-bold">{quorum?.toString() || "..."}/{guardianCount || "..."}</span>
+                                <span className="text-white font-bold">{quorum && typeof quorum === 'bigint' ? quorum.toString() : "..."}/{guardianCount || "..."}</span>
                             </div>
                             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                                 <div 
                                     className="h-full bg-primary rounded-full" 
-                                    style={{ width: quorum && guardiansList.length ? `${(Number(quorum) / guardiansList.length) * 100}%` : '66%' }}
+                                    style={{ width: quorum && typeof quorum === 'bigint' && guardiansList.length ? `${(Number(quorum) / guardiansList.length) * 100}%` : '66%' }}
                                 ></div>
                             </div>
                         </div>
