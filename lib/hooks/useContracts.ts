@@ -25,6 +25,7 @@ export function useFactoryAddress() {
 
 /**
  * Hook to get user's vault and guardian token addresses from factory
+ * Returns [guardianToken, vault]
  */
 export function useUserContracts(userAddress?: Address) {
     const factoryAddress = useFactoryAddress();
@@ -37,7 +38,7 @@ export function useUserContracts(userAddress?: Address) {
         query: {
             enabled: !!factoryAddress && !!userAddress,
         },
-    });
+    }) as any;
 }
 
 /**

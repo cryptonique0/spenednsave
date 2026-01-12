@@ -31,7 +31,7 @@ export function EmergencyView() {
     const { executeUnlock, isPending: isExecuting, isConfirming: isConfirmingExecute, isSuccess: isExecuteSuccess } = useExecuteEmergencyUnlock(vaultAddress);
 
     // Get computed state
-    const { isActive, canExecute, timeLeft } = useEmergencyUnlockState(unlockRequestTime, timeRemaining);
+    const { isActive, canExecute, timeLeft } = useEmergencyUnlockState(unlockRequestTime as bigint | undefined, timeRemaining as bigint | undefined);
 
     const handleStartTimer = () => {
         requestUnlock();

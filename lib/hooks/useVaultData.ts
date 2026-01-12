@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -38,14 +39,13 @@ export interface DepositEvent {
  */
 export function useGuardians(guardianTokenAddress?: Address) {
     const publicClient = usePublicClient();
-    const { data: currentBlock } = useBlockNumber();
     const [guardians, setGuardians] = useState<Guardian[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
         async function fetchGuardians() {
-            if (!guardianTokenAddress || !publicClient || !currentBlock) {
+            if (!guardianTokenAddress || !publicClient) {
                 setGuardians([]);
                 return;
             }
@@ -77,33 +77,34 @@ export function useGuardians(guardianTokenAddress?: Address) {
                     const toBlock = currentBlock < fromBlock + CHUNK_SIZE - 1n ? currentBlock : fromBlock + CHUNK_SIZE - 1n;
                     
                     try {
-                        // Fetch GuardianAdded events
-                        const chunkAddedLogs = await publicClient.getLogs({
+                        // Fetch all logs from guardian token contract
+                        const chunkLogs = await publicClient.getLogs({
                             address: guardianTokenAddress,
-                            topics: [guardianAddedTopic],
                             fromBlock,
                             toBlock,
                         });
-                        addedLogs.push(...chunkAddedLogs);
+                        
+                        // Filter for GuardianAdded and GuardianRemoved events
+                        for (const log of chunkLogs) {
+                            try {
+                                const decoded = decodeEventLog({
+                                    abi: GuardianSBTABI,
+                                    data: log.data,
+                                    topics: log.topics,
+                                } as any);
+                                
+                                if ((decoded as any).eventName === 'GuardianAdded') {
+                                    addedLogs.push(log);
+                                } else if ((decoded as any).eventName === 'GuardianRemoved') {
+                                    removedLogs.push(log);
+                                }
+                            } catch (decodeErr) {
+                                // Not a guardianship event, skip
+                                continue;
+                            }
+                        }
                     } catch (chunkErr) {
-                        console.error('[useGuardians] Error fetching GuardianAdded chunk:', chunkErr);
-                    }
-                    
-                    try {
-                        // Fetch GuardianRemoved events
-                        const guardianRemovedTopic = getEventSelector({ name: 'GuardianRemoved', type: 'event', inputs: [
-                            { indexed: true, name: 'guardian', type: 'address' },
-                            { indexed: false, name: 'tokenId', type: 'uint256' },
-                        ] });
-                        const chunkRemovedLogs = await publicClient.getLogs({
-                            address: guardianTokenAddress,
-                            topics: [guardianRemovedTopic],
-                            fromBlock,
-                            toBlock,
-                        });
-                        removedLogs.push(...chunkRemovedLogs);
-                    } catch (chunkErr) {
-                        console.error('[useGuardians] Error fetching GuardianRemoved chunk:', chunkErr);
+                        console.error('[useGuardians] Error fetching chunk:', chunkErr);
                     }
                     
                     fromBlock = toBlock + 1n;
@@ -208,7 +209,7 @@ export function useGuardians(guardianTokenAddress?: Address) {
         }
 
         fetchGuardians();
-    }, [guardianTokenAddress, publicClient, currentBlock]);
+    }, [guardianTokenAddress, publicClient]);
 
     return { guardians, isLoading, error };
 }
@@ -218,7 +219,7 @@ export function useGuardians(guardianTokenAddress?: Address) {
  */
 export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
     const publicClient = usePublicClient();
-    const { data: currentBlock } = useBlockNumber();
+
     const [withdrawals, setWithdrawals] = useState<WithdrawalEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -363,7 +364,7 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
         }
 
         fetchWithdrawals();
-    }, [vaultAddress, publicClient, currentBlock, limit, refreshTrigger]);
+    }, [vaultAddress, publicClient, limit, refreshTrigger]);
 
     return { withdrawals, isLoading, error, refetch };
 }
@@ -373,7 +374,6 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
  */
 export function useDepositHistory(vaultAddress?: Address, limit = 50) {
     const publicClient = usePublicClient();
-    const { data: currentBlock } = useBlockNumber();
     const [deposits, setDeposits] = useState<DepositEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -532,7 +532,7 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
         }
 
         fetchDeposits();
-    }, [vaultAddress, publicClient, currentBlock, limit, refreshTrigger]);
+    }, [vaultAddress, publicClient, limit, refreshTrigger]);
 
     return { deposits, isLoading, error, refetch };
 }
