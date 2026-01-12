@@ -183,10 +183,15 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
     const [withdrawals, setWithdrawals] = useState<WithdrawalEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refetch = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
 
     useEffect(() => {
         async function fetchWithdrawals() {
-            if (!vaultAddress || !publicClient || !currentBlock) {
+            if (!vaultAddress || !publicClient) {
                 setWithdrawals([]);
                 return;
             }
@@ -277,9 +282,9 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
         }
 
         fetchWithdrawals();
-    }, [vaultAddress, publicClient, currentBlock, limit]);
+    }, [vaultAddress, publicClient, currentBlock, limit, refreshTrigger]);
 
-    return { withdrawals, isLoading, error };
+    return { withdrawals, isLoading, error, refetch };
 }
 
 /**
@@ -291,10 +296,15 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
     const [deposits, setDeposits] = useState<DepositEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refetch = () => {
+        setRefreshTrigger(prev => prev + 1);
+    };
 
     useEffect(() => {
         async function fetchDeposits() {
-            if (!vaultAddress || !publicClient || !currentBlock) {
+            if (!vaultAddress || !publicClient) {
                 setDeposits([]);
                 return;
             }
@@ -384,21 +394,26 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
         }
 
         fetchDeposits();
-    }, [vaultAddress, publicClient, currentBlock, limit]);
+    }, [vaultAddress, publicClient, currentBlock, limit, refreshTrigger]);
 
-    return { deposits, isLoading, error };
+    return { deposits, isLoading, error, refetch };
 }
 
 /**
  * Hook to get all activity (deposits, withdrawals, guardian changes)
  */
 export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: Address, limit = 50) {
-    const { deposits, isLoading: depositsLoading } = useDepositHistory(vaultAddress, limit);
-    const { withdrawals, isLoading: withdrawalsLoading } = useWithdrawalHistory(vaultAddress, limit);
+    const { deposits, isLoading: depositsLoading, refetch: refetchDeposits } = useDepositHistory(vaultAddress, limit);
+    const { withdrawals, isLoading: withdrawalsLoading, refetch: refetchWithdrawals } = useWithdrawalHistory(vaultAddress, limit);
     const { guardians, isLoading: guardiansLoading } = useGuardians(guardianTokenAddress);
 
     const [activities, setActivities] = useState<any[]>([]);
     const isLoading = depositsLoading || withdrawalsLoading || guardiansLoading;
+
+    const refetch = () => {
+        refetchDeposits();
+        refetchWithdrawals();
+    };
 
     useEffect(() => {
         console.log('[useVaultActivity] Combining activities...');
@@ -433,7 +448,7 @@ export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: 
         setActivities(limited);
     }, [deposits, withdrawals, guardians, limit]);
 
-    return { activities, isLoading };
+    return { activities, isLoading, refetch };
 }
 
 /**

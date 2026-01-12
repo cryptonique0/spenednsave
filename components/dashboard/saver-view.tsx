@@ -24,7 +24,7 @@ export function DashboardSaverView() {
     
     // Use new hooks for guardians and activity
     const { guardians, isLoading: guardiansLoading, error: guardiansError } = useGuardians(guardianTokenAddress);
-    const { activities, isLoading: activitiesLoading } = useVaultActivity(vaultAddress, guardianTokenAddress, 10);
+    const { activities, isLoading: activitiesLoading, refetch: refetchActivities } = useVaultActivity(vaultAddress, guardianTokenAddress, 10);
 
     // Debug logging
     useEffect(() => {
@@ -43,8 +43,9 @@ export function DashboardSaverView() {
         eventName: 'Deposited',
         enabled: !!vaultAddress,
         onLogs(logs) {
-            // Refetch balance when new deposits come in
+            // Refetch balance and activities when new deposits come in
             refetchBalance();
+            refetchActivities();
         },
     });
 
@@ -55,7 +56,8 @@ export function DashboardSaverView() {
         eventName: 'GuardianAdded',
         enabled: !!guardianTokenAddress,
         onLogs(logs) {
-            // Activities will auto-update via the useVaultActivity hook
+            // Refetch activities when guardians are added
+            refetchActivities();
         },
     });
 
@@ -65,10 +67,11 @@ export function DashboardSaverView() {
             // Wait a bit for the transaction to be indexed
             const timer = setTimeout(() => {
                 refetchBalance();
+                refetchActivities();
             }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [isSuccess, refetchBalance]);
+    }, [isSuccess, refetchBalance, refetchActivities]);
 
     const handleDeposit = () => {
         try {
