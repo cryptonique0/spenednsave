@@ -77,33 +77,34 @@ export function useGuardians(guardianTokenAddress?: Address) {
                     const toBlock = currentBlock < fromBlock + CHUNK_SIZE - 1n ? currentBlock : fromBlock + CHUNK_SIZE - 1n;
                     
                     try {
-                        // Fetch GuardianAdded events
-                        const chunkAddedLogs = await publicClient.getLogs({
+                        // Fetch all logs from guardian token contract
+                        const chunkLogs = await publicClient.getLogs({
                             address: guardianTokenAddress,
-                            topics: [guardianAddedTopic],
                             fromBlock,
                             toBlock,
                         });
-                        addedLogs.push(...chunkAddedLogs);
+                        
+                        // Filter for GuardianAdded and GuardianRemoved events
+                        for (const log of chunkLogs) {
+                            try {
+                                const decoded = decodeEventLog({
+                                    abi: GuardianSBTABI,
+                                    data: log.data,
+                                    topics: log.topics,
+                                } as any);
+                                
+                                if ((decoded as any).eventName === 'GuardianAdded') {
+                                    addedLogs.push(log);
+                                } else if ((decoded as any).eventName === 'GuardianRemoved') {
+                                    removedLogs.push(log);
+                                }
+                            } catch (decodeErr) {
+                                // Not a guardianship event, skip
+                                continue;
+                            }
+                        }
                     } catch (chunkErr) {
-                        console.error('[useGuardians] Error fetching GuardianAdded chunk:', chunkErr);
-                    }
-                    
-                    try {
-                        // Fetch GuardianRemoved events
-                        const guardianRemovedTopic = getEventSelector({ name: 'GuardianRemoved', type: 'event', inputs: [
-                            { indexed: true, name: 'guardian', type: 'address' },
-                            { indexed: false, name: 'tokenId', type: 'uint256' },
-                        ] });
-                        const chunkRemovedLogs = await publicClient.getLogs({
-                            address: guardianTokenAddress,
-                            topics: [guardianRemovedTopic],
-                            fromBlock,
-                            toBlock,
-                        });
-                        removedLogs.push(...chunkRemovedLogs);
-                    } catch (chunkErr) {
-                        console.error('[useGuardians] Error fetching GuardianRemoved chunk:', chunkErr);
+                        console.error('[useGuardians] Error fetching chunk:', chunkErr);
                     }
                     
                     fromBlock = toBlock + 1n;
