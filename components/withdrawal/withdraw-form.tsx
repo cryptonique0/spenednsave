@@ -26,6 +26,9 @@ export function WithdrawalForm() {
     
     const { signTypedData, data: signature, isPending: isSigning, isSuccess: isSignSuccess } = useSignTypedData();
 
+    // Calculate quorum value early for use in JSX
+    const quorumValue = (quorum && typeof quorum === 'bigint') ? quorum.toString() : '2';
+
     // Handle successful signature
     useEffect(() => {
         if (isSignSuccess && signature && withdrawalData) {
@@ -308,7 +311,6 @@ export function WithdrawalForm() {
 
     const balanceETH = (vaultBalance && typeof vaultBalance === 'bigint') ? formatEther(vaultBalance) : "0";
     const formattedBalance = parseFloat(balanceETH).toFixed(4);
-    const quorumValue = (quorum && typeof quorum === 'bigint') ? quorum.toString() : '2';
 
     return (
         <div className="w-full max-w-lg mx-auto">
