@@ -15,6 +15,7 @@ import type {
     SignedWithdrawal, 
     SignatureVerificationResult 
 } from '@/lib/types/guardian-signatures';
+import { GuardianSignatureDB } from '@/lib/services/guardian-signature-db';
 
 /**
  * EIP-712 Domain for SpendGuard signatures
