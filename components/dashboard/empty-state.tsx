@@ -37,21 +37,21 @@ export function DashboardEmptyState() {
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                                     <span className="text-xs font-semibold text-primary uppercase tracking-wide">Ready to Secure</span>
                                 </div>
-                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                                     Personal <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-500">Fortress.</span>
                                 </h1>
-                                <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
+                                <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 font-normal leading-relaxed max-w-xl mx-auto lg:mx-0">
                                     Your digital vault is ready. Experience social accountability on the Base blockchain. Deposit funds and assign Guardians to secure your savings.
                                 </p>
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                                <Link href="/vault/setup" className="group relative flex items-center justify-center gap-3 h-14 px-8 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold transition-all shadow-glow hover:shadow-primary/50 hover:-translate-y-0.5 active:translate-y-0">
+                                <Link href="/vault/setup" className="group relative flex items-center justify-center gap-3 h-14 px-8 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold transition-all shadow-glow hover:shadow-primary/50 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                     <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
                                     <span className="text-lg">Setup Vault</span>
                                 </Link>
-                                <button className="flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border hover:bg-gray-50 dark:hover:bg-[#1e2330] text-slate-700 dark:text-slate-200 font-semibold transition-all hover:border-gray-300 dark:hover:border-slate-600">
+                                <button className="flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border hover:bg-gray-50 dark:hover:bg-surface-border/80 text-slate-700 dark:text-slate-200 font-semibold transition-all hover:border-gray-300 dark:hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                     <span>How it works</span>
                                 </button>
                             </div>
@@ -72,15 +72,15 @@ export function DashboardEmptyState() {
             </section>
 
             {/* Stats Placeholders */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {[
                     { label: "Total Saved", value: "$0.00", icon: Shield, color: "blue" },
                     { label: "Guardians Active", value: "0", icon: Users, color: "indigo" },
                     { label: "Current Streak", value: "0", icon: Users, color: "orange" }
                 ].map((stat, i) => (
-                    <div key={i} className="flex flex-col justify-between p-6 rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border shadow-sm hover:shadow-md transition-all duration-300 group">
+                    <div key={i} className="flex flex-col justify-between p-6 sm:p-8 rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border shadow-card hover:shadow-lg transition-all duration-300 group min-h-[160px]">
                         <div className="flex justify-between items-start mb-4">
-                            <div className={`p-2.5 rounded-xl bg-gray-50 dark:bg-surface-border text-slate-500 dark:text-slate-400 group-hover:bg-${stat.color}-500 group-hover:text-white transition-colors`}>
+                            <div className={`p-2.5 rounded-xl bg-gray-50 dark:bg-surface-border text-slate-500 dark:text-slate-400 group-hover:bg-primary group-hover:text-white transition-colors`}>
                                 <stat.icon size={20} />
                             </div>
                         </div>

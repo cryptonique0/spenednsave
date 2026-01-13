@@ -70,11 +70,11 @@ export function LandingView() {
                                     </span>
                                     Live on Base Mainnet
                                 </div>
-                                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-slate-900 dark:text-white">
+                                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                                     Social locks for <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-400">better savings.</span>
                                 </h1>
-                                <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-lg">
+                                <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 font-normal leading-relaxed max-w-lg">
                                     Stop impulse buys. Lock your assets in a smart vault that only unlocks with approval from your trusted friends.
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-4 pt-2">
@@ -155,18 +155,18 @@ export function LandingView() {
                 </section>
 
                 {/* Features Section */}
-                <section className="py-24 bg-slate-50 dark:bg-[#060c1f]">
-                    <div className="w-full px-6 lg:px-12">
-                        <div className="text-center max-w-2xl mx-auto mb-16">
-                            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+                <section className="py-16 sm:py-20 md:py-24 bg-slate-50 dark:bg-[#060c1f]">
+                    <div className="w-full px-4 sm:px-6 lg:px-12">
+                        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+                            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
                                 Bank-grade security. <br /><span className="text-slate-500 dark:text-slate-400">Friend-grade trust.</span>
                             </h2>
-                            <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
+                            <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-400">
                                 Three simple steps to secure your financial future through social accountability and blockchain transparency.
                             </p>
                         </div>
-                        <div className="grid md:grid-cols-3 gap-8">
-                            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 hover:border-blue-500/30 transition-all hover:shadow-xl dark:hover:shadow-blue-900/10 group">
+                        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+                            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 hover:border-blue-500/30 transition-all hover:shadow-xl dark:hover:shadow-blue-900/10 group min-h-[220px]">
                                 <div className="flex items-center justify-center size-14 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 mb-6 group-hover:scale-110 transition-transform">
                                     <Wallet size={32} />
                                 </div>

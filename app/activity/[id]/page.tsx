@@ -6,7 +6,7 @@ export default function RequestDetailPage() {
     return (
         <>
             <Navbar />
-            <main className="flex-grow flex flex-col items-center justify-start w-full">
+            <main className="flex-grow flex flex-col items-center justify-start w-full px-6 py-8 md:px-8 md:py-12">
                 <RequestDetailView />
             </main>
             <Footer />

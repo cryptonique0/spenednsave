@@ -6,7 +6,7 @@ export default function GuardiansPage() {
     return (
         <>
             <Navbar />
-            <main className="flex-grow flex flex-col justify-start py-8 px-4 sm:px-6 lg:px-8">
+            <main className="flex-grow flex flex-col justify-start px-6 py-8 md:px-8 md:py-12">
                 <ManageGuardiansView />
             </main>
             <Footer />
