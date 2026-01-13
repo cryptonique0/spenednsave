@@ -4,11 +4,9 @@ import { useState, useEffect } from "react";
 import { Shield, ArrowRight, User, Check, X, AlertCircle } from "lucide-react";
 import { useAccount, useSignTypedData, useChainId } from "wagmi";
 import { useUserContracts, useVaultQuorum, useIsGuardian } from "@/lib/hooks/useContracts";
-import { useVaultBalance } from "@/lib/hooks/useVaultData";
 import { type Address, formatEther } from "viem";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
-import { getWithdrawalRiskAssessment, type WithdrawalRequest, type RiskLevel } from "@/lib/riskAssessment";
 
 export function VotingView() {
     const [status, setStatus] = useState<'loading' | 'pending' | 'signed' | 'empty' | 'unauthorized'>('loading');
@@ -21,10 +19,7 @@ export function VotingView() {
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
     const { data: quorum } = useVaultQuorum(vaultAddress);
     const { data: isGuardian, isLoading: isCheckingGuardian } = useIsGuardian(guardianTokenAddress, address);
-    const { data: vaultBalance } = useVaultBalance(vaultAddress);
-
-    // Risk assessment state
-    const [riskLevel, setRiskLevel] = useState<RiskLevel | null>(null);
+    // ...existing code...
     
     const { signTypedData, data: signature, isPending: isSigning, isSuccess: isSignSuccess } = useSignTypedData();
 
@@ -279,24 +274,7 @@ export function VotingView() {
     const pendingRequest = pendingRequests.length > 0 ? pendingRequests[0] : null;
 
     // Run risk assessment when pendingRequest or vaultBalance changes
-    useEffect(() => {
-        async function assessRisk() {
-            if (!pendingRequest || !vaultBalance) {
-                setRiskLevel(null);
-                return;
-            }
-            const req: WithdrawalRequest = {
-                amount: pendingRequest.amount,
-                token: pendingRequest.token,
-                recipient: pendingRequest.recipient,
-                reason: pendingRequest.reason,
-                vaultBalance: vaultBalance.toString(),
-            };
-            const risk = await getWithdrawalRiskAssessment(req);
-            setRiskLevel(risk);
-        }
-        assessRisk();
-    }, [pendingRequest, vaultBalance]);
+    // ...existing code...
 
     // Render pending request if available
     if (status === 'pending' && pendingRequest) {
@@ -330,15 +308,7 @@ export function VotingView() {
                         </div>
                     </div>
 
-                    {/* Risk Assessment Summary */}
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-surface-border/30 border border-gray-200 dark:border-surface-border">
-                        <AlertCircle size={20} className={
-                            riskLevel === 'high risk' ? 'text-red-500' : riskLevel === 'medium risk' ? 'text-yellow-500' : 'text-emerald-500'
-                        } />
-                        <span className="text-sm font-semibold">
-                            Risk Assessment: {riskLevel ? riskLevel : 'Calculating...'}
-                        </span>
-                    </div>
+                    {/* Risk Assessment Removed */}
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center text-sm">

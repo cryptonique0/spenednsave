@@ -2,8 +2,11 @@
 
 import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Users } from "lucide-react";
 import { useAccount } from "wagmi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Contract, providers } from "ethers";
+// import GuardianSBT ABI and address
+import GuardianSBTABI from "@/lib/abis/GuardianSBT.json";
 
 // Mock data for pending withdrawal requests
 // In production, this would come from contract events or a backend
@@ -50,31 +53,28 @@ const mockPendingRequests = [
     },
 ];
 
+const GUARDIAN_SBT_ADDRESS = process.env.NEXT_PUBLIC_GUARDIAN_SBT_ADDRESS;
+
 export function DashboardGuardianView() {
     const { address } = useAccount();
+    const [vaults, setVaults] = useState<any[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
 
-    const handleApprove = (requestId: string) => {
-        console.log("Approving request:", requestId);
-        // TODO: Sign the withdrawal request with EIP-712
-        alert("Signing withdrawal request...");
-    };
-
-    const handleReject = (requestId: string) => {
-        console.log("Rejecting request:", requestId);
-        // TODO: Implement rejection logic (optional - can just not sign)
-        alert("Request rejected");
-    };
-
-    const pendingRequests = mockPendingRequests.filter(r => !r.status);
-    const completedRequests = mockPendingRequests.filter(r => r.status);
-
-    return (
-        <div className="w-full flex flex-col gap-8">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Guardian Dashboard</h1>
+    useEffect(() => {
+        async function fetchVaults() {
+            if (!address || !GUARDIAN_SBT_ADDRESS) return;
+            // Use ethers.js to call getVaultsForGuardian
+            const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+            const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
+            const vaultAddresses: string[] = await contract.getVaultsForGuardian(address);
+            // For each vault, fetch name, owner, and pending approvals (mocked for now)
+            // Replace with actual contract calls as needed
+            const vaultData = await Promise.all(
+                vaultAddresses.map(async (vaultAddr) => ({
+                    vaultAddress: vaultAddr,
+                    vaultName: `Vault ${vaultAddr.slice(2, 8)}`,
+                    owner: "0xOwner...", // TODO: fetch from SpendVault contract
+                    pendingApprovals: Math.floor(Math.random() * 3), // TODO: fetch actual pending approvals
                     <p className="text-slate-600 dark:text-slate-400 mt-1">Review and approve withdrawal requests from your friends</p>
                 </div>
                 <div className="flex items-center gap-3 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
