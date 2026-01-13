@@ -37,12 +37,28 @@ init();
 
 export class GuardianSignatureDB {
   static savePendingRequest(request: PendingWithdrawalRequest) {
+    // Serialize BigInt fields (amount, nonce) inside request and inside signatures
+    const serializableRequest = {
+      ...request.request,
+      amount: request.request.amount.toString(),
+      nonce: request.request.nonce.toString(),
+    };
+
+    const serializableSignatures = request.signatures.map((s: SignedWithdrawal) => ({
+      ...s,
+      request: {
+        ...s.request,
+        amount: s.request.amount.toString(),
+        nonce: s.request.nonce.toString(),
+      },
+    }));
+
     db.prepare(`REPLACE INTO pending_requests (id, vaultAddress, request, signatures, requiredQuorum, status, createdAt, executedAt, executionTxHash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
         request.id,
         request.vaultAddress,
-        JSON.stringify(request.request),
-        JSON.stringify(request.signatures),
+        JSON.stringify(serializableRequest),
+        JSON.stringify(serializableSignatures),
         request.requiredQuorum,
         request.status,
         request.createdAt,
@@ -55,8 +71,29 @@ export class GuardianSignatureDB {
     const rows = db.prepare('SELECT * FROM pending_requests').all();
     return rows.map(row => ({
       ...row,
-      request: JSON.parse(row.request),
-      signatures: JSON.parse(row.signatures),
+      request: (() => {
+        const req = JSON.parse(row.request);
+        return {
+          ...req,
+          amount: BigInt(req.amount),
+          nonce: BigInt(req.nonce),
+        };
+      })(),
+      signatures: (() => {
+        try {
+          const sigs = JSON.parse(row.signatures);
+          return sigs.map((s: any) => ({
+            ...s,
+            request: {
+              ...s.request,
+              amount: BigInt(s.request.amount),
+              nonce: BigInt(s.request.nonce),
+            },
+          }));
+        } catch (e) {
+          return [];
+        }
+      })(),
       requiredQuorum: row.requiredQuorum,
       status: row.status,
       createdAt: row.createdAt,
@@ -70,8 +107,29 @@ export class GuardianSignatureDB {
     if (!row) return null;
     return {
       ...row,
-      request: JSON.parse(row.request),
-      signatures: JSON.parse(row.signatures),
+      request: (() => {
+        const req = JSON.parse(row.request);
+        return {
+          ...req,
+          amount: BigInt(req.amount),
+          nonce: BigInt(req.nonce),
+        };
+      })(),
+      signatures: (() => {
+        try {
+          const sigs = JSON.parse(row.signatures);
+          return sigs.map((s: any) => ({
+            ...s,
+            request: {
+              ...s.request,
+              amount: BigInt(s.request.amount),
+              nonce: BigInt(s.request.nonce),
+            },
+          }));
+        } catch (e) {
+          return [];
+        }
+      })(),
       requiredQuorum: row.requiredQuorum,
       status: row.status,
       createdAt: row.createdAt,
