@@ -50,6 +50,6 @@ export async function mintGuardianBadge(
   badgeType: BadgeType,
   level: number
 ) {
-  const contract = new ethers.Contract(contractAddress, GuardianBadgeABI, provider);
+  const contract = new ethers.Contract(contractAddress, GuardianBadgeABI.default ?? GuardianBadgeABI, provider);
   return contract.mintBadge(guardian, badgeType, level);
 }
