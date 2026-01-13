@@ -34,6 +34,26 @@ export function useGuardianSignatures(vaultAddress?: Address) {
         }
     }, [publicClient, walletClient]);
 
+    // Helper to record an account activity via API
+    const recordActivity = useCallback(async (activity: {
+        id: string;
+        account: string;
+        type: string;
+        details?: any;
+        relatedRequestId?: string;
+        timestamp: number;
+    }) => {
+        try {
+            await fetch('/api/activities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(activity),
+            });
+        } catch (err) {
+            console.error('Failed to record activity:', err);
+        }
+    }, []);
+
     /**
      * Get pending requests for current vault
      */
@@ -157,6 +177,18 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             if (!res.ok) throw new Error('Failed to save pending request');
             const saved: PendingWithdrawalRequest = await res.json();
             setPendingRequests((prev) => [...prev, saved]);
+            // record activity
+            if (userAddress) {
+                const activityId = `${userAddress}-${Date.now()}`;
+                recordActivity({
+                    id: activityId,
+                    account: userAddress,
+                    type: 'create_request',
+                    details: { requestId: saved.id, vaultAddress: saved.vaultAddress },
+                    relatedRequestId: saved.id,
+                    timestamp: Date.now(),
+                });
+            }
             return saved;
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : 'Failed to create withdrawal request';
@@ -211,6 +243,17 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             if (!putRes.ok) throw new Error('Failed to save signature');
 
             setPendingRequests((prev) => prev.map(r => r.id === updated.id ? updated : r));
+            if (userAddress) {
+                const activityId = `${userAddress}-sign-${Date.now()}`;
+                recordActivity({
+                    id: activityId,
+                    account: userAddress,
+                    type: 'sign_request',
+                    details: { requestId: updated.id, signer: signedWithdrawal.signer },
+                    relatedRequestId: updated.id,
+                    timestamp: Date.now(),
+                });
+            }
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : 'Failed to sign request';
             setError(errorMsg);
@@ -273,6 +316,18 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             if (!putRes.ok) throw new Error('Failed to mark executed');
 
             setPendingRequests((prev) => prev.map(r => r.id === executed.id ? executed : r));
+
+            if (userAddress) {
+                const activityId = `${userAddress}-exec-${Date.now()}`;
+                recordActivity({
+                    id: activityId,
+                    account: userAddress,
+                    type: 'execute_withdrawal',
+                    details: { requestId: executed.id, txHash },
+                    relatedRequestId: executed.id,
+                    timestamp: Date.now(),
+                });
+            }
 
             return txHash;
         } catch (err) {
@@ -384,6 +439,18 @@ export function useGuardianSignatures(vaultAddress?: Address) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'rejected' }),
         }).catch((err) => console.error('Failed to reject request:', err));
+
+        if (userAddress) {
+            const activityId = `${userAddress}-reject-${Date.now()}`;
+            recordActivity({
+                id: activityId,
+                account: userAddress,
+                type: 'reject_request',
+                details: { requestId },
+                relatedRequestId: requestId,
+                timestamp: Date.now(),
+            });
+        }
     }, []);
 
     /**
@@ -392,6 +459,18 @@ export function useGuardianSignatures(vaultAddress?: Address) {
     const deleteRequest = useCallback((requestId: string): void => {
         setPendingRequests((prev) => prev.filter(r => r.id !== requestId));
         fetch(`/api/guardian-signatures/${requestId}`, { method: 'DELETE' }).catch((err) => console.error('Failed to delete request:', err));
+
+        if (userAddress) {
+            const activityId = `${userAddress}-delete-${Date.now()}`;
+            recordActivity({
+                id: activityId,
+                account: userAddress,
+                type: 'delete_request',
+                details: { requestId },
+                relatedRequestId: requestId,
+                timestamp: Date.now(),
+            });
+        }
     }, []);
 
     return {
