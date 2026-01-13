@@ -141,16 +141,29 @@ export class GuardianSignatureDB {
     return rows.map(row => ({
       ...row,
       request: (() => {
-        const req = JSON.parse(row.request);
-        return {
-          ...req,
-          amount: BigInt(req.amount),
-          nonce: BigInt(req.nonce),
-        };
+        try {
+          // Try decrypting first (handles both encrypted and plaintext payloads)
+          const decrypted = decryptString(row.request);
+          const req = JSON.parse(decrypted);
+          return {
+            ...req,
+            amount: BigInt(req.amount),
+            nonce: BigInt(req.nonce),
+          };
+        } catch (e) {
+          // Fallback: attempt to parse raw
+          const req = JSON.parse(row.request);
+          return {
+            ...req,
+            amount: BigInt(req.amount),
+            nonce: BigInt(req.nonce),
+          };
+        }
       })(),
       signatures: (() => {
         try {
-          const sigs = JSON.parse(row.signatures);
+          const decrypted = decryptString(row.signatures);
+          const sigs = JSON.parse(decrypted);
           return sigs.map((s: any) => ({
             ...s,
             request: {
@@ -160,7 +173,19 @@ export class GuardianSignatureDB {
             },
           }));
         } catch (e) {
-          return [];
+          try {
+            const sigs = JSON.parse(row.signatures);
+            return sigs.map((s: any) => ({
+              ...s,
+              request: {
+                ...s.request,
+                amount: BigInt(s.request.amount),
+                nonce: BigInt(s.request.nonce),
+              },
+            }));
+          } catch (e2) {
+            return [];
+          }
         }
       })(),
       requiredQuorum: row.requiredQuorum,
@@ -177,16 +202,28 @@ export class GuardianSignatureDB {
     return {
       ...row,
       request: (() => {
-        const req = JSON.parse(row.request);
-        return {
-          ...req,
-          amount: BigInt(req.amount),
-          nonce: BigInt(req.nonce),
-        };
+        try {
+          // Try decrypting first (handles both encrypted and plaintext payloads)
+          const decrypted = decryptString(row.request);
+          const req = JSON.parse(decrypted);
+          return {
+            ...req,
+            amount: BigInt(req.amount),
+            nonce: BigInt(req.nonce),
+          };
+        } catch (e) {
+          const req = JSON.parse(row.request);
+          return {
+            ...req,
+            amount: BigInt(req.amount),
+            nonce: BigInt(req.nonce),
+          };
+        }
       })(),
       signatures: (() => {
         try {
-          const sigs = JSON.parse(row.signatures);
+          const decrypted = decryptString(row.signatures);
+          const sigs = JSON.parse(decrypted);
           return sigs.map((s: any) => ({
             ...s,
             request: {
@@ -196,7 +233,19 @@ export class GuardianSignatureDB {
             },
           }));
         } catch (e) {
-          return [];
+          try {
+            const sigs = JSON.parse(row.signatures);
+            return sigs.map((s: any) => ({
+              ...s,
+              request: {
+                ...s.request,
+                amount: BigInt(s.request.amount),
+                nonce: BigInt(s.request.nonce),
+              },
+            }));
+          } catch (e2) {
+            return [];
+          }
         }
       })(),
       requiredQuorum: row.requiredQuorum,
@@ -220,12 +269,15 @@ export class GuardianSignatureDB {
     relatedRequestId?: string;
     timestamp: number;
   }) {
+    // Encrypt details blob
+    const detailsStr = JSON.stringify(activity.details ?? {});
+    const encDetails = encryptString(detailsStr);
     db.prepare(`REPLACE INTO account_activities (id, account, type, details, relatedRequestId, timestamp) VALUES (?, ?, ?, ?, ?, ?)`)
       .run(
         activity.id,
         activity.account,
         activity.type,
-        JSON.stringify(activity.details ?? {}),
+        encDetails,
         activity.relatedRequestId ?? null,
         activity.timestamp
       );
@@ -237,7 +289,7 @@ export class GuardianSignatureDB {
       id: row.id,
       account: row.account,
       type: row.type,
-      details: row.details ? JSON.parse(row.details) : undefined,
+      details: row.details ? JSON.parse(decryptString(row.details)) : undefined,
       relatedRequestId: row.relatedRequestId,
       timestamp: row.timestamp,
     }));
@@ -249,7 +301,7 @@ export class GuardianSignatureDB {
       id: row.id,
       account: row.account,
       type: row.type,
-      details: row.details ? JSON.parse(row.details) : undefined,
+      details: row.details ? JSON.parse(decryptString(row.details)) : undefined,
       relatedRequestId: row.relatedRequestId,
       timestamp: row.timestamp,
     }));
@@ -262,7 +314,7 @@ export class GuardianSignatureDB {
       id: row.id,
       account: row.account,
       type: row.type,
-      details: row.details ? JSON.parse(row.details) : undefined,
+      details: row.details ? JSON.parse(decryptString(row.details)) : undefined,
       relatedRequestId: row.relatedRequestId,
       timestamp: row.timestamp,
     };
