@@ -8,50 +8,6 @@ import { Contract, providers } from "ethers";
 // import GuardianSBT ABI and address
 import GuardianSBTABI from "@/lib/abis/GuardianSBT.json";
 
-// Mock data for pending withdrawal requests
-// In production, this would come from contract events or a backend
-const mockPendingRequests = [
-    {
-        id: "1",
-        saverAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-        saverName: "alice.eth",
-        amount: "0.5 ETH",
-        amountUSD: "$1,250.00",
-        reason: "Emergency medical expenses",
-        timestamp: "2 hours ago",
-        requiredSignatures: 2,
-        currentSignatures: 0,
-        hasUserSigned: false,
-        vaultAddress: "0x1234...5678",
-    },
-    {
-        id: "2",
-        saverAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
-        saverName: "bob.base",
-        amount: "1.2 ETH",
-        amountUSD: "$3,000.00",
-        reason: "Car repair - transmission failure",
-        timestamp: "5 hours ago",
-        requiredSignatures: 3,
-        currentSignatures: 1,
-        hasUserSigned: false,
-        vaultAddress: "0x5678...9abc",
-    },
-    {
-        id: "3",
-        saverAddress: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-        saverName: "charlie.eth",
-        amount: "0.3 ETH",
-        amountUSD: "$750.00",
-        reason: "Laptop replacement for work",
-        timestamp: "1 day ago",
-        requiredSignatures: 2,
-        currentSignatures: 2,
-        hasUserSigned: true,
-        vaultAddress: "0x9abc...def0",
-        status: "approved",
-    },
-];
 
 const GUARDIAN_SBT_ADDRESS = process.env.NEXT_PUBLIC_GUARDIAN_SBT_ADDRESS;
 
@@ -67,17 +23,9 @@ export function DashboardGuardianView() {
             const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
             const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
             const vaultAddresses: string[] = await contract.getVaultsForGuardian(address);
-            // For each vault, fetch name, owner, and pending approvals (mocked for now)
-            // Replace with actual contract calls as needed
-            const vaultData = await Promise.all(
-                vaultAddresses.map(async (vaultAddr) => ({
-                    vaultAddress: vaultAddr,
-                    vaultName: `Vault ${vaultAddr.slice(2, 8)}`,
-                    owner: "0xOwner...", // TODO: fetch from SpendVault contract
-                    pendingApprovals: Math.floor(Math.random() * 3), // TODO: fetch actual pending approvals
-                }))
-            );
-            setVaults(vaultData);
+            // For each vault, fetch name, owner, and pending approvals from contract/backend
+            // TODO: Replace with actual contract calls
+            setVaults([]);
         }
         fetchVaults();
     }, [address]);
@@ -93,7 +41,8 @@ export function DashboardGuardianView() {
             name: 'SpendGuard',
             version: '1',
             chainId: 84532, // Replace with actual chainId
-            verifyingContract: request.vaultAddress,
+            verifyingContract: request.vaultAddr
+            ess,
         };
         const types = {
             Withdrawal: [
@@ -138,33 +87,14 @@ export function DashboardGuardianView() {
         alert("Request rejected");
     };
 
-    // Replace mock data with real contract reads
+    // Real contract/backend data should be loaded here
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [completedRequests, setCompletedRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
     useEffect(() => {
-        async function fetchRequests() {
-            setLoading(true);
-            setError(null);
-            try {
-                // Example: fetch from backend or contract events
-                // Replace with actual contract call logic
-                // const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
-                // const contract = new Contract(vaultAddress, SpendVaultABI, provider);
-                // const requests = await contract.getPendingRequests(address);
-                // setPendingRequests(requests);
-                // setCompletedRequests(await contract.getCompletedRequests(address));
-                // For now, fallback to mock data if contract fails
-                setPendingRequests(mockPendingRequests.filter(r => !r.status));
-                setCompletedRequests(mockPendingRequests.filter(r => r.status));
-            } catch (err) {
-                setError('Failed to fetch requests');
-            }
-            setLoading(false);
-        }
-        fetchRequests();
+        // TODO: Fetch pending/completed requests from contract or backend
+        setLoading(false);
     }, [address]);
 
     return (
