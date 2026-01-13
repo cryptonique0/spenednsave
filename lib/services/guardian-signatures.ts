@@ -15,7 +15,8 @@ import type {
     SignedWithdrawal, 
     SignatureVerificationResult 
 } from '@/lib/types/guardian-signatures';
-import { GuardianSignatureDB } from '@/lib/services/guardian-signature-db';
+// NOTE: DB access is server-only and provided via API routes.
+// Do not import server-only modules in this file to keep it safe for client use.
 
 /**
  * EIP-712 Domain for SpendGuard signatures

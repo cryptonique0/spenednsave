@@ -7,8 +7,6 @@ import {
     GuardianSignatureService, 
     createGuardianSignatureService 
 } from '@/lib/services/guardian-signatures';
-// import { SignatureStorageService } from '@/lib/services/signature-storage';
-import { GuardianSignatureDB } from '@/lib/services/guardian-signature-db';
 import type { 
     WithdrawalRequest, 
     PendingWithdrawalRequest,
@@ -24,6 +22,7 @@ export function useGuardianSignatures(vaultAddress?: Address) {
     const { data: walletClient } = useWalletClient();
     const { address: userAddress } = useAccount();
     const [service, setService] = useState<GuardianSignatureService | null>(null);
+    const [pendingRequests, setPendingRequests] = useState<PendingWithdrawalRequest[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -38,10 +37,31 @@ export function useGuardianSignatures(vaultAddress?: Address) {
     /**
      * Get pending requests for current vault
      */
+    // Return cached pending requests for sync usage in UI components
     const getPendingRequests = useCallback((): PendingWithdrawalRequest[] => {
         if (!vaultAddress) return [];
-        // Use DB for persistent storage
-        return GuardianSignatureDB.getPendingRequests().filter(req => req.vaultAddress.toLowerCase() === vaultAddress.toLowerCase());
+        return pendingRequests.filter(req => req.vaultAddress.toLowerCase() === vaultAddress.toLowerCase());
+    }, [vaultAddress, pendingRequests]);
+
+    // Load pending requests from server when vault changes
+    useEffect(() => {
+        if (!vaultAddress) return;
+
+        let mounted = true;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/guardian-signatures');
+                if (!res.ok) throw new Error('Failed to load pending requests');
+                const all: PendingWithdrawalRequest[] = await res.json();
+                if (!mounted) return;
+                setPendingRequests(all.filter(r => r.vaultAddress.toLowerCase() === vaultAddress.toLowerCase()));
+            } catch (err) {
+                console.error('Failed to fetch pending requests:', err);
+            }
+        })();
+
+        return () => { mounted = false; };
     }, [vaultAddress]);
 
     /**
