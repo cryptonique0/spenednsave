@@ -220,6 +220,8 @@ function balanceOf(address account) external view returns (uint256)
 - EIP-712 signature verification
 - Nonce-based replay protection
 - Emergency timelock escape hatch
+- **Guardian Reputation System**: Each guardian tracks approvals, rejections, and last activity
+- **Weighted Quorum (Optional)**: Withdrawals can use trust scores for weighted voting
 
 **Main Functions**:
 ```solidity
@@ -236,6 +238,12 @@ function withdraw(
     bytes[] memory signatures
 ) external onlyOwner nonReentrant
 
+// Guardian Reputation
+function getGuardianTrustScore(address guardian) public view returns (uint256)
+
+// Weighted Quorum Management
+function setWeightedQuorum(bool enabled, uint256 threshold) external onlyOwner
+
 // Emergency access
 function requestEmergencyUnlock() external onlyOwner
 function executeEmergencyUnlock(address token) external onlyOwner
@@ -244,6 +252,15 @@ function executeEmergencyUnlock(address token) external onlyOwner
 function setQuorum(uint256 _newQuorum) external onlyOwner
 function updateGuardianToken(address _newToken) external onlyOwner
 ```
+
+**Guardian Reputation System**:
+- Each guardian has:
+  - `approvalsCount`: Number of approvals
+  - `rejectionsCount`: Number of rejections
+  - `lastActiveTimestamp`: Last time they participated
+- Trust score is calculated from approval ratio and recent activity
+- Weighted quorum mode can be enabled for trust-based voting
+- Backward compatible: can use equal voting (N-of-M) or weighted quorum
 
 ### VaultFactory.sol
 

@@ -24,6 +24,18 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     uint256 public quorum;
     uint256 public nonce;
 
+    // Guardian reputation system
+    struct GuardianReputation {
+        uint256 approvalsCount;
+        uint256 rejectionsCount;
+        uint256 lastActiveTimestamp;
+    }
+    mapping(address => GuardianReputation) public guardianReputations;
+
+    // Weighted quorum mode
+    bool public weightedQuorumEnabled;
+    uint256 public weightedQuorumThreshold; // e.g., 1000 (trust score sum required)
+
     // Emergency unlock state
     uint256 public unlockRequestTime;
     uint256 public constant TIMELOCK_DURATION = 30 days;
@@ -63,6 +75,17 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 oldQuorum = quorum;
         quorum = _newQuorum;
         emit QuorumUpdated(oldQuorum, _newQuorum);
+    }
+
+    /**
+     * @notice Enable or disable weighted quorum mode
+     * @param enabled True to enable, false to disable
+     * @param threshold Trust score sum required for weighted quorum
+     */
+    function setWeightedQuorum(bool enabled, uint256 threshold) external onlyOwner {
+        weightedQuorumEnabled = enabled;
+        weightedQuorumThreshold = threshold;
+    }
     }
 
     /**
@@ -124,7 +147,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     ) external nonReentrant {
         require(recipient != address(0), "Invalid recipient");
         require(amount > 0, "Amount must be greater than 0");
-        require(signatures.length >= quorum, "Insufficient signatures");
+        require(signatures.length > 0, "No signatures provided");
 
         // Build EIP-712 hash
         bytes32 structHash = keccak256(
@@ -142,26 +165,35 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         // Verify signatures
         address[] memory signers = new address[](signatures.length);
         uint256 validSignatures = 0;
+        uint256 trustScoreSum = 0;
 
         for (uint256 i = 0; i < signatures.length; i++) {
             address signer = hash.recover(signatures[i]);
-            
             // Check if signer is a guardian
             require(
                 IGuardianSBT(guardianToken).balanceOf(signer) > 0,
                 "Signer is not a guardian"
             );
-
             // Check for duplicate signers
             for (uint256 j = 0; j < validSignatures; j++) {
                 require(signers[j] != signer, "Duplicate signature");
             }
-
             signers[validSignatures] = signer;
             validSignatures++;
+
+            // Update guardian reputation
+            guardianReputations[signer].approvalsCount++;
+            guardianReputations[signer].lastActiveTimestamp = block.timestamp;
+
+            // Calculate trust score for weighted quorum
+            trustScoreSum += getGuardianTrustScore(signer);
         }
 
-        require(validSignatures >= quorum, "Quorum not met");
+        if (weightedQuorumEnabled) {
+            require(trustScoreSum >= weightedQuorumThreshold, "Weighted quorum not met");
+        } else {
+            require(validSignatures >= quorum, "Quorum not met");
+        }
 
         // Increment nonce to prevent replay attacks
         nonce++;
@@ -229,6 +261,30 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     }
 
     // ============ View Functions ============
+
+    /**
+     * @notice Get guardian trust score
+     * @param guardian Guardian address
+     * @return trustScore Calculated trust score
+     */
+    function getGuardianTrustScore(address guardian) public view returns (uint256 trustScore) {
+        GuardianReputation memory rep = guardianReputations[guardian];
+        uint256 totalActions = rep.approvalsCount + rep.rejectionsCount;
+        if (totalActions == 0) {
+            return 0;
+        }
+        // Approval ratio (scaled to 1000)
+        uint256 approvalRatio = (rep.approvalsCount * 1000) / totalActions;
+        // Activity bonus: 0-1000, decays if inactive >30 days
+        uint256 activityBonus = 0;
+        if (rep.lastActiveTimestamp > 0) {
+            uint256 daysSinceActive = (block.timestamp - rep.lastActiveTimestamp) / 1 days;
+            if (daysSinceActive < 30) {
+                activityBonus = 1000 - (daysSinceActive * 33); // Linear decay
+            }
+        }
+        trustScore = approvalRatio + activityBonus; // Max 2000
+    }
 
     /**
      * @notice Get the contract's ETH balance
