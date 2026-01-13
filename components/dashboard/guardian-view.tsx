@@ -42,7 +42,6 @@ export function DashboardGuardianView() {
             version: '1',
             chainId: 84532, // Replace with actual chainId
             verifyingContract: request.vaultAddr
-            ess,
         };
         const types = {
             Withdrawal: [
