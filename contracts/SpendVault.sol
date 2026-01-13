@@ -17,6 +17,13 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+            // Withdrawal metadata struct
+            struct WithdrawalMetadata {
+                string category;
+                bytes32 reasonHash;
+                uint256 createdAt;
+            }
+            mapping(uint256 => WithdrawalMetadata) public withdrawalMetadatas; // nonce => metadata
         // Emergency guardian rotation
         struct GuardianRotation {
             address inactiveGuardian;
@@ -112,12 +119,13 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     // EIP-712 Type Hash
     bytes32 private constant WITHDRAWAL_TYPEHASH = keccak256(
-        "Withdrawal(address token,uint256 amount,address recipient,uint256 nonce,string reason)"
+        "Withdrawal(address token,uint256 amount,address recipient,uint256 nonce,string reason,string category,uint256 createdAt)"
     );
 
     // Events
     event Deposited(address indexed token, address indexed from, uint256 amount);
-    event Withdrawn(address indexed token, address indexed recipient, uint256 amount, string reason);
+    event Withdrawn(address indexed token, address indexed recipient, uint256 amount, string reason, string category, bytes32 reasonHash, uint256 createdAt);
+    event GuardianSignature(address indexed guardian, uint256 nonce, string category, bytes32 reasonHash, uint256 createdAt);
     event QuorumUpdated(uint256 oldQuorum, uint256 newQuorum);
     event GuardianTokenUpdated(address oldToken, address newToken);
     event EmergencyUnlockRequested(uint256 unlockTime);
@@ -213,12 +221,15 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 amount,
         address recipient,
         string memory reason,
+        string memory category,
+        uint256 createdAt,
         bytes[] memory signatures
     ) external nonReentrant {
         require(recipient != address(0), "Invalid recipient");
         require(amount > 0, "Amount must be greater than 0");
         require(signatures.length > 0, "No signatures provided");
 
+        bytes32 reasonHash = keccak256(bytes(reason));
         // Build EIP-712 hash
         bytes32 structHash = keccak256(
             abi.encode(
@@ -227,10 +238,19 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
                 amount,
                 recipient,
                 nonce,
-                keccak256(bytes(reason))
+                reasonHash,
+                keccak256(bytes(category)),
+                createdAt
             )
         );
         bytes32 hash = _hashTypedDataV4(structHash);
+
+        // Store metadata
+        withdrawalMetadatas[nonce] = WithdrawalMetadata({
+            category: category,
+            reasonHash: reasonHash,
+            createdAt: createdAt
+        });
 
         // Verify signatures
         address[] memory signers = new address[](signatures.length);
@@ -257,6 +277,9 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
             // Calculate trust score for weighted quorum
             trustScoreSum += getGuardianTrustScore(signer);
+
+            // Emit event linking signature to metadata
+            emit GuardianSignature(signer, nonce, category, reasonHash, createdAt);
         }
 
         if (weightedQuorumEnabled) {
@@ -279,7 +302,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
             IERC20(token).transfer(recipient, amount);
         }
 
-        emit Withdrawn(token, recipient, amount, reason);
+        emit Withdrawn(token, recipient, amount, reason, category, reasonHash, createdAt);
     }
 
     // ============ Emergency Functions ============
