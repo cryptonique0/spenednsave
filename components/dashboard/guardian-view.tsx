@@ -138,11 +138,47 @@ export function DashboardGuardianView() {
         alert("Request rejected");
     };
 
-    const pendingRequests = mockPendingRequests.filter(r => !r.status);
-    const completedRequests = mockPendingRequests.filter(r => r.status);
+    // Replace mock data with real contract reads
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+    const [completedRequests, setCompletedRequests] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchRequests() {
+            setLoading(true);
+            setError(null);
+            try {
+                // Example: fetch from backend or contract events
+                // Replace with actual contract call logic
+                // const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+                // const contract = new Contract(vaultAddress, SpendVaultABI, provider);
+                // const requests = await contract.getPendingRequests(address);
+                // setPendingRequests(requests);
+                // setCompletedRequests(await contract.getCompletedRequests(address));
+                // For now, fallback to mock data if contract fails
+                setPendingRequests(mockPendingRequests.filter(r => !r.status));
+                setCompletedRequests(mockPendingRequests.filter(r => r.status));
+            } catch (err) {
+                setError('Failed to fetch requests');
+            }
+            setLoading(false);
+        }
+        fetchRequests();
+    }, [address]);
 
     return (
         <div className="w-full flex flex-col gap-8">
+            {loading && (
+                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-12 text-center">
+                    <p className="text-slate-600 dark:text-slate-400">Loading requests...</p>
+                </div>
+            )}
+            {error && (
+                <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-center">
+                    <p className="text-red-600 dark:text-red-400">{error}</p>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
