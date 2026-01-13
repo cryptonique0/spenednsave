@@ -577,6 +577,8 @@ export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: 
 
     const [activities, setActivities] = useState<any[]>([]);
     const [loadingTimeout, setLoadingTimeout] = useState(false);
+    const [serverActivities, setServerActivities] = useState<any[] | null>(null);
+    const [serverLoading, setServerLoading] = useState(false);
     
     // Force loading state to false after 10 seconds
     useEffect(() => {
@@ -588,12 +590,42 @@ export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: 
         return () => clearTimeout(timeout);
     }, []);
     
-    const isLoading = (depositsLoading || withdrawalsLoading || guardiansLoading) && !loadingTimeout;
+    const isLoading = ((depositsLoading || withdrawalsLoading || guardiansLoading) && !loadingTimeout) || serverLoading;
 
     const refetch = () => {
         refetchDeposits();
         refetchWithdrawals();
+        if (vaultAddress) fetchServerActivities();
     };
+
+    async function fetchServerActivities() {
+        if (!vaultAddress) return;
+        setServerLoading(true);
+        try {
+            const res = await fetch(`/api/activities?account=${encodeURIComponent(String(vaultAddress))}`);
+            if (!res.ok) {
+                setServerActivities([]);
+                return;
+            }
+            const items = await res.json();
+            if (Array.isArray(items) && items.length > 0) {
+                const mapped = items.map((it: any) => ({
+                    type: it.type,
+                    timestamp: it.timestamp,
+                    blockNumber: it.blockNumber ?? 0,
+                    data: it.details ?? {},
+                }));
+                setServerActivities(mapped.slice(0, limit));
+            } else {
+                setServerActivities([]);
+            }
+        } catch (e) {
+            console.error('Failed to fetch server activities:', e);
+            setServerActivities([]);
+        } finally {
+            setServerLoading(false);
+        }
+    }
 
     useEffect(() => {
         console.log('[useVaultActivity] Combining activities...');
@@ -601,36 +633,32 @@ export function useVaultActivity(vaultAddress?: Address, guardianTokenAddress?: 
         console.log('[useVaultActivity] withdrawals:', withdrawals.length, withdrawals);
         console.log('[useVaultActivity] guardians:', guardians.length, guardians);
         
+        // If we have server activities for this vault, prefer them
+        if (serverActivities !== null) {
+            if (serverActivities.length > 0) {
+                setActivities(serverActivities.slice(0, limit));
+                return;
+            }
+            // if serverActivities is empty array, fall back to on-chain
+        }
+
         const allActivities = [
-            ...deposits.map(d => {
-                console.log('[useVaultActivity] Mapping deposit:', d);
-                return {
-                    type: 'deposit' as const,
-                    timestamp: d.timestamp,
-                    blockNumber: d.blockNumber,
-                    data: d,
-                };
-            }),
-            ...withdrawals.map(w => ({
-                type: 'withdrawal' as const,
-                timestamp: w.timestamp,
-                blockNumber: w.blockNumber,
-                data: w,
-            })),
-            ...guardians.map(g => ({
-                type: 'guardian_added' as const,
-                timestamp: g.addedAt,
-                blockNumber: g.blockNumber,
-                data: g,
-            })),
+            ...deposits.map(d => ({ type: 'deposit' as const, timestamp: d.timestamp, blockNumber: d.blockNumber, data: d })),
+            ...withdrawals.map(w => ({ type: 'withdrawal' as const, timestamp: w.timestamp, blockNumber: w.blockNumber, data: w })),
+            ...guardians.map(g => ({ type: 'guardian_added' as const, timestamp: g.addedAt, blockNumber: g.blockNumber, data: g })),
         ];
 
         allActivities.sort((a, b) => b.timestamp - a.timestamp);
         const limited = allActivities.slice(0, limit);
-        console.log('[useVaultActivity] Final activities count:', limited.length);
-        console.log('[useVaultActivity] Final activities:', limited);
         setActivities(limited);
-    }, [deposits, withdrawals, guardians, limit]);
+    }, [deposits, withdrawals, guardians, limit, serverActivities]);
+
+    // Fetch server activities on vault change
+    useEffect(() => {
+        if (!vaultAddress) return;
+        fetchServerActivities();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vaultAddress]);
 
     return { activities, isLoading, refetch };
 }
