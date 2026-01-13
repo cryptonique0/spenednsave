@@ -340,6 +340,92 @@ export class SignatureStorageService {
     }
 
     /**
+     * Migrate cached chain activity (deposits, withdrawals, guardians) to server activities DB
+     * This reads the local cache keys and posts them to `/api/activities/import`.
+     */
+    static async migrateChainActivityToServer(vaultAddress: string, guardianTokenAddress?: string, apiPath: string = '/api/activities/import') {
+        if (typeof window === 'undefined') return;
+
+        try {
+            const payload: any[] = [];
+
+            // Deposits cache key
+            try {
+                const depositsRaw = localStorage.getItem(`deposits-cache-${vaultAddress.toLowerCase()}`);
+                if (depositsRaw) {
+                    const deposits = JSON.parse(depositsRaw);
+                    for (const d of deposits) {
+                        payload.push({
+                            id: `${vaultAddress}-deposit-${d.txHash || d.blockNumber}-${d.timestamp}`,
+                            account: vaultAddress,
+                            type: 'deposit',
+                            details: d,
+                            timestamp: d.timestamp,
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to read deposits cache', e);
+            }
+
+            // Withdrawals cache key
+            try {
+                const withdrawalsRaw = localStorage.getItem(`withdrawals-cache-${vaultAddress.toLowerCase()}`);
+                if (withdrawalsRaw) {
+                    const withdrawals = JSON.parse(withdrawalsRaw);
+                    for (const w of withdrawals) {
+                        payload.push({
+                            id: `${vaultAddress}-withdrawal-${w.txHash || w.blockNumber}-${w.timestamp}`,
+                            account: vaultAddress,
+                            type: 'withdrawal',
+                            details: w,
+                            timestamp: w.timestamp,
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to read withdrawals cache', e);
+            }
+
+            // Guardians cache key (if present)
+            if (guardianTokenAddress) {
+                try {
+                    const cacheKey = `guardians-cache-${guardianTokenAddress.toLowerCase()}`;
+                    const guardiansRaw = localStorage.getItem(cacheKey);
+                    if (guardiansRaw) {
+                        const guardians = JSON.parse(guardiansRaw);
+                        for (const g of guardians) {
+                            payload.push({
+                                id: `${vaultAddress}-guardian-${g.address}-${g.addedAt}`,
+                                account: vaultAddress,
+                                type: 'guardian_added',
+                                details: g,
+                                timestamp: g.addedAt,
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to read guardians cache', e);
+                }
+            }
+
+            if (payload.length === 0) return { ok: true, migrated: 0 };
+
+            const res = await fetch(apiPath, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) throw new Error(`Migration failed: ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('Migration of chain activity failed:', err);
+            throw err;
+        }
+    }
+
+    /**
      * Clear all data (use with caution!)
      */
     static clearAll(): void {
