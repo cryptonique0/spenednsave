@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "encrypt-db": "node scripts/encrypt-db.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
