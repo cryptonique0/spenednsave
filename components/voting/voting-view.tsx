@@ -19,6 +19,7 @@ export function VotingView() {
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
     const { data: quorum } = useVaultQuorum(vaultAddress);
     const { data: isGuardian, isLoading: isCheckingGuardian } = useIsGuardian(guardianTokenAddress, address);
+    // ...existing code...
     
     const { signTypedData, data: signature, isPending: isSigning, isSuccess: isSignSuccess } = useSignTypedData();
 
@@ -272,6 +273,9 @@ export function VotingView() {
     // Get the first pending request to display
     const pendingRequest = pendingRequests.length > 0 ? pendingRequests[0] : null;
 
+    // Run risk assessment when pendingRequest or vaultBalance changes
+    // ...existing code...
+
     // Render pending request if available
     if (status === 'pending' && pendingRequest) {
         return (
@@ -303,6 +307,8 @@ export function VotingView() {
                             <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{pendingRequest.reason}"</p>
                         </div>
                     </div>
+
+                    {/* Risk Assessment Removed */}
 
                     <div className="space-y-1">
                         <div className="flex justify-between items-center text-sm">

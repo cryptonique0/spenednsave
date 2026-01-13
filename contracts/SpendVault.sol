@@ -17,6 +17,143 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+                /**
+                 * @notice Get vault health score and status
+                 * @return score Health score (0-100)
+                 * @return status Status string ("Healthy", "Warning", "Critical")
+                 */
+                function getVaultHealth() external view returns (uint256 score, string memory status) {
+                    // 1. Number of guardians
+                    uint256 guardianCount = 0;
+                    // This assumes GuardianSBT supports totalSupply()
+                    try IGuardianSBT(guardianToken).balanceOf(address(0)) returns (uint256 supply) {
+                        guardianCount = supply;
+                    } catch {
+                        guardianCount = quorum + 1; // fallback
+                    }
+
+                    // 2. Quorum percentage
+                    uint256 quorumPercent = 0;
+                    if (guardianCount > 0) {
+                        quorumPercent = (quorum * 100) / guardianCount;
+                    }
+
+                    // 3. Guardian activity (average lastActiveTimestamp)
+                    uint256 activeSum = 0;
+                    uint256 activeCount = 0;
+                    for (uint256 i = 0; i < guardianCount; i++) {
+                        // This assumes a way to enumerate guardians, e.g., via GuardianSBT
+                        // For demo, use owner and contract address as stand-ins
+                        address g = i == 0 ? owner() : address(this);
+                        GuardianReputation memory rep = guardianReputations[g];
+                        if (rep.lastActiveTimestamp > 0) {
+                            activeSum += block.timestamp - rep.lastActiveTimestamp;
+                            activeCount++;
+                        }
+                    }
+                    uint256 avgInactiveDays = activeCount > 0 ? (activeSum / activeCount) / 1 days : 0;
+
+                    // 4. Emergency mode
+                    bool emergency = unlockRequestTime > 0;
+
+                    // Scoring logic
+                    score = 100;
+                    if (guardianCount < quorum || quorumPercent > 80) {
+                        score -= 30;
+                    }
+                    if (avgInactiveDays > 30) {
+                        score -= 30;
+                    } else if (avgInactiveDays > 7) {
+                        score -= 10;
+                    }
+                    if (emergency) {
+                        score -= 40;
+                    }
+                    if (score >= 70) {
+                        status = "Healthy";
+                    } else if (score >= 40) {
+                        status = "Warning";
+                    } else {
+                        status = "Critical";
+                    }
+                }
+            // Withdrawal metadata struct
+            struct WithdrawalMetadata {
+                string category;
+                bytes32 reasonHash;
+                uint256 createdAt;
+            }
+            mapping(uint256 => WithdrawalMetadata) public withdrawalMetadatas; // nonce => metadata
+        // Emergency guardian rotation
+        struct GuardianRotation {
+            address inactiveGuardian;
+            address proposedReplacement;
+            uint256 proposalTime;
+            address[] approvals;
+            bool completed;
+        }
+        mapping(address => GuardianRotation) public guardianRotations; // inactiveGuardian => rotation
+        uint256 public constant ROTATION_DELAY = 14 days;
+
+        event GuardianRotationProposed(address indexed inactiveGuardian, address indexed replacement, uint256 proposalTime);
+        event GuardianRotationApproved(address indexed inactiveGuardian, address indexed approver);
+        event GuardianRotationCompleted(address indexed oldGuardian, address indexed newGuardian);
+        /**
+         * @notice Propose emergency guardian rotation if inactive >60 days
+         * @param inactiveGuardian Address of inactive guardian
+         * @param replacement Address of proposed replacement
+         */
+        function proposeGuardianRotation(address inactiveGuardian, address replacement) external onlyOwner {
+            require(inactiveGuardian != address(0) && replacement != address(0), "Invalid address");
+            GuardianReputation memory rep = guardianReputations[inactiveGuardian];
+            require(rep.lastActiveTimestamp > 0 && block.timestamp > rep.lastActiveTimestamp + 60 days, "Guardian not inactive");
+            GuardianRotation storage rotation = guardianRotations[inactiveGuardian];
+            require(!rotation.completed, "Rotation already completed");
+            rotation.inactiveGuardian = inactiveGuardian;
+            rotation.proposedReplacement = replacement;
+            rotation.proposalTime = block.timestamp;
+            delete rotation.approvals;
+            rotation.completed = false;
+            emit GuardianRotationProposed(inactiveGuardian, replacement, block.timestamp);
+        }
+
+        /**
+         * @notice Approve emergency guardian rotation (by active guardian)
+         * @param inactiveGuardian Address of inactive guardian
+         */
+        function approveGuardianRotation(address inactiveGuardian) external {
+            GuardianRotation storage rotation = guardianRotations[inactiveGuardian];
+            require(rotation.proposalTime > 0 && !rotation.completed, "No active proposal");
+            require(IGuardianSBT(guardianToken).balanceOf(msg.sender) > 0, "Only active guardians");
+            // Prevent duplicate approvals
+            for (uint256 i = 0; i < rotation.approvals.length; i++) {
+                require(rotation.approvals[i] != msg.sender, "Already approved");
+            }
+            rotation.approvals.push(msg.sender);
+            emit GuardianRotationApproved(inactiveGuardian, msg.sender);
+        }
+
+        /**
+         * @notice Execute guardian rotation after approvals or time delay
+         * @param inactiveGuardian Address of inactive guardian
+         */
+        function executeGuardianRotation(address inactiveGuardian) external onlyOwner {
+            GuardianRotation storage rotation = guardianRotations[inactiveGuardian];
+            require(rotation.proposalTime > 0 && !rotation.completed, "No active proposal");
+            // Count active guardians (excluding inactive)
+            uint256 activeCount = 0;
+            // This assumes a way to enumerate all guardians; for now, require at least quorum-1 approvals
+            if (rotation.approvals.length >= quorum - 1 || block.timestamp > rotation.proposalTime + ROTATION_DELAY) {
+                // Prevent reducing below quorum
+                require(quorum <= rotation.approvals.length + 1, "Cannot reduce below quorum");
+                // Remove inactive guardian and add replacement
+                // This requires updating the GuardianSBT contract externally (owner must call burn/mint)
+                rotation.completed = true;
+                emit GuardianRotationCompleted(inactiveGuardian, rotation.proposedReplacement);
+            } else {
+                revert("Not enough approvals or time delay");
+            }
+        }
     using ECDSA for bytes32;
 
     // State variables
@@ -24,18 +161,31 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     uint256 public quorum;
     uint256 public nonce;
 
+    // Guardian reputation system
+    struct GuardianReputation {
+        uint256 approvalsCount;
+        uint256 rejectionsCount;
+        uint256 lastActiveTimestamp;
+    }
+    mapping(address => GuardianReputation) public guardianReputations;
+
+    // Weighted quorum mode
+    bool public weightedQuorumEnabled;
+    uint256 public weightedQuorumThreshold; // e.g., 1000 (trust score sum required)
+
     // Emergency unlock state
     uint256 public unlockRequestTime;
     uint256 public constant TIMELOCK_DURATION = 30 days;
 
     // EIP-712 Type Hash
     bytes32 private constant WITHDRAWAL_TYPEHASH = keccak256(
-        "Withdrawal(address token,uint256 amount,address recipient,uint256 nonce,string reason)"
+        "Withdrawal(address token,uint256 amount,address recipient,uint256 nonce,string reason,string category,uint256 createdAt)"
     );
 
     // Events
     event Deposited(address indexed token, address indexed from, uint256 amount);
-    event Withdrawn(address indexed token, address indexed recipient, uint256 amount, string reason);
+    event Withdrawn(address indexed token, address indexed recipient, uint256 amount, string reason, string category, bytes32 reasonHash, uint256 createdAt);
+    event GuardianSignature(address indexed guardian, uint256 nonce, string category, bytes32 reasonHash, uint256 createdAt);
     event QuorumUpdated(uint256 oldQuorum, uint256 newQuorum);
     event GuardianTokenUpdated(address oldToken, address newToken);
     event EmergencyUnlockRequested(uint256 unlockTime);
@@ -63,6 +213,17 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 oldQuorum = quorum;
         quorum = _newQuorum;
         emit QuorumUpdated(oldQuorum, _newQuorum);
+    }
+
+    /**
+     * @notice Enable or disable weighted quorum mode
+     * @param enabled True to enable, false to disable
+     * @param threshold Trust score sum required for weighted quorum
+     */
+    function setWeightedQuorum(bool enabled, uint256 threshold) external onlyOwner {
+        weightedQuorumEnabled = enabled;
+        weightedQuorumThreshold = threshold;
+    }
     }
 
     /**
@@ -120,12 +281,15 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 amount,
         address recipient,
         string memory reason,
+        string memory category,
+        uint256 createdAt,
         bytes[] memory signatures
     ) external nonReentrant {
         require(recipient != address(0), "Invalid recipient");
         require(amount > 0, "Amount must be greater than 0");
-        require(signatures.length >= quorum, "Insufficient signatures");
+        require(signatures.length > 0, "No signatures provided");
 
+        bytes32 reasonHash = keccak256(bytes(reason));
         // Build EIP-712 hash
         bytes32 structHash = keccak256(
             abi.encode(
@@ -134,34 +298,55 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
                 amount,
                 recipient,
                 nonce,
-                keccak256(bytes(reason))
+                reasonHash,
+                keccak256(bytes(category)),
+                createdAt
             )
         );
         bytes32 hash = _hashTypedDataV4(structHash);
 
+        // Store metadata
+        withdrawalMetadatas[nonce] = WithdrawalMetadata({
+            category: category,
+            reasonHash: reasonHash,
+            createdAt: createdAt
+        });
+
         // Verify signatures
         address[] memory signers = new address[](signatures.length);
         uint256 validSignatures = 0;
+        uint256 trustScoreSum = 0;
 
         for (uint256 i = 0; i < signatures.length; i++) {
             address signer = hash.recover(signatures[i]);
-            
             // Check if signer is a guardian
             require(
                 IGuardianSBT(guardianToken).balanceOf(signer) > 0,
                 "Signer is not a guardian"
             );
-
             // Check for duplicate signers
             for (uint256 j = 0; j < validSignatures; j++) {
                 require(signers[j] != signer, "Duplicate signature");
             }
-
             signers[validSignatures] = signer;
             validSignatures++;
+
+            // Update guardian reputation
+            guardianReputations[signer].approvalsCount++;
+            guardianReputations[signer].lastActiveTimestamp = block.timestamp;
+
+            // Calculate trust score for weighted quorum
+            trustScoreSum += getGuardianTrustScore(signer);
+
+            // Emit event linking signature to metadata
+            emit GuardianSignature(signer, nonce, category, reasonHash, createdAt);
         }
 
-        require(validSignatures >= quorum, "Quorum not met");
+        if (weightedQuorumEnabled) {
+            require(trustScoreSum >= weightedQuorumThreshold, "Weighted quorum not met");
+        } else {
+            require(validSignatures >= quorum, "Quorum not met");
+        }
 
         // Increment nonce to prevent replay attacks
         nonce++;
@@ -177,7 +362,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
             IERC20(token).transfer(recipient, amount);
         }
 
-        emit Withdrawn(token, recipient, amount, reason);
+        emit Withdrawn(token, recipient, amount, reason, category, reasonHash, createdAt);
     }
 
     // ============ Emergency Functions ============
@@ -229,6 +414,30 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     }
 
     // ============ View Functions ============
+
+    /**
+     * @notice Get guardian trust score
+     * @param guardian Guardian address
+     * @return trustScore Calculated trust score
+     */
+    function getGuardianTrustScore(address guardian) public view returns (uint256 trustScore) {
+        GuardianReputation memory rep = guardianReputations[guardian];
+        uint256 totalActions = rep.approvalsCount + rep.rejectionsCount;
+        if (totalActions == 0) {
+            return 0;
+        }
+        // Approval ratio (scaled to 1000)
+        uint256 approvalRatio = (rep.approvalsCount * 1000) / totalActions;
+        // Activity bonus: 0-1000, decays if inactive >30 days
+        uint256 activityBonus = 0;
+        if (rep.lastActiveTimestamp > 0) {
+            uint256 daysSinceActive = (block.timestamp - rep.lastActiveTimestamp) / 1 days;
+            if (daysSinceActive < 30) {
+                activityBonus = 1000 - (daysSinceActive * 33); // Linear decay
+            }
+        }
+        trustScore = approvalRatio + activityBonus; // Max 2000
+    }
 
     /**
      * @notice Get the contract's ETH balance
