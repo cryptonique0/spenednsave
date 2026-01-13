@@ -1,4 +1,5 @@
 import path from 'path';
+import crypto from 'crypto';
 
 // `better-sqlite3` is a native, server-only module. Avoid static imports so the
 // Next/Turbopack client bundler doesn't try to resolve it. Require at runtime
@@ -25,6 +26,50 @@ if (!Database) {
 }
 
 const db = new Database(dbPath);
+
+// Encryption helpers — AES-256-GCM
+function getEncryptionKey(): Buffer {
+  const raw = process.env.DB_ENCRYPTION_KEY;
+  if (!raw) {
+    throw new Error('DB_ENCRYPTION_KEY not set — cannot perform encrypted DB operations');
+  }
+  // Derive 32-byte key from provided secret
+  return crypto.createHash('sha256').update(String(raw)).digest();
+}
+
+function encryptString(plain: string): string {
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ciphertext = Buffer.concat([cipher.update(Buffer.from(plain, 'utf8')), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return JSON.stringify({ iv: iv.toString('base64'), tag: tag.toString('base64'), data: ciphertext.toString('base64') });
+}
+
+function decryptString(payload: string): string {
+  // payload is expected to be a JSON string produced by encryptString
+  let parsed: any;
+  try {
+    parsed = JSON.parse(payload);
+  } catch (e) {
+    // Not JSON — assume plaintext
+    return payload;
+  }
+
+  if (!parsed || !parsed.iv || !parsed.tag || !parsed.data) {
+    // Not an encrypted payload — return as-is (string)
+    return payload;
+  }
+
+  const key = getEncryptionKey();
+  const iv = Buffer.from(parsed.iv, 'base64');
+  const tag = Buffer.from(parsed.tag, 'base64');
+  const data = Buffer.from(parsed.data, 'base64');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+  return decrypted.toString('utf8');
+}
 
 // Initialize tables if not exist
 const init = () => {
