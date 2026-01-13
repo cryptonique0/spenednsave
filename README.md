@@ -202,13 +202,20 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed contract deployment instructions
 - Blocks all transfers (except mint/burn)
 - Only owner can mint/burn tokens
 - Used for identity verification in SpendVault
+- **Multi-Vault Associations**: Each guardian token can be linked to multiple SpendVault addresses. Guardians can serve in multiple vaults.
 
 **Main Functions**:
 ```solidity
-function mint(address to) external onlyOwner
-function burn(uint256 tokenId) external onlyOwner
+function mint(address to, address vault) external onlyOwner
+function burn(uint256 tokenId, address vault) external onlyOwner
 function balanceOf(address account) external view returns (uint256)
+function getVaultsForGuardian(address guardian) external view returns (address[] memory)
+function getGuardiansForVault(address vault) external view returns (address[] memory)
 ```
+
+**Multi-Vault Guardian Associations**:
+- Guardians can be associated with multiple vaults.
+- Query all vaults for a guardian, or all guardians for a vault.
 
 ### SpendVault.sol
 
