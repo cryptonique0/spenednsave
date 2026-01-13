@@ -9,16 +9,22 @@ import { SpendVaultABI } from "@/lib/abis/SpendVault";
 import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
 import { formatEther, type Address } from "viem";
 import { useState, useEffect } from "react";
+import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
 
 export function DashboardSaverView() {
-        // Vault health
-        const { data: vaultHealth } = require("@/lib/hooks/useVaultHealth").useVaultHealth(vaultAddress);
-        const healthScore = vaultHealth?.[0] ?? 100;
-        const healthStatus = vaultHealth?.[1] ?? "Healthy";
-        let healthColor = "bg-emerald-500";
-        if (healthStatus === "Warning") healthColor = "bg-yellow-400";
-        if (healthStatus === "Critical") healthColor = "bg-red-500";
+    // useAccount is already called above, do not call again
+    const { data: userContracts } = useUserContracts(address as any);
+    const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
+    const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+
+    // Only call useVaultHealth after vaultAddress is available
+    const { data: vaultHealth } = useVaultHealth(vaultAddress);
+    const healthScore = vaultHealth?.[0] ?? 100;
+    const healthStatus = vaultHealth?.[1] ?? "Healthy";
+    let healthColor = "bg-emerald-500";
+    if (healthStatus === "Warning") healthColor = "bg-yellow-400";
+    if (healthStatus === "Critical") healthColor = "bg-red-500";
     const { address } = useAccount();
     const { data: userContracts } = useUserContracts(address as any);
     const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
