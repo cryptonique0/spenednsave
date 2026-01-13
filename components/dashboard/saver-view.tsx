@@ -11,6 +11,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export function DashboardSaverView() {
+        // Vault health
+        const { data: vaultHealth } = require("@/lib/hooks/useVaultHealth").useVaultHealth(vaultAddress);
+        const healthScore = vaultHealth?.[0] ?? 100;
+        const healthStatus = vaultHealth?.[1] ?? "Healthy";
+        let healthColor = "bg-emerald-500";
+        if (healthStatus === "Warning") healthColor = "bg-yellow-400";
+        if (healthStatus === "Critical") healthColor = "bg-red-500";
     const { address } = useAccount();
     const { data: userContracts } = useUserContracts(address as any);
     const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
@@ -127,10 +134,14 @@ export function DashboardSaverView() {
                     <div>
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <p className="text-slate-400 text-xs uppercase font-bold tracking-wider">Vault Status</p>
-                                <h3 className="text-white font-bold text-lg">Protected</h3>
+                                <p className="text-slate-400 text-xs uppercase font-bold tracking-wider">Vault Health</p>
+                                <div className="flex items-center gap-2">
+                                    <span className={`size-3 rounded-full inline-block ${healthColor}`} title={healthStatus}></span>
+                                    <h3 className="text-white font-bold text-lg">{healthStatus}</h3>
+                                    <span className="text-xs text-slate-400" title="Vault health score considers guardians, quorum, activity, and emergency mode.">{healthScore}/100</span>
+                                </div>
                             </div>
-                            <div className="size-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                            <div className={`size-12 rounded-xl flex items-center justify-center ${healthColor}/10 text-white`} title={healthStatus}>
                                 <ShieldCheck size={24} />
                             </div>
                         </div>

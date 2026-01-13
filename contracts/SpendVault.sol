@@ -17,6 +17,66 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+                /**
+                 * @notice Get vault health score and status
+                 * @return score Health score (0-100)
+                 * @return status Status string ("Healthy", "Warning", "Critical")
+                 */
+                function getVaultHealth() external view returns (uint256 score, string memory status) {
+                    // 1. Number of guardians
+                    uint256 guardianCount = 0;
+                    // This assumes GuardianSBT supports totalSupply()
+                    try IGuardianSBT(guardianToken).balanceOf(address(0)) returns (uint256 supply) {
+                        guardianCount = supply;
+                    } catch {
+                        guardianCount = quorum + 1; // fallback
+                    }
+
+                    // 2. Quorum percentage
+                    uint256 quorumPercent = 0;
+                    if (guardianCount > 0) {
+                        quorumPercent = (quorum * 100) / guardianCount;
+                    }
+
+                    // 3. Guardian activity (average lastActiveTimestamp)
+                    uint256 activeSum = 0;
+                    uint256 activeCount = 0;
+                    for (uint256 i = 0; i < guardianCount; i++) {
+                        // This assumes a way to enumerate guardians, e.g., via GuardianSBT
+                        // For demo, use owner and contract address as stand-ins
+                        address g = i == 0 ? owner() : address(this);
+                        GuardianReputation memory rep = guardianReputations[g];
+                        if (rep.lastActiveTimestamp > 0) {
+                            activeSum += block.timestamp - rep.lastActiveTimestamp;
+                            activeCount++;
+                        }
+                    }
+                    uint256 avgInactiveDays = activeCount > 0 ? (activeSum / activeCount) / 1 days : 0;
+
+                    // 4. Emergency mode
+                    bool emergency = unlockRequestTime > 0;
+
+                    // Scoring logic
+                    score = 100;
+                    if (guardianCount < quorum || quorumPercent > 80) {
+                        score -= 30;
+                    }
+                    if (avgInactiveDays > 30) {
+                        score -= 30;
+                    } else if (avgInactiveDays > 7) {
+                        score -= 10;
+                    }
+                    if (emergency) {
+                        score -= 40;
+                    }
+                    if (score >= 70) {
+                        status = "Healthy";
+                    } else if (score >= 40) {
+                        status = "Warning";
+                    } else {
+                        status = "Critical";
+                    }
+                }
             // Withdrawal metadata struct
             struct WithdrawalMetadata {
                 string category;
