@@ -118,12 +118,16 @@ export class GuardianSignatureDB {
       },
     }));
 
+    // Encrypt blobs before storing
+    const encRequest = encryptString(JSON.stringify(serializableRequest));
+    const encSignatures = encryptString(JSON.stringify(serializableSignatures));
+
     db.prepare(`REPLACE INTO pending_requests (id, vaultAddress, request, signatures, requiredQuorum, status, createdAt, executedAt, executionTxHash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
         request.id,
         request.vaultAddress,
-        JSON.stringify(serializableRequest),
-        JSON.stringify(serializableSignatures),
+        encRequest,
+        encSignatures,
         request.requiredQuorum,
         request.status,
         request.createdAt,
