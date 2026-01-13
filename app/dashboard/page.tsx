@@ -9,12 +9,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const view = params.view;
 
     return (
-        <>
+        <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow flex flex-col justify-start px-6 py-8 md:px-8 md:py-12">
                 <DashboardContent forcedView={view} />
             </main>
             <Footer />
-        </>
+        </div>
     );
 }

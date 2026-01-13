@@ -25,6 +25,7 @@ export function useFactoryAddress() {
 
 /**
  * Hook to get user's vault and guardian token addresses from factory
+ * Returns [guardianToken, vault]
  */
 export function useUserContracts(userAddress?: Address) {
     const factoryAddress = useFactoryAddress();
@@ -37,7 +38,7 @@ export function useUserContracts(userAddress?: Address) {
         query: {
             enabled: !!factoryAddress && !!userAddress,
         },
-    });
+    }) as any;
 }
 
 /**
@@ -107,6 +108,29 @@ export function useIsGuardian(guardianTokenAddress?: Address, address?: Address)
 }
 
 /**
+ * Hook to check if an address is the vault owner
+ */
+export function useIsVaultOwner(vaultAddress?: Address, address?: Address) {
+    const vaultOwnerResult = useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'owner',
+        query: {
+            enabled: !!vaultAddress,
+        },
+    });
+
+    // Check if the owner matches the provided address
+    const isOwner = vaultOwnerResult.data && address ? (vaultOwnerResult.data as Address).toLowerCase() === address.toLowerCase() : false;
+
+    return {
+        data: isOwner,
+        isLoading: vaultOwnerResult.isLoading,
+        error: vaultOwnerResult.error,
+    };
+}
+
+/**
  * Hook to get vault balance (ETH)
  */
 export function useVaultETHBalance(vaultAddress?: Address) {
@@ -116,6 +140,7 @@ export function useVaultETHBalance(vaultAddress?: Address) {
         functionName: 'getETHBalance',
         query: {
             enabled: !!vaultAddress,
+            refetchInterval: 3000, // Refetch every 3 seconds
         },
     });
 }
@@ -304,6 +329,126 @@ export function useEmergencyUnlockTimeRemaining(vaultAddress?: Address) {
         functionName: 'getEmergencyUnlockTimeRemaining',
         query: {
             enabled: !!vaultAddress,
+            refetchInterval: 1000, // Refetch every second for countdown
         },
     });
+}
+
+/**
+ * Hook to get unlock request time
+ */
+export function useUnlockRequestTime(vaultAddress?: Address) {
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'unlockRequestTime',
+        query: {
+            enabled: !!vaultAddress,
+            refetchInterval: 3000,
+        },
+    });
+}
+
+/**
+ * Hook to execute emergency unlock (withdraw all funds after timelock)
+ */
+export function useExecuteEmergencyUnlock(vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+        hash,
+    });
+
+    const executeUnlock = (tokenAddress: Address) => {
+        if (!vaultAddress) {
+            throw new Error('No vault address provided');
+        }
+
+        writeContract({
+            address: vaultAddress,
+            abi: SpendVaultABI,
+            functionName: 'executeEmergencyUnlock',
+            args: [tokenAddress],
+        });
+    };
+
+    return {
+        executeUnlock,
+        hash,
+        isPending,
+        isConfirming,
+        isSuccess,
+        error,
+    };
+}
+
+/**
+ * Hook to cancel emergency unlock
+ */
+export function useCancelEmergencyUnlock(vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+        hash,
+    });
+
+    const cancelUnlock = () => {
+        if (!vaultAddress) {
+            throw new Error('No vault address provided');
+        }
+
+        writeContract({
+            address: vaultAddress,
+            abi: SpendVaultABI,
+            functionName: 'cancelEmergencyUnlock',
+        });
+    };
+
+    return {
+        cancelUnlock,
+        hash,
+        isPending,
+        isConfirming,
+        isSuccess,
+        error,
+    };
+}
+
+/**
+ * Hook to execute withdrawal with guardian signatures
+ */
+export function useExecuteWithdrawal(vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+        hash,
+    });
+
+    const executeWithdrawal = (
+        token: Address,
+        amount: bigint,
+        recipient: Address,
+        reason: string,
+        signatures: `0x${string}`[]
+    ) => {
+        if (!vaultAddress) {
+            throw new Error('No vault address provided');
+        }
+
+        writeContract({
+            address: vaultAddress,
+            abi: SpendVaultABI,
+            functionName: 'withdraw',
+            args: [token, amount, recipient, reason, signatures],
+        });
+    };
+
+    return {
+        executeWithdrawal,
+        hash,
+        isPending,
+        isConfirming,
+        isSuccess,
+        error,
+    };
 }

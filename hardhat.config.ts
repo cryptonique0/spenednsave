@@ -25,6 +25,6 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-};
+} as any;
 
 export default config;

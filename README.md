@@ -202,13 +202,20 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed contract deployment instructions
 - Blocks all transfers (except mint/burn)
 - Only owner can mint/burn tokens
 - Used for identity verification in SpendVault
+- **Multi-Vault Associations**: Each guardian token can be linked to multiple SpendVault addresses. Guardians can serve in multiple vaults.
 
 **Main Functions**:
 ```solidity
-function mint(address to) external onlyOwner
-function burn(uint256 tokenId) external onlyOwner
+function mint(address to, address vault) external onlyOwner
+function burn(uint256 tokenId, address vault) external onlyOwner
 function balanceOf(address account) external view returns (uint256)
+function getVaultsForGuardian(address guardian) external view returns (address[] memory)
+function getGuardiansForVault(address vault) external view returns (address[] memory)
 ```
+
+**Multi-Vault Guardian Associations**:
+- Guardians can be associated with multiple vaults.
+- Query all vaults for a guardian, or all guardians for a vault.
 
 ### SpendVault.sol
 
@@ -220,6 +227,9 @@ function balanceOf(address account) external view returns (uint256)
 - EIP-712 signature verification
 - Nonce-based replay protection
 - Emergency timelock escape hatch
+- **Guardian Reputation System**: Each guardian tracks approvals, rejections, and last activity
+- **Weighted Quorum (Optional)**: Withdrawals can use trust scores for weighted voting
+- **Emergency Guardian Rotation**: Owner can propose a replacement for an inactive guardian (>60 days). Requires approval from remaining active guardians or a 14-day time delay. Cannot reduce active guardians below quorum. Emits events for all steps.
 
 **Main Functions**:
 ```solidity
@@ -236,6 +246,17 @@ function withdraw(
     bytes[] memory signatures
 ) external onlyOwner nonReentrant
 
+// Guardian Reputation
+function getGuardianTrustScore(address guardian) public view returns (uint256)
+
+// Weighted Quorum Management
+function setWeightedQuorum(bool enabled, uint256 threshold) external onlyOwner
+
+// Emergency Guardian Rotation
+function proposeGuardianRotation(address inactiveGuardian, address replacement) external onlyOwner
+function approveGuardianRotation(address inactiveGuardian) external
+function executeGuardianRotation(address inactiveGuardian) external onlyOwner
+
 // Emergency access
 function requestEmergencyUnlock() external onlyOwner
 function executeEmergencyUnlock(address token) external onlyOwner
@@ -244,6 +265,12 @@ function executeEmergencyUnlock(address token) external onlyOwner
 function setQuorum(uint256 _newQuorum) external onlyOwner
 function updateGuardianToken(address _newToken) external onlyOwner
 ```
+
+**Emergency Guardian Rotation**:
+- If a guardian is inactive for more than 60 days, the owner can propose a replacement.
+- Remaining active guardians can approve the rotation, or it can execute after a 14-day delay.
+- Rotation cannot reduce active guardians below quorum.
+- Events are emitted for proposal, approval, and completion.
 
 ### VaultFactory.sol
 

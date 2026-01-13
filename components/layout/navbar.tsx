@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils"; // We need to create this utility
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Shield } from "lucide-react"; // Using Lucide for the logo icon for now, or SVG
+import { Shield, X, Menu } from "lucide-react"; // Using Lucide for the logo icon for now, or SVG
 
 export function Navbar() {
     const pathname = usePathname();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-surface-border bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl">
@@ -45,6 +47,7 @@ export function Navbar() {
                         {[
                             { name: "Dashboard", href: "/dashboard" },
                             { name: "Guardians", href: "/guardians" },
+                            { name: "Voting", href: "/voting" },
                             { name: "Activity", href: "/activity" },
                             { name: "Emergency", href: "/emergency" },
                         ].map((link) => {
@@ -78,6 +81,38 @@ export function Navbar() {
                         </button>
                     </div>
                 </div>
+
+                {/* Mobile Navigation */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden py-4 border-t border-gray-200 dark:border-surface-border">
+                        <div className="flex flex-col gap-2">
+                            {[
+                                { name: "Dashboard", href: "/dashboard" },
+                                { name: "Guardians", href: "/guardians" },
+                                { name: "Voting", href: "/voting" },
+                                { name: "Activity", href: "/activity" },
+                                { name: "Emergency", href: "/emergency" },
+                            ].map((link) => {
+                                const isActive = pathname === link.href;
+                                return (
+                                    <Link
+                                        key={link.name}
+                                        href={link.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={cn(
+                                            "px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
+                                            isActive
+                                                ? "text-slate-900 dark:text-white bg-gray-100 dark:bg-surface-dark font-semibold"
+                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-surface-dark/50"
+                                        )}
+                                    >
+                                        {link.name}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </nav>
     );

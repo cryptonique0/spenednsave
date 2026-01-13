@@ -2,61 +2,83 @@
 
 import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Users } from "lucide-react";
 import { useAccount } from "wagmi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Contract, providers } from "ethers";
+// import GuardianSBT ABI and address
+import GuardianSBTABI from "@/lib/abis/GuardianSBT.json";
 
-// Mock data for pending withdrawal requests
-// In production, this would come from contract events or a backend
-const mockPendingRequests = [
-    {
-        id: "1",
-        saverAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-        saverName: "alice.eth",
-        amount: "0.5 ETH",
-        amountUSD: "$1,250.00",
-        reason: "Emergency medical expenses",
-        timestamp: "2 hours ago",
-        requiredSignatures: 2,
-        currentSignatures: 0,
-        hasUserSigned: false,
-        vaultAddress: "0x1234...5678",
-    },
-    {
-        id: "2",
-        saverAddress: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
-        saverName: "bob.base",
-        amount: "1.2 ETH",
-        amountUSD: "$3,000.00",
-        reason: "Car repair - transmission failure",
-        timestamp: "5 hours ago",
-        requiredSignatures: 3,
-        currentSignatures: 1,
-        hasUserSigned: false,
-        vaultAddress: "0x5678...9abc",
-    },
-    {
-        id: "3",
-        saverAddress: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-        saverName: "charlie.eth",
-        amount: "0.3 ETH",
-        amountUSD: "$750.00",
-        reason: "Laptop replacement for work",
-        timestamp: "1 day ago",
-        requiredSignatures: 2,
-        currentSignatures: 2,
-        hasUserSigned: true,
-        vaultAddress: "0x9abc...def0",
-        status: "approved",
-    },
-];
+
+const GUARDIAN_SBT_ADDRESS = process.env.NEXT_PUBLIC_GUARDIAN_SBT_ADDRESS;
 
 export function DashboardGuardianView() {
     const { address } = useAccount();
+    const [vaults, setVaults] = useState<any[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
 
-    const handleApprove = (requestId: string) => {
-        console.log("Approving request:", requestId);
-        // TODO: Sign the withdrawal request with EIP-712
-        alert("Signing withdrawal request...");
+    useEffect(() => {
+        async function fetchVaults() {
+            if (!address || !GUARDIAN_SBT_ADDRESS) return;
+            // Use ethers.js to call getVaultsForGuardian
+            const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+            const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
+            const vaultAddresses: string[] = await contract.getVaultsForGuardian(address);
+            // For each vault, fetch name, owner, and pending approvals from contract/backend
+            // TODO: Replace with actual contract calls
+            setVaults([]);
+        }
+        fetchVaults();
+    }, [address]);
+
+    // EIP-712 signing for gasless guardian approval
+    const handleApprove = async (requestId: string) => {
+        const request = pendingRequests.find(r => r.id === requestId);
+        if (!request || !address) return;
+        // Fetch nonce from contract (mocked here, replace with actual call)
+        const nonce = Date.now(); // Replace with contract nonce
+        // EIP-712 domain and types
+        const domain = {
+            name: 'SpendGuard',
+            version: '1',
+            chainId: 84532, // Replace with actual chainId
+            verifyingContract: request.vaultAddr
+            ess,
+        };
+        const types = {
+            Withdrawal: [
+                { name: 'token', type: 'address' },
+                { name: 'amount', type: 'uint256' },
+                { name: 'recipient', type: 'address' },
+                { name: 'nonce', type: 'uint256' },
+                { name: 'reason', type: 'string' },
+                { name: 'category', type: 'string' },
+                { name: 'reasonHash', type: 'string' },
+                { name: 'createdAt', type: 'uint256' },
+            ],
+        };
+        // Prepare message
+        const message = {
+            token: '0x0000000000000000000000000000000000000000',
+            amount: parseFloat(request.amount) * 1e18,
+            recipient: request.saverAddress,
+            nonce,
+            reason: request.reason,
+            category: 'General', // Replace with actual category
+            reasonHash: '', // Replace with actual reasonHash
+            createdAt: Date.now(),
+        };
+        // Use wallet to signTypedData (wagmi, ethers, etc.)
+        try {
+            // @ts-ignore
+            const signature = await window.ethereum.request({
+                method: 'eth_signTypedData_v4',
+                params: [address, JSON.stringify({ domain, types, primaryType: 'Withdrawal', message })],
+            });
+            // Store signature locally or send to backend for aggregation
+            alert('Signature created! Share with owner to submit onchain.');
+        } catch (err) {
+            alert('Signature failed: ' + (err instanceof Error ? err.message : String(err)));
+        }
     };
 
     const handleReject = (requestId: string) => {
@@ -65,11 +87,28 @@ export function DashboardGuardianView() {
         alert("Request rejected");
     };
 
-    const pendingRequests = mockPendingRequests.filter(r => !r.status);
-    const completedRequests = mockPendingRequests.filter(r => r.status);
+    // Real contract/backend data should be loaded here
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+    const [completedRequests, setCompletedRequests] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    useEffect(() => {
+        // TODO: Fetch pending/completed requests from contract or backend
+        setLoading(false);
+    }, [address]);
 
     return (
         <div className="w-full flex flex-col gap-8">
+            {loading && (
+                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-12 text-center">
+                    <p className="text-slate-600 dark:text-slate-400">Loading requests...</p>
+                </div>
+            )}
+            {error && (
+                <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-center">
+                    <p className="text-red-600 dark:text-red-400">{error}</p>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -115,6 +154,20 @@ export function DashboardGuardianView() {
                         <span className="text-sm text-slate-600 dark:text-slate-400">Vaults Guarding</span>
                     </div>
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">3</p>
+                </div>
+            </div>
+
+            {/* Vaults Guarding */}
+            <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Vaults Guarding</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {vaults.map((vault) => (
+                        <div key={vault.vaultAddress} className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2">{vault.vaultName}</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Owner: {vault.owner}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">Pending Approvals: {vault.pendingApprovals}</p>
+                        </div>
+                    ))}
                 </div>
             </div>
 
@@ -179,13 +232,13 @@ export function DashboardGuardianView() {
 
                                 {!request.hasUserSigned && (
                                     <div className="flex gap-3">
-                                        <button
-                                            onClick={() => handleApprove(request.id)}
+                                        <Link
+                                            href="/voting"
                                             className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
                                         >
                                             <CheckCircle size={20} />
                                             Approve & Sign
-                                        </button>
+                                        </Link>
                                         <button
                                             onClick={() => handleReject(request.id)}
                                             className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"

@@ -2,52 +2,78 @@
 
 import { useState, useEffect } from "react";
 import { AlertTriangle, Lock, Unlock, RefreshCw, Timer, Info, Bell, ShieldOff } from "lucide-react";
+import { useAccount } from "wagmi";
+import { useUserContracts } from "@/lib/hooks/useContracts";
+import {
+    useRequestEmergencyUnlock,
+    useCancelEmergencyUnlock,
+    useExecuteEmergencyUnlock,
+    useEmergencyUnlockTimeRemaining,
+    useUnlockRequestTime,
+    useVaultETHBalance,
+} from "@/lib/hooks/useContracts";
+import { useEmergencyUnlockState } from "@/lib/hooks/useVaultData";
+import { formatEther, type Address } from "viem";
 
 export function EmergencyView() {
-    const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
-    const [isActive, setIsActive] = useState(false);
+    const { address } = useAccount();
+    const { data: contracts } = useUserContracts(address);
+    const vaultAddress = contracts?.[1] as Address | undefined;
 
-    useEffect(() => {
-        if (!isActive) return;
+    // Fetch emergency unlock state
+    const { data: unlockRequestTime } = useUnlockRequestTime(vaultAddress);
+    const { data: timeRemaining } = useEmergencyUnlockTimeRemaining(vaultAddress);
+    const { data: ethBalance } = useVaultETHBalance(vaultAddress);
 
-        // Simulating a 30-day countdown
-        const target = new Date();
-        target.setDate(target.getDate() + 30);
+    // Hooks for emergency actions
+    const { requestUnlock, isPending: isRequesting, isConfirming: isConfirmingRequest, isSuccess: isRequestSuccess } = useRequestEmergencyUnlock(vaultAddress);
+    const { cancelUnlock, isPending: isCanceling, isConfirming: isConfirmingCancel, isSuccess: isCancelSuccess } = useCancelEmergencyUnlock(vaultAddress);
+    const { executeUnlock, isPending: isExecuting, isConfirming: isConfirmingExecute, isSuccess: isExecuteSuccess } = useExecuteEmergencyUnlock(vaultAddress);
 
-        const interval = setInterval(() => {
-            const now = new Date();
-            const diff = target.getTime() - now.getTime();
+    // Get computed state
+    const { isActive, canExecute, timeLeft } = useEmergencyUnlockState(unlockRequestTime as bigint | undefined, timeRemaining as bigint | undefined);
 
-            if (diff <= 0) {
-                setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
-                clearInterval(interval);
-                return;
-            }
-
-            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-            setTimeLeft({ d, h, m, s });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [isActive]);
-
-    const startTimer = () => {
-        setIsActive(true);
-        setTimeLeft({ d: 29, h: 23, m: 59, s: 59 });
+    const handleStartTimer = () => {
+        requestUnlock();
     };
 
-    const stopTimer = () => {
-        setIsActive(false);
-        setTimeLeft(null);
+    const handleStopTimer = () => {
+        cancelUnlock();
     };
+
+    const handleWithdraw = () => {
+        // Execute emergency unlock for ETH (address(0))
+        executeUnlock("0x0000000000000000000000000000000000000000" as Address);
+    };
+
+    const isLoading = isRequesting || isConfirmingRequest || isCanceling || isConfirmingCancel || isExecuting || isConfirmingExecute;
 
     return (
         <div className="w-full flex justify-center py-10 px-6">
             <div className="w-full max-w-5xl flex flex-col gap-10">
+
+                {/* Success/Info Messages */}
+                {isRequestSuccess && (
+                    <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 p-4">
+                        <p className="text-red-800 dark:text-red-300 font-medium">
+                            Emergency unlock initiated! The 30-day countdown has started.
+                        </p>
+                    </div>
+                )}
+                {isCancelSuccess && (
+                    <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50 p-4">
+                        <p className="text-green-800 dark:text-green-300 font-medium">
+                            Emergency unlock canceled. Your vault is now protected by guardians again.
+                        </p>
+                    </div>
+                )}
+                {isExecuteSuccess && (
+                    <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50 p-4">
+                        <p className="text-green-800 dark:text-green-300 font-medium">
+                            Emergency withdrawal complete! All funds have been transferred to your wallet.
+                        </p>
+                    </div>
+                )}
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
@@ -143,12 +169,15 @@ export function EmergencyView() {
                                 </div>
 
                                 <button
-                                    onClick={stopTimer}
-                                    className="group relative overflow-hidden rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-8 py-4 transition-all hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20"
+                                    onClick={handleStopTimer}
+                                    disabled={isLoading}
+                                    className="group relative overflow-hidden rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-8 py-4 transition-all hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <RefreshCw className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 group-hover:-rotate-180" size={20} />
-                                        <span className="font-semibold text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">Stop Timer & Restore Protection</span>
+                                        <RefreshCw className={`text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300 ${isLoading ? 'animate-spin' : 'group-hover:-rotate-180'}`} size={20} />
+                                        <span className="font-semibold text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                                            {isLoading ? 'Processing...' : 'Stop Timer & Restore Protection'}
+                                        </span>
                                     </div>
                                 </button>
                             </div>
@@ -177,37 +206,53 @@ export function EmergencyView() {
                                     </p>
                                 </div>
                                 <button
-                                    onClick={startTimer}
-                                    className="w-full group relative overflow-hidden rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all duration-300 hover:scale-[1.02]"
+                                    onClick={handleStartTimer}
+                                    disabled={isLoading}
+                                    className="w-full group relative overflow-hidden rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
                                     <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors"></div>
                                     <div className="relative px-6 py-4 flex items-center justify-center gap-3">
                                         <Timer size={20} />
-                                        <span className="font-bold tracking-wide">Start 30-Day Timer</span>
+                                        <span className="font-bold tracking-wide">
+                                            {isLoading ? 'Processing...' : 'Start 30-Day Timer'}
+                                        </span>
                                     </div>
                                 </button>
                             </div>
                         </div>
 
                         {/* Withdraw Card (Simulated complete state) */}
-                        <div className="flex flex-col h-full opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                        <div className={`flex flex-col h-full transition-all duration-500 ${canExecute ? 'opacity-100' : 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100'}`}>
                             <div className="mb-2">
-                                <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                                    State: Locked
+                                <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider ${canExecute ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                                    State: {canExecute ? 'Unlocked' : 'Locked'}
                                 </span>
                             </div>
                             <div className="flex-1 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-8 flex flex-col justify-between items-center text-center shadow-sm">
                                 <div className="mb-8">
-                                    <div className="size-12 bg-green-100 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 dark:text-green-500">
+                                    <div className={`size-12 rounded-full flex items-center justify-center mx-auto mb-4 ${canExecute ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-400'}`}>
                                         <Unlock size={24} />
                                     </div>
-                                    <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Wait Period Complete</h4>
+                                    <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                        {canExecute ? 'Ready to Withdraw' : 'Wait Period Complete'}
+                                    </h4>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                                        Once the 30-day security hold expires, your funds will unlock for transfer.
+                                        {canExecute 
+                                            ? `Vault balance: ${ethBalance ? formatEther(ethBalance) : '0'} ETH. Click below to withdraw all funds.`
+                                            : 'Once the 30-day security hold expires, your funds will unlock for transfer.'
+                                        }
                                     </p>
                                 </div>
-                                <button disabled className="w-full bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-slate-600 rounded-xl px-6 py-4 font-bold cursor-not-allowed">
-                                    Withdraw All Funds Now
+                                <button 
+                                    disabled={!canExecute || isLoading} 
+                                    onClick={handleWithdraw}
+                                    className={`w-full rounded-xl px-6 py-4 font-bold transition-all ${
+                                        canExecute && !isLoading
+                                            ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20 hover:shadow-green-500/40 hover:scale-[1.02]'
+                                            : 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {isLoading ? 'Processing...' : canExecute ? 'Withdraw All Funds Now' : 'Withdraw All Funds Now'}
                                 </button>
                             </div>
                         </div>

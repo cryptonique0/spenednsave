@@ -1,47 +1,97 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
+import { useUserContracts, useAddGuardian, useVaultQuorum } from "@/lib/hooks/useContracts";
+import { useGuardians } from "@/lib/hooks/useVaultData";
 import { Users, ShieldCheck, Clock, Plus, Trash2, Key, History } from "lucide-react";
-
-interface Guardian {
-    id: string;
-    name: string;
-    address: string;
-    status: 'active' | 'pending';
-    lastActive?: string;
-    txCount?: number;
-    isHardware?: boolean;
-}
+import { Spinner } from "@/components/ui/spinner";
+import { type Address } from "viem";
 
 export function ManageGuardiansView() {
-    const [guardians, setGuardians] = useState<Guardian[]>([
-        { id: "1", name: "alice.base.eth", address: "0x4F...3B19", status: "active", lastActive: "2 days ago", txCount: 12 },
-        { id: "2", name: "bob.lens", address: "0x3A...B789", status: "active", lastActive: "5 days ago", txCount: 8 },
-        { id: "3", name: "charlie_savings", address: "0x99...12D4", status: "active", lastActive: "1 week ago", txCount: 3, isHardware: true },
-    ]);
+    const { address, isConnected } = useAccount();
+    const { data: userContracts, isLoading: isLoadingContracts } = useUserContracts(address as any);
+    const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
+    const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+    const { data: quorum } = useVaultQuorum(vaultAddress);
 
+    const { addGuardian, isPending, isConfirming, isSuccess } = useAddGuardian(guardianTokenAddress);
+    const { guardians: guardiansList, isLoading: isLoadingGuardians } = useGuardians(guardianTokenAddress);
+    
     const [isAdding, setIsAdding] = useState(false);
     const [newGuardian, setNewGuardian] = useState({ name: "", address: "" });
 
-    const handleAdd = () => {
-        if (!newGuardian.address) return;
-        const g: Guardian = {
-            id: Math.random().toString(),
-            name: newGuardian.name || "Guardian",
-            address: newGuardian.address,
-            status: "pending",
-            txCount: 0
-        };
-        setGuardians([...guardians, g]);
-        setNewGuardian({ name: "", address: "" });
-        setIsAdding(false);
-    };
+    const guardianCount = guardiansList.length;
+    const pendingRequestsCount = 0; // TODO: Fetch from contract when available
+    const recentEvents = guardiansList.map((g) => ({
+        id: String(g.address),
+        type: 'added' as const,
+        guardian: String(g.address),
+        timestamp: g.addedAt,
+    })).reverse().slice(0, 5);
 
-    const handleRevoke = (id: string) => {
-        if (confirm("Are you sure you want to revoke this guardian?")) {
-            setGuardians(guardians.filter(g => g.id !== id));
+    // Close modal and reset form after successful add
+    useEffect(() => {
+        if (isSuccess) {
+            setNewGuardian({ name: "", address: "" });
+            setIsAdding(false);
+        }
+    }, [isSuccess]);
+
+    const handleAdd = () => {
+        if (!newGuardian.address || !guardianTokenAddress) return;
+        try {
+            addGuardian(newGuardian.address as any);
+        } catch (error) {
+            console.error("Add guardian failed:", error);
+            alert(error instanceof Error ? error.message : "Failed to add guardian");
         }
     };
+
+    const handleRevoke = (tokenId: bigint) => {
+        alert(`Revoke functionality coming soon. TokenId: ${tokenId}`);
+    };
+
+    // Show loading state
+    if (!isConnected) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <p className="text-slate-400 text-lg mb-4">Please connect your wallet</p>
+                    <p className="text-slate-500 text-sm">Connect your wallet to manage guardians</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isLoadingContracts) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="flex flex-col items-center gap-4">
+                    <Spinner className="w-8 h-8 text-primary" />
+                    <p className="text-slate-400">Loading your vault...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!vaultAddress || !guardianTokenAddress) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="size-16 rounded-full bg-surface-border/50 flex items-center justify-center text-slate-500 mx-auto mb-4">
+                        <Users size={32} />
+                    </div>
+                    <p className="text-slate-400 text-lg mb-2">No vault found</p>
+                    <p className="text-slate-500 text-sm mb-6">You need to create a vault first</p>
+                    <a href="/vault/setup" className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-xl font-bold">
+                        <Plus size={20} />
+                        Create Vault
+                    </a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full flex flex-col gap-8">
@@ -69,8 +119,8 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{guardians.length}</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Active Keys</p>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{guardianCount}</h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Guardians Added</p>
                     </div>
                 </div>
 
@@ -82,7 +132,7 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Policy</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">2 <span className="text-lg text-slate-400 dark:text-slate-500">of {guardians.length}</span></h3>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{quorum?.toString() || "..."} <span className="text-lg text-slate-400 dark:text-slate-500">of {guardianCount || "..."}</span></h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Signatures Required</p>
                     </div>
                 </div>
@@ -95,7 +145,7 @@ export function ManageGuardiansView() {
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Queue</span>
                     </div>
                     <div className="mt-4">
-                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">0</h3>
+                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{pendingRequestsCount}</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Pending Requests</p>
                     </div>
                 </div>
@@ -133,45 +183,73 @@ export function ManageGuardiansView() {
                             </div>
                             <div className="flex justify-end gap-2">
                                 <button onClick={() => setIsAdding(false)} className="px-4 py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium">Cancel</button>
-                                <button onClick={handleAdd} className="px-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold">Add Guardian</button>
+                                <button 
+                                    onClick={handleAdd}
+                                    disabled={isPending || isConfirming || !newGuardian.address}
+                                    className="px-6 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold"
+                                >
+                                    {isPending || isConfirming ? "Adding..." : "Add Guardian"}
+                                </button>
                             </div>
                         </div>
                     )}
 
                     <div className="flex flex-col gap-4">
-                        {guardians.map((g) => (
-                            <div key={g.id} className="group bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm">
+                        {isLoadingGuardians ? (
+                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border rounded-2xl p-12 text-center">
+                                <Spinner className="w-8 h-8 text-primary mx-auto mb-4" />
+                                <p className="text-slate-500">Loading guardians...</p>
+                            </div>
+                        ) : guardiansList.length === 0 ? (
+                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border rounded-2xl p-12 text-center">
+                                <div className="size-16 rounded-full bg-slate-100 dark:bg-surface-border/50 flex items-center justify-center text-slate-400 mx-auto mb-4">
+                                    <Users size={32} />
+                                </div>
+                                <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-2">No Guardians Yet</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Add trusted addresses to secure your vault</p>
+                                <button
+                                    onClick={() => setIsAdding(true)}
+                                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-xl font-bold"
+                                >
+                                    <Plus size={20} />
+                                    Add Your First Guardian
+                                </button>
+                            </div>
+                        ) : (
+                            guardiansList.map((guardian) => (
+                            <div key={guardian.address} className="group bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm">
                                 <div className="flex items-center gap-4">
                                     <div className="size-12 rounded-full bg-slate-100 dark:bg-surface-border flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                        {g.isHardware ? <Key size={20} /> : <Users size={20} />}
+                                        <ShieldCheck size={20} />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-slate-900 dark:text-white text-lg">{g.name}</h3>
-                                            {g.status === 'active' && <span className="size-2 rounded-full bg-emerald-500"></span>}
-                                            {g.isHardware && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-surface-border text-slate-500 uppercase">Hardware</span>}
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-lg">
+                                                Guardian #{guardian.tokenId.toString()}
+                                            </h3>
+                                            <span className="size-2 rounded-full bg-emerald-500"></span>
                                         </div>
                                         <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                                            {g.address}
+                                            {guardian.address}
                                         </div>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            Added {new Date(guardian.addedAt).toLocaleDateString()}
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-4 w-full sm:w-auto mt-2 sm:mt-0 justify-between sm:justify-end">
-                                    <div className="text-right hidden sm:block">
-                                        <p className="text-xs text-slate-500 font-medium flex items-center gap-1 justify-end"><History size={12} /> Signed {g.txCount} txs</p>
-                                        <p className="text-xs text-slate-400">Last active {g.lastActive || "Never"}</p>
-                                    </div>
                                     <button
-                                        onClick={() => handleRevoke(g.id)}
+                                        onClick={() => handleRevoke(guardian.tokenId)}
                                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-semibold"
                                     >
                                         <Trash2 size={16} />
-                                        <span className="sm:hidden">Revoke</span>
+                                        Revoke
                                     </button>
                                 </div>
                             </div>
-                        ))}
+                        ))
+                        )}
                     </div>
                 </div>
 
@@ -186,10 +264,13 @@ export function ManageGuardiansView() {
                         <div className="bg-black/20 rounded-xl p-4 mb-4">
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-slate-400">Current Threshold</span>
-                                <span className="text-white font-bold">2/3</span>
+                                <span className="text-white font-bold">{quorum?.toString() || "..."}/{guardianCount || "..."}</span>
                             </div>
                             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary w-2/3 rounded-full"></div>
+                                <div 
+                                    className="h-full bg-primary rounded-full" 
+                                    style={{ width: quorum && guardiansList.length ? `${(Number(quorum) / guardiansList.length) * 100}%` : '66%' }}
+                                ></div>
                             </div>
                         </div>
                         <p className="text-xs text-slate-400 mb-6 leading-relaxed">
@@ -203,20 +284,40 @@ export function ManageGuardiansView() {
                     {/* Recent Events */}
                     <div>
                         <h3 className="text-slate-900 dark:text-white font-bold mb-4">Recent Events</h3>
-                        <div className="space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex gap-3">
-                                    <div className="relative">
-                                        <div className="size-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-2"></div>
-                                        {i !== 3 && <div className="absolute top-4 left-1 w-px h-full bg-slate-200 dark:bg-slate-800 -ml-px"></div>}
-                                    </div>
-                                    <div className="pb-4">
-                                        <p className="text-sm text-slate-900 dark:text-white font-medium">Guardian Added</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Alice added Bob as guardian</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        {recentEvents.length === 0 ? (
+                            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border rounded-xl p-6 text-center">
+                                <Clock size={24} className="text-slate-400 mx-auto mb-2" />
+                                <p className="text-sm text-slate-500 dark:text-slate-400">No events yet</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {recentEvents.map((event, i) => {
+                                    const timeAgo = Math.floor((Date.now() - event.timestamp) / 1000);
+                                    const timeString = timeAgo < 60 ? 'Just now' : 
+                                                     timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
+                                                     timeAgo < 86400 ? `${Math.floor(timeAgo / 3600)}h ago` :
+                                                     `${Math.floor(timeAgo / 86400)}d ago`;
+                                    
+                                    return (
+                                        <div key={event.id} className="flex gap-3">
+                                            <div className="relative">
+                                                <div className={`size-2 rounded-full mt-2 ${event.type === 'added' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                                                {i !== recentEvents.length - 1 && <div className="absolute top-4 left-1 w-px h-full bg-slate-200 dark:bg-slate-800 -ml-px"></div>}
+                                            </div>
+                                            <div className="pb-4 flex-1">
+                                                <p className="text-sm text-slate-900 dark:text-white font-medium">
+                                                    {event.type === 'added' ? 'Guardian Added' : 'Guardian Removed'}
+                                                </p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                    You {event.type === 'added' ? 'added' : 'removed'} {event.guardian.slice(0, 6)}...{event.guardian.slice(-4)} as guardian
+                                                </p>
+                                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{timeString}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

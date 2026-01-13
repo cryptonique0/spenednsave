@@ -4,7 +4,7 @@ import { VotingView } from "@/components/voting/voting-view";
 
 export default function VotingPage() {
     return (
-        <>
+        <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow flex flex-col items-center justify-center px-6 py-8 md:px-8 md:py-12 relative">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -12,6 +12,6 @@ export default function VotingPage() {
                 <VotingView />
             </main>
             <Footer />
-        </>
+        </div>
     );
 }
