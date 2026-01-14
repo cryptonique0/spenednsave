@@ -84,6 +84,99 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
                 uint256 createdAt;
             }
             mapping(uint256 => WithdrawalMetadata) public withdrawalMetadatas; // nonce => metadata
+
+            // Scheduled Withdrawals
+            struct ScheduledWithdrawal {
+                address token;
+                uint256 amount;
+                address recipient;
+                string reason;
+                string category;
+                uint256 scheduledFor;
+                uint256 createdAt;
+                bool executed;
+                address[] approvals;
+            }
+            mapping(uint256 => ScheduledWithdrawal) public scheduledWithdrawals; // id => withdrawal
+            uint256 public scheduledWithdrawalCount;
+
+            event WithdrawalScheduled(uint256 indexed id, address indexed token, uint256 amount, address indexed recipient, uint256 scheduledFor, string reason, string category);
+            event ScheduledWithdrawalApproved(uint256 indexed id, address indexed guardian);
+            event ScheduledWithdrawalExecuted(uint256 indexed id);
+            /**
+             * @notice Schedule a future withdrawal (requires guardian approval)
+             * @param token Token address (address(0) for ETH)
+             * @param amount Amount to withdraw
+             * @param recipient Recipient address
+             * @param reason Reason for withdrawal
+             * @param category Category for withdrawal
+             * @param scheduledFor Timestamp for execution
+             */
+            function scheduleWithdrawal(
+                address token,
+                uint256 amount,
+                address recipient,
+                string memory reason,
+                string memory category,
+                uint256 scheduledFor
+            ) external onlyOwner {
+                require(recipient != address(0), "Invalid recipient");
+                require(amount > 0, "Amount must be greater than 0");
+                require(scheduledFor > block.timestamp, "Scheduled time must be in future");
+                uint256 id = scheduledWithdrawalCount++;
+                ScheduledWithdrawal storage sw = scheduledWithdrawals[id];
+                sw.token = token;
+                sw.amount = amount;
+                sw.recipient = recipient;
+                sw.reason = reason;
+                sw.category = category;
+                sw.scheduledFor = scheduledFor;
+                sw.createdAt = block.timestamp;
+                sw.executed = false;
+                emit WithdrawalScheduled(id, token, amount, recipient, scheduledFor, reason, category);
+            }
+
+            /**
+             * @notice Approve a scheduled withdrawal (by guardian)
+             * @param id Scheduled withdrawal id
+             */
+            function approveScheduledWithdrawal(uint256 id) external {
+                ScheduledWithdrawal storage sw = scheduledWithdrawals[id];
+                require(!sw.executed, "Already executed");
+                require(sw.scheduledFor > 0, "Not scheduled");
+                require(IGuardianSBT(guardianToken).balanceOf(msg.sender) > 0, "Only guardians");
+                // Prevent duplicate approvals
+                for (uint256 i = 0; i < sw.approvals.length; i++) {
+                    require(sw.approvals[i] != msg.sender, "Already approved");
+                }
+                sw.approvals.push(msg.sender);
+                guardianReputations[msg.sender].approvalsCount++;
+                guardianReputations[msg.sender].lastActiveTimestamp = block.timestamp;
+                emit ScheduledWithdrawalApproved(id, msg.sender);
+            }
+
+            /**
+             * @notice Execute scheduled withdrawal after time and quorum
+             * @param id Scheduled withdrawal id
+             */
+            function executeScheduledWithdrawal(uint256 id) external nonReentrant {
+                ScheduledWithdrawal storage sw = scheduledWithdrawals[id];
+                require(!sw.executed, "Already executed");
+                require(sw.scheduledFor > 0, "Not scheduled");
+                require(block.timestamp >= sw.scheduledFor, "Too early");
+                require(sw.approvals.length >= quorum, "Quorum not met");
+                sw.executed = true;
+                // Transfer funds
+                if (sw.token == address(0)) {
+                    require(address(this).balance >= sw.amount, "Insufficient ETH");
+                    (bool success, ) = sw.recipient.call{value: sw.amount}("");
+                    require(success, "ETH transfer failed");
+                } else {
+                    IERC20(sw.token).transfer(sw.recipient, sw.amount);
+                }
+                emit ScheduledWithdrawalExecuted(id);
+                emit Withdrawn(sw.token, sw.recipient, sw.amount, sw.reason, sw.category, keccak256(bytes(sw.reason)), sw.createdAt);
+            }
         // Emergency guardian rotation
         struct GuardianRotation {
             address inactiveGuardian;
