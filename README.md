@@ -53,6 +53,15 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ---
 
+
+## 📝 Changelog
+
+- **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
+
+## 📝 Changelog
+
+- **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
+
 ## ✨ Features
 
 ### For Savers (Vault Owners)
