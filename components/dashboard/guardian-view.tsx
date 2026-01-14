@@ -3,6 +3,7 @@
 import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Users } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
+import { useScheduledWithdrawals } from "@/lib/hooks/useScheduledWithdrawals";
 import Link from "next/link";
 import { Contract } from "ethers";
 // import GuardianSBT ABI and address
@@ -87,14 +88,11 @@ export function DashboardGuardianView() {
     };
 
     // Real contract/backend data should be loaded here
-    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-    const [completedRequests, setCompletedRequests] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    useEffect(() => {
-        // TODO: Fetch pending/completed requests from contract or backend
-        setLoading(false);
-    }, [address]);
+    // Scheduled withdrawals integration
+    const { scheduled, loading, error } = useScheduledWithdrawals();
+    // Filter for pending scheduled withdrawals (not executed, not yet approved by this guardian)
+    const pendingRequests = (scheduled || []).filter((w) => !w.executed && !(w.approvals || []).includes(address));
+    const completedRequests = (scheduled || []).filter((w) => w.executed);
 
     return (
         <div className="w-full flex flex-col gap-8">
@@ -229,15 +227,15 @@ export function DashboardGuardianView() {
                                     )}
                                 </div>
 
-                                {!request.hasUserSigned && (
+                                {!(request.approvals || []).includes(address) && (
                                     <div className="flex gap-3">
-                                        <Link
-                                            href="/voting"
+                                        <button
+                                            onClick={() => approveScheduledWithdrawal(request.id)}
                                             className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
                                         >
                                             <CheckCircle size={20} />
-                                            Approve & Sign
-                                        </Link>
+                                            Approve
+                                        </button>
                                         <button
                                             onClick={() => handleReject(request.id)}
                                             className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -247,6 +245,21 @@ export function DashboardGuardianView() {
                                         </button>
                                     </div>
                                 )}
+                            // Approve scheduled withdrawal via API
+                            async function approveScheduledWithdrawal(id: number) {
+                                try {
+                                    const res = await fetch(`/api/scheduled-withdrawals/${id}/approve`, { method: 'POST' });
+                                    if (!res.ok) {
+                                        const err = await res.json();
+                                        alert(err.error || 'Failed to approve withdrawal');
+                                    } else {
+                                        alert('Withdrawal approved!');
+                                        window.location.reload();
+                                    }
+                                } catch (err: any) {
+                                    alert(err.message || 'Failed to approve withdrawal');
+                                }
+                            }
                             </div>
                         ))}
                     </div>
