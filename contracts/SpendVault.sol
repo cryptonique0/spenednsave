@@ -17,6 +17,67 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+                    // ============ Vault Transfer ============
+                    struct TransferRequest {
+                        address newOwner;
+                        address[] approvals;
+                        bool executed;
+                        uint256 createdAt;
+                    }
+                    mapping(uint256 => TransferRequest) public transferRequests;
+                    uint256 public transferRequestCount;
+
+                    event TransferRequested(uint256 indexed id, address indexed newOwner, uint256 createdAt);
+                    event TransferApproved(uint256 indexed id, address indexed guardian);
+                    event TransferExecuted(uint256 indexed id, address indexed oldOwner, address indexed newOwner);
+
+                    /**
+                     * @notice Request transfer of vault ownership (owner only, requires guardian approval)
+                     * @param newOwner Address to transfer ownership to
+                     */
+                    function requestVaultTransfer(address newOwner) external onlyOwner {
+                        require(newOwner != address(0), "Invalid new owner");
+                        uint256 id = transferRequestCount++;
+                        TransferRequest storage tr = transferRequests[id];
+                        tr.newOwner = newOwner;
+                        tr.executed = false;
+                        tr.createdAt = block.timestamp;
+                        emit TransferRequested(id, newOwner, block.timestamp);
+                    }
+
+                    /**
+                     * @notice Approve a vault transfer (guardian only)
+                     * @param id Transfer request id
+                     */
+                    function approveVaultTransfer(uint256 id) external {
+                        TransferRequest storage tr = transferRequests[id];
+                        require(!tr.executed, "Already executed");
+                        require(tr.newOwner != address(0), "No transfer request");
+                        require(IGuardianSBT(guardianToken).balanceOf(msg.sender) > 0, "Only guardians");
+                        // Prevent duplicate approvals
+                        for (uint256 i = 0; i < tr.approvals.length; i++) {
+                            require(tr.approvals[i] != msg.sender, "Already approved");
+                        }
+                        tr.approvals.push(msg.sender);
+                        guardianReputations[msg.sender].approvalsCount++;
+                        guardianReputations[msg.sender].lastActiveTimestamp = block.timestamp;
+                        emit TransferApproved(id, msg.sender);
+                    }
+
+                    /**
+                     * @notice Execute vault transfer after guardian quorum
+                     * @param id Transfer request id
+                     */
+                    function executeVaultTransfer(uint256 id) external {
+                        TransferRequest storage tr = transferRequests[id];
+                        require(!tr.executed, "Already executed");
+                        require(tr.newOwner != address(0), "No transfer request");
+                        require(tr.approvals.length >= quorum, "Quorum not met");
+                        address oldOwner = owner();
+                        tr.executed = true;
+                        _transferOwnership(tr.newOwner);
+                        emit TransferExecuted(id, oldOwner, tr.newOwner);
+                    }
                 /**
                  * @notice Get vault health score and status
                  * @return score Health score (0-100)
