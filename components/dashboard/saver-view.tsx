@@ -14,6 +14,7 @@ import { useState, useEffect } from "react";
 import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
 import PolicyConfig from '@/components/dashboard/policy-config';
+import { VaultAnalyticsDashboard } from './VaultAnalyticsDashboard';
 
 export function DashboardSaverView() {
         // Timer for stable current time in render
