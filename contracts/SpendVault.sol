@@ -18,6 +18,8 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+            // Helper struct for withdrawal cap checks (fixes stack too deep)
+            struct UsedCaps { uint256 daily; uint256 weekly; uint256 monthly; }
         // ============ Vault Metadata ============
         string public name;
         string[] public tags;
@@ -495,7 +497,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 weekIndex = block.timestamp / 1 weeks;
         uint256 monthIndex = block.timestamp / 30 days;
 
-        struct UsedCaps { uint256 daily; uint256 weekly; uint256 monthly; }
         UsedCaps memory usedCaps;
         if (cap.daily > 0) {
             usedCaps.daily = withdrawnDaily[token][dayIndex];
