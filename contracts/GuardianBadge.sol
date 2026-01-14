@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -8,7 +9,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title GuardianBadge
  * @dev Non-transferable (soulbound) NFT for guardians, awarded based on activity.
  */
+
 contract GuardianBadge is ERC721Enumerable, Ownable {
+
+    constructor() ERC721("GuardianBadge", "GBADGE") {}
 
     // --- Emergency Contact List ---
     mapping(address => bool) public emergencyContacts;
@@ -55,7 +59,7 @@ contract GuardianBadge is ERC721Enumerable, Ownable {
     }
 
     // --- Soulbound: Block all transfers and approvals ---
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override(ERC721Enumerable) {
         require(from == address(0) || to == address(0), "Soulbound: Transfers disabled");
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
