@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useScheduledWithdrawals } from "@/lib/hooks/useScheduledWithdrawals";
 import Link from "next/link";
 import { Contract } from "ethers";
+import { JsonRpcProvider } from "@ethersproject/providers";
 // import GuardianSBT ABI and address
 import GuardianSBTABI from "@/lib/abis/GuardianSBT.json";
 
@@ -22,7 +23,7 @@ export function DashboardGuardianView() {
             if (!address || !GUARDIAN_SBT_ADDRESS) return;
             try {
                 // Use ethers.js to call getVaultsForGuardian
-                const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+                const provider = new JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
                 const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
                 // This call may fail if the ABI or contract is not correct, so wrap in try/catch
                 // If not implemented, just set empty
