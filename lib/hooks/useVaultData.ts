@@ -268,20 +268,12 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                     const toBlock = currentBlock < fromBlock + CHUNK_SIZE - 1n ? currentBlock : fromBlock + CHUNK_SIZE - 1n;
                     
                     try {
+                        // Some RPCs are more reliable with topic filters; use the event selector as topic0
                         const chunkLogs = await publicClient.getLogs({
                             address: vaultAddress,
-                            event: {
-                                name: 'Withdrawn',
-                                type: 'event',
-                                inputs: [
-                                    { indexed: true, name: 'token', type: 'address' },
-                                    { indexed: true, name: 'recipient', type: 'address' },
-                                    { indexed: false, name: 'amount', type: 'uint256' },
-                                    { indexed: false, name: 'reason', type: 'string' },
-                                ]
-                            },
                             fromBlock,
                             toBlock,
+                            topics: [withdrawnTopic],
                         });
                         allLogs.push(...chunkLogs);
                     } catch (chunkErr) {
@@ -435,19 +427,12 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                     console.log('[useDepositHistory] Fetching chunk from', String(fromBlock), 'to', String(toBlock));
                     
                     try {
+                        // Use topic-based filtering for deposits to improve compatibility with RPC providers
                         const chunkLogs = await publicClient.getLogs({
                             address: vaultAddress,
-                            event: {
-                                name: 'Deposited',
-                                type: 'event',
-                                inputs: [
-                                    { indexed: true, name: 'token', type: 'address' },
-                                    { indexed: true, name: 'from', type: 'address' },
-                                    { indexed: false, name: 'amount', type: 'uint256' },
-                                ]
-                            },
                             fromBlock,
                             toBlock,
+                            topics: [depositedTopic],
                         });
                         console.log('[useDepositHistory] Found', chunkLogs.length, 'logs in chunk');
                         allLogs.push(...chunkLogs);
