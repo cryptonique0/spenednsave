@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useWithdrawalPoliciesCount, useWithdrawalPolicyAt, useSetWithdrawalPolicies, useIsVaultOwner } from '@/lib/hooks/useContracts';
+import { useWithdrawalPoliciesCount, useSetWithdrawalPolicies, useIsVaultOwner } from '@/lib/hooks/useContracts';
 import { type Address } from 'viem';
 
 interface PolicyRow {
@@ -22,32 +22,9 @@ export function PolicyConfig({ vaultAddress }: { vaultAddress?: Address }) {
     const [loadingExisting, setLoadingExisting] = useState(true);
 
     useEffect(() => {
-        (async () => {
-            try {
-                setLoadingExisting(true);
-                const n = countRes.data ? Number(countRes.data) : 0;
-                const fetched: PolicyRow[] = [];
-                for (let i = 0; i < n; i++) {
-                    // eslint-disable-next-line no-await-in-loop
-                    const res = await useWithdrawalPolicyAt(vaultAddress, i).queryFn?.();
-                    if (res) {
-                        fetched.push({
-                            minAmount: String(res.minAmount ?? 0),
-                            maxAmount: String(res.maxAmount ?? 0),
-                            requiredApprovals: String(res.requiredApprovals ?? 0),
-                            cooldown: String(res.cooldown ?? 0),
-                        });
-                    }
-                }
-                if (fetched.length > 0) setRows(fetched);
-            } catch (e) {
-                // ignore
-            } finally {
-                setLoadingExisting(false);
-            }
-        })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [countRes.data, vaultAddress]);
+        // We intentionally avoid calling hooks in loops; show count and let owner set policies manually.
+        setLoadingExisting(false);
+    }, [countRes.data]);
 
     if (!ownerCheck.data) return null;
 
