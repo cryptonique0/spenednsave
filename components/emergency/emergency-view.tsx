@@ -14,6 +14,7 @@ import {
 } from "@/lib/hooks/useContracts";
 import { useEmergencyUnlockState } from "@/lib/hooks/useVaultData";
 import { formatEther, type Address } from "viem";
+import { useSimulation } from "@/components/simulation/SimulationContext";
 
 export function EmergencyView() {
     const { address } = useAccount();
@@ -33,15 +34,28 @@ export function EmergencyView() {
     // Get computed state
     const { isActive, canExecute, timeLeft } = useEmergencyUnlockState(unlockRequestTime as bigint | undefined, timeRemaining as bigint | undefined);
 
+    const { enabled: simulationEnabled } = useSimulation();
     const handleStartTimer = () => {
+        if (simulationEnabled) {
+            alert('Simulation mode: No onchain transaction sent. This is a demo.');
+            return;
+        }
         requestUnlock();
     };
 
     const handleStopTimer = () => {
+        if (simulationEnabled) {
+            alert('Simulation mode: No onchain transaction sent. This is a demo.');
+            return;
+        }
         cancelUnlock();
     };
 
     const handleWithdraw = () => {
+        if (simulationEnabled) {
+            alert('Simulation mode: No onchain transaction sent. This is a demo.');
+            return;
+        }
         // Execute emergency unlock for ETH (address(0))
         executeUnlock("0x0000000000000000000000000000000000000000" as Address);
     };
