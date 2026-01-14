@@ -1,3 +1,51 @@
+    // ============ Policy-Based Withdrawal Rules ============
+
+    struct WithdrawalPolicy {
+        uint256 minAmount; // inclusive lower bound
+        uint256 maxAmount; // inclusive upper bound (0 = no upper limit)
+        uint256 requiredApprovals; // number of guardian signatures required
+        uint256 cooldown; // cooldown in seconds for repeated withdrawals in this range
+    }
+
+    WithdrawalPolicy[] public withdrawalPolicies;
+    mapping(address => mapping(uint256 => uint256)) public lastWithdrawalTime; // recipient => policyIdx => last timestamp
+
+    event WithdrawalPolicySet(uint256 indexed policyIdx, WithdrawalPolicy policy);
+    event WithdrawalPoliciesCleared();
+
+    /**
+     * @notice Set withdrawal policies (overwrites all existing policies)
+     * @param policies Array of WithdrawalPolicy structs
+     */
+    function setWithdrawalPolicies(WithdrawalPolicy[] calldata policies) external onlyOwner {
+        delete withdrawalPolicies;
+        for (uint256 i = 0; i < policies.length; i++) {
+            require(policies[i].requiredApprovals > 0, "Approvals must be > 0");
+            withdrawalPolicies.push(policies[i]);
+            emit WithdrawalPolicySet(i, policies[i]);
+        }
+        emit WithdrawalPoliciesCleared();
+    }
+
+    /**
+     * @notice Get the applicable withdrawal policy index for a given amount
+     */
+    function getPolicyIndex(uint256 amount) public view returns (uint256) {
+        for (uint256 i = 0; i < withdrawalPolicies.length; i++) {
+            WithdrawalPolicy memory p = withdrawalPolicies[i];
+            if (amount >= p.minAmount && (p.maxAmount == 0 || amount <= p.maxAmount)) {
+                return i;
+            }
+        }
+        revert("No policy for amount");
+    }
+
+    /**
+     * @notice Get the applicable withdrawal policy for a given amount
+     */
+    function getPolicy(uint256 amount) public view returns (WithdrawalPolicy memory) {
+        return withdrawalPolicies[getPolicyIndex(amount)];
+    }
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -350,6 +398,11 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
         // Increment nonce to prevent replay attacks
         nonce++;
+
+        // Record withdrawal time for cooldown
+        if (policy.cooldown > 0) {
+            lastWithdrawalTime[recipient][getPolicyIndex(amount)] = block.timestamp;
+        }
 
         // Execute transfer
         if (token == address(0)) {
