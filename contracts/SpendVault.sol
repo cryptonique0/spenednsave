@@ -18,6 +18,8 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+    // Guardian reputation event: logs every approval action
+    event GuardianAction(address indexed guardian, string action, uint256 timestamp, address indexed vault, address indexed recipient, uint256 amount, string reason);
 
                 // Internal helper to check withdrawal caps
                 function _checkWithdrawalCaps(address _token, uint256 amount) internal view {
