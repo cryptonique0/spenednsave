@@ -492,23 +492,23 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         }
 
         // Enforce temporal caps (per-token/per-vault)
-        WithdrawalCap memory cap = withdrawalCaps[token];
+        address _token = token;
+        WithdrawalCap memory cap = withdrawalCaps[_token];
         uint256 dayIndex = block.timestamp / 1 days;
         uint256 weekIndex = block.timestamp / 1 weeks;
         uint256 monthIndex = block.timestamp / 30 days;
 
-        UsedCaps memory usedCaps;
         if (cap.daily > 0) {
-            usedCaps.daily = withdrawnDaily[token][dayIndex];
-            require(usedCaps.daily + amount <= cap.daily, "Daily withdrawal cap exceeded");
+            uint256 usedDaily = withdrawnDaily[_token][dayIndex];
+            require(usedDaily + amount <= cap.daily, "Daily withdrawal cap exceeded");
         }
         if (cap.weekly > 0) {
-            usedCaps.weekly = withdrawnWeekly[token][weekIndex];
-            require(usedCaps.weekly + amount <= cap.weekly, "Weekly withdrawal cap exceeded");
+            uint256 usedWeekly = withdrawnWeekly[_token][weekIndex];
+            require(usedWeekly + amount <= cap.weekly, "Weekly withdrawal cap exceeded");
         }
         if (cap.monthly > 0) {
-            usedCaps.monthly = withdrawnMonthly[token][monthIndex];
-            require(usedCaps.monthly + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
+            uint256 usedMonthly = withdrawnMonthly[_token][monthIndex];
+            require(usedMonthly + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
         }
 
         // Increment nonce to prevent replay attacks
