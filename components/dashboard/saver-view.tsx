@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Lock, CreditCard, ArrowRight, ShieldCheck } from "lucide-react";
+import { Users, Lock, CreditCard, ShieldCheck } from "lucide-react";
 import { useAccount, useWatchContractEvent } from "wagmi";
 import { useDepositETH, useVaultETHBalance, useUserContracts, useVaultQuorum } from "@/lib/hooks/useContracts";
 import { useGuardians, useVaultActivity } from "@/lib/hooks/useVaultData";
@@ -15,9 +15,9 @@ import { VaultAnalyticsDashboard } from "./VaultAnalyticsDashboard";
 
 export function DashboardSaverView() {
     const { address } = useAccount();
-    const { data: userContracts } = useUserContracts(address as any);
-    const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
-    const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+    const { data: userContracts } = useUserContracts(address as Address);
+    const guardianTokenAddress = userContracts ? (userContracts as [Address, Address])[0] : undefined;
+    const vaultAddress = userContracts ? (userContracts as [Address, Address])[1] : undefined;
 
     // Only call useVaultHealth after vaultAddress is available
     const { data: vaultHealth } = useVaultHealth(vaultAddress);
@@ -27,7 +27,7 @@ export function DashboardSaverView() {
     if (healthStatus === "Warning") healthColor = "bg-yellow-400";
     if (healthStatus === "Critical") healthColor = "bg-red-500";
     
-    const { deposit, isPending, isConfirming, isSuccess, hash } = useDepositETH(vaultAddress);
+    const { deposit, isPending, isConfirming, isSuccess } = useDepositETH(vaultAddress);
     const { data: vaultBalance, refetch: refetchBalance } = useVaultETHBalance(vaultAddress);
     const { data: quorum } = useVaultQuorum(vaultAddress);
     const [depositAmount, setDepositAmount] = useState("0.01");
@@ -253,7 +253,8 @@ export function DashboardSaverView() {
                                 const isWithdrawal = activity.type === 'withdrawal';
                                 
                                 const amount = activity.data?.amount ? formatEther(activity.data.amount) : '0';
-                                const timeAgo = Math.floor((Date.now() - activity.timestamp) / 1000);
+                                const now = typeof window !== 'undefined' ? window.performance.now() + performance.timeOrigin : Date.now();
+                                const timeAgo = Math.floor((now - activity.timestamp) / 1000);
                                 const timeString = timeAgo < 60 ? 'Just now' : 
                                                  timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m ago` :
                                                  timeAgo < 86400 ? `${Math.floor(timeAgo / 3600)}h ago` :
@@ -394,8 +395,4 @@ export function DashboardSaverView() {
     );
 }
 
-function PlusIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-    )
-}
+// PlusIcon removed (unused)
