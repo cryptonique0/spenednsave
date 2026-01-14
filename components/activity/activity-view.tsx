@@ -7,6 +7,38 @@ import { useUserContracts } from "@/lib/hooks/useContracts";
 import { useVaultActivity } from "@/lib/hooks/useVaultData";
 import { formatEther, type Address } from "viem";
 
+function formatEthFixed(value: bigint, decimals = 4) {
+    try {
+        const s = formatEther(value as any);
+        if (!s.includes('.')) return s;
+        const [intPart, decPart] = s.split('.');
+        // Round the fractional part to requested decimals
+        const frac = decPart.padEnd(decimals + 1, '0');
+        const roundDigit = Number(frac[decimals]);
+        let main = frac.slice(0, decimals);
+        if (roundDigit >= 5) {
+            // simple rounding by adding 1 to the last digit sequence
+            let carry = 1;
+            const arr = main.split('').map(d => Number(d));
+            for (let i = arr.length - 1; i >= 0; i--) {
+                const sum = arr[i] + carry;
+                arr[i] = sum % 10;
+                carry = Math.floor(sum / 10);
+                if (carry === 0) break;
+            }
+            if (carry > 0) {
+                // overflow into integer part
+                const newInt = (BigInt(intPart) + BigInt(carry)).toString();
+                return `${newInt}.${arr.join('')}`;
+            }
+            main = arr.join('');
+        }
+        return `${intPart}.${main}`;
+    } catch (e) {
+        return '0.0000';
+    }
+}
+
 export function ActivityLogView() {
     const { address } = useAccount();
     const { data: userContracts } = useUserContracts(address as any);
@@ -85,7 +117,7 @@ export function ActivityLogView() {
                     <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Total Deposits</p>
                     <div className="flex items-end gap-3">
                         <h3 className="text-3xl font-bold text-slate-900 dark:text-white">
-                            {parseFloat(formatEther(totalDeposits)).toFixed(4)} ETH
+                            {formatEthFixed(totalDeposits, 4)} ETH
                         </h3>
                     </div>
                 </div>
