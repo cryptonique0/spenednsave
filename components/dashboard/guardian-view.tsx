@@ -27,9 +27,8 @@ export function DashboardGuardianView() {
                 const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
                 // This call may fail if the ABI or contract is not correct, so wrap in try/catch
                 // If not implemented, just set empty
-                let vaultAddresses: string[] = [];
                 try {
-                    vaultAddresses = await contract.getVaultsForGuardian(address);
+                    await contract.getVaultsForGuardian(address);
                 } catch {
                     // fallback: not implemented
                 }
@@ -46,7 +45,7 @@ export function DashboardGuardianView() {
     // EIP-712 signing for gasless guardian approval
     // Removed unused handleApprove function
 
-    const handleReject = (requestId: string) => {
+    const handleReject = () => {
         // TODO: Implement rejection logic (optional - can just not sign)
         alert("Request rejected");
     };
@@ -216,7 +215,7 @@ export function DashboardGuardianView() {
                                             Approve
                                         </button>
                                         <button
-                                            onClick={() => handleReject(request.id)}
+                                            onClick={handleReject}
                                             className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
                                         >
                                             <XCircle size={20} />
