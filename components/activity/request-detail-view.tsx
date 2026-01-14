@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import { useUserContracts, useVaultQuorum, useExecuteWithdrawal } from "@/lib/hooks/useContracts";
+import { useSimulation } from "@/components/simulation/SimulationContext";
 import { formatEther, type Address } from "viem";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -65,13 +66,16 @@ export function RequestDetailView() {
         setIsLoading(false);
     }, [vaultAddress, requestId]);
     
+    const { enabled: simulationEnabled } = useSimulation();
     const handleExecute = async () => {
         if (!request) return;
-        
+        if (simulationEnabled) {
+            alert('Simulation mode: No onchain transaction sent. This is a demo.');
+            return;
+        }
         try {
             // Get all signatures (including owner)
             const allSignatures = request.signatures.map((sig: any) => sig.signature);
-            
             executeWithdrawal(
                 request.token as Address,
                 BigInt(request.amount),
