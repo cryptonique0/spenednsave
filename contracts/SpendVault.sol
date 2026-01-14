@@ -18,6 +18,11 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+        // ============ Vault Metadata ============
+        string public name;
+        string[] public tags;
+        event NameChanged(string newName);
+        event TagsChanged(string[] newTags);
     using ECDSA for bytes32;
 
     // State variables
@@ -305,13 +310,37 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     constructor(
         address _guardianToken,
-        uint256 _quorum
+        uint256 _quorum,
+        string memory _name,
+        string[] memory _tags
     ) Ownable(msg.sender) EIP712("SpendGuard", "1") {
         require(_guardianToken != address(0), "Invalid guardian token address");
         require(_quorum > 0, "Quorum must be greater than 0");
-        
         guardianToken = _guardianToken;
         quorum = _quorum;
+        name = _name;
+        for (uint256 i = 0; i < _tags.length; i++) {
+            tags.push(_tags[i]);
+        }
+    }
+
+    /**
+     * @notice Set the vault name (owner only)
+     */
+    function setName(string memory newName) external onlyOwner {
+        name = newName;
+        emit NameChanged(newName);
+    }
+
+    /**
+     * @notice Set the vault tags (owner only)
+     */
+    function setTags(string[] memory newTags) external onlyOwner {
+        delete tags;
+        for (uint256 i = 0; i < newTags.length; i++) {
+            tags.push(newTags[i]);
+        }
+        emit TagsChanged(newTags);
     }
 
     // ============ Management Functions ============
