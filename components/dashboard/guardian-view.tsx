@@ -66,14 +66,14 @@ export function DashboardGuardianView() {
     // Real contract/backend data should be loaded here
     // Scheduled withdrawals integration
     const { scheduled, loading, error } = useScheduledWithdrawals();
-    function getErrorMessage(err: unknown): string {
+    function getErrorMessage(err: unknown): string | undefined {
         if (typeof err === 'string') return err;
         if (typeof err === 'object' && err !== null && 'message' in err && typeof (err as Record<string, unknown>).message === 'string') {
             return (err as Record<string, string>).message;
         }
-        return '';
+        return undefined;
     }
-    const errorMsg = getErrorMessage(error);
+    const errorMsg = error ? getErrorMessage(error) : undefined;
     // Filter for pending scheduled withdrawals (not executed, not yet approved by this guardian)
     const addressStr = address ? String(address) : "";
     const pendingRequests: ScheduledWithdrawal[] = (scheduled || []).filter((w: ScheduledWithdrawal) => !w.executed && !(w.approvals || []).includes(addressStr));
@@ -105,7 +105,7 @@ export function DashboardGuardianView() {
                     <p className="text-slate-600 dark:text-slate-400">Loading requests...</p>
                 </div>
             )}
-            {errorMsg && (
+            {errorMsg && errorMsg.length > 0 && (
                 <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-center">
                     <p className="text-red-600 dark:text-red-400">{errorMsg}</p>
                 </div>
