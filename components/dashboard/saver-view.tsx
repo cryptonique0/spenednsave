@@ -16,10 +16,7 @@ import { VaultAnalyticsDashboard } from "./VaultAnalyticsDashboard";
 export function DashboardSaverView() {
         // Timer for stable current time in render
         const [now, setNow] = useState(() => Date.now());
-        useEffect(() => {
-            const interval = setInterval(() => setNow(Date.now()), 60000); // update every minute
-            return () => clearInterval(interval);
-        }, []);
+        // Only one timer effect needed for stable now
         useEffect(() => {
             const interval = setInterval(() => setNow(Date.now()), 60000); // update every minute
             return () => clearInterval(interval);
