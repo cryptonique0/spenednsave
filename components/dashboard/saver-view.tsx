@@ -109,11 +109,6 @@ export function DashboardSaverView() {
 
     return (
         <div className="w-full flex flex-col gap-8">
-            {/* Vault Analytics Dashboard */}
-            <div className="mb-8">
-                <VaultAnalyticsDashboard vaultAddress={vaultAddress} guardianTokenAddress={guardianTokenAddress} />
-            </div>
-
             {/* Top Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Main Balance */}
@@ -349,6 +344,11 @@ export function DashboardSaverView() {
                         </Link>
                     </div>
                 </section>
+            </div>
+
+            {/* Vault Analytics Dashboard (moved below) */}
+            <div className="mt-8">
+                <VaultAnalyticsDashboard vaultAddress={vaultAddress} guardianTokenAddress={guardianTokenAddress} />
             </div>
 
             {/* Deposit Modal */}
