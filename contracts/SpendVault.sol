@@ -495,17 +495,19 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 weekIndex = block.timestamp / 1 weeks;
         uint256 monthIndex = block.timestamp / 30 days;
 
+        struct UsedCaps { uint256 daily; uint256 weekly; uint256 monthly; }
+        UsedCaps memory usedCaps;
         if (cap.daily > 0) {
-            uint256 used = withdrawnDaily[token][dayIndex];
-            require(used + amount <= cap.daily, "Daily withdrawal cap exceeded");
+            usedCaps.daily = withdrawnDaily[token][dayIndex];
+            require(usedCaps.daily + amount <= cap.daily, "Daily withdrawal cap exceeded");
         }
         if (cap.weekly > 0) {
-            uint256 usedW = withdrawnWeekly[token][weekIndex];
-            require(usedW + amount <= cap.weekly, "Weekly withdrawal cap exceeded");
+            usedCaps.weekly = withdrawnWeekly[token][weekIndex];
+            require(usedCaps.weekly + amount <= cap.weekly, "Weekly withdrawal cap exceeded");
         }
         if (cap.monthly > 0) {
-            uint256 usedM = withdrawnMonthly[token][monthIndex];
-            require(usedM + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
+            usedCaps.monthly = withdrawnMonthly[token][monthIndex];
+            require(usedCaps.monthly + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
         }
 
         // Increment nonce to prevent replay attacks
