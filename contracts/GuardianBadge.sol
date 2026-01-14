@@ -10,6 +10,50 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract GuardianBadge is ERC721Enumerable, Ownable {
 
+    // --- Emergency Contact List ---
+    mapping(address => bool) public emergencyContacts;
+    address[] public emergencyContactList;
+
+    event EmergencyContactAdded(address indexed contact);
+    event EmergencyContactRemoved(address indexed contact);
+
+    /**
+     * @notice Add a trusted emergency contact (owner only)
+     * @param contact The address to add
+     */
+    function addEmergencyContact(address contact) external onlyOwner {
+        require(contact != address(0), "Invalid contact");
+        require(!emergencyContacts[contact], "Already added");
+        emergencyContacts[contact] = true;
+        emergencyContactList.push(contact);
+        emit EmergencyContactAdded(contact);
+    }
+
+    /**
+     * @notice Remove a trusted emergency contact (owner only)
+     * @param contact The address to remove
+     */
+    function removeEmergencyContact(address contact) external onlyOwner {
+        require(emergencyContacts[contact], "Not in list");
+        emergencyContacts[contact] = false;
+        // Remove from array
+        for (uint256 i = 0; i < emergencyContactList.length; i++) {
+            if (emergencyContactList[i] == contact) {
+                emergencyContactList[i] = emergencyContactList[emergencyContactList.length - 1];
+                emergencyContactList.pop();
+                break;
+            }
+        }
+        emit EmergencyContactRemoved(contact);
+    }
+
+    /**
+     * @notice Get all emergency contacts
+     */
+    function getEmergencyContacts() external view returns (address[] memory) {
+        return emergencyContactList;
+    }
+
         // --- Soulbound: Block all transfers and approvals ---
         function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
             require(from == address(0) || to == address(0), "Soulbound: Transfers disabled");
