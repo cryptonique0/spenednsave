@@ -91,12 +91,12 @@ export function useGuardians(guardianTokenAddress?: Address) {
                                     abi: GuardianSBTABI,
                                     data: log.data,
                                     topics: log.topics,
-                                } as any);
-                                
-                                if ((decoded as any).eventName === 'GuardianAdded') {
-                                    addedLogs.push(log);
-                                } else if ((decoded as any).eventName === 'GuardianRemoved') {
-                                    removedLogs.push(log);
+                                } as any) as any;
+
+                                if (decoded.eventName === 'GuardianAdded') {
+                                    addedLogs.push({ log, decoded });
+                                } else if (decoded.eventName === 'GuardianRemoved') {
+                                    removedLogs.push({ log, decoded });
                                 }
                             } catch (decodeErr) {
                                 // Not a guardianship event, skip
@@ -121,22 +121,22 @@ export function useGuardians(guardianTokenAddress?: Address) {
                 const removedSet = new Set<string>();
 
                 // Track removed guardians
-                for (const log of removedLogs) {
-                    const args = (log as any).args;
+                for (const entry of removedLogs) {
+                    const args = (entry.decoded as any).args;
                     if (args?.guardian) {
                         removedSet.add(args.guardian.toLowerCase());
                     }
                 }
 
                 // Fetch block timestamps in parallel for guardians (optimization)
-                const activeGuardians = addedLogs.filter(log => {
-                    const args = (log as any).args;
+                const activeGuardians = addedLogs.filter(entry => {
+                    const args = (entry.decoded as any).args;
                     return args?.guardian && !removedSet.has(args.guardian.toLowerCase());
                 });
 
                 console.log('[useGuardians] Active guardians after filtering:', activeGuardians.length);
 
-                const blockNumbers = [...new Set(activeGuardians.map(log => log.blockNumber).filter(n => n !== null && n !== undefined) as bigint[])];
+                const blockNumbers = [...new Set(activeGuardians.map(entry => entry.log.blockNumber).filter(n => n !== null && n !== undefined) as bigint[])];
                 
                 if (blockNumbers.length > 0) {
                     const blockPromises = blockNumbers.map(blockNum => 
@@ -146,13 +146,13 @@ export function useGuardians(guardianTokenAddress?: Address) {
                     const blockMap = new Map(blockNumbers.map((num, i) => [num, blocks[i]]));
 
                     // Add active guardians
-                    for (const log of activeGuardians) {
-                        const args = (log as any).args;
-                        const blockNumber = log.blockNumber;
-                        const transactionHash = log.transactionHash;
-                        
+                    for (const entry of activeGuardians) {
+                        const args = (entry.decoded as any).args;
+                        const blockNumber = entry.log.blockNumber;
+                        const transactionHash = entry.log.transactionHash;
+
                         if (!args?.guardian || blockNumber === null || transactionHash === null) continue;
-                        
+
                         const block = blockMap.get(blockNumber);
                         if (block) {
                             guardianMap.set(args.guardian.toLowerCase(), {
