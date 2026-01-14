@@ -504,3 +504,16 @@ export function useWithdrawalPolicyAt(vaultAddress?: Address, index?: bigint | n
         query: { enabled: !!vaultAddress && index !== undefined && index !== null },
     }) as any;
 }
+
+/**
+ * Hook to get the applicable policy for a given amount
+ */
+export function useGetPolicyForAmount(vaultAddress?: Address, amount?: bigint) {
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'getPolicy',
+        args: amount !== undefined ? [amount] : undefined,
+        query: { enabled: !!vaultAddress && amount !== undefined },
+    }) as any;
+}
