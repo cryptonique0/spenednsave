@@ -53,7 +53,12 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ---
 
+
 ## ✨ Features
+
+### For Everyone (Community)
+
+- ✅ **Feature Requests & Voting**: Suggest new features and vote for your favorites on the Community Feature Requests page
 
 ### For Savers (Vault Owners)
 
@@ -333,6 +338,7 @@ SpendGuard includes a built-in simulation mode for demo and education purposes. 
 This is ideal for onboarding, demos, and testing the user experience without risk.
 
 ---
+
 ### Project Structure
 
 ```
@@ -345,8 +351,11 @@ spenednsave/
 │   ├── withdraw/            # Withdrawal requests
 │   ├── voting/              # Guardian voting portal
 │   ├── emergency/           # Emergency unlock
-│   └── activity/            # Transaction history
+│   ├── activity/            # Transaction history
+│   ├── feature-requests/    # Community feature requests page
+│   └── api/feature-requests # API routes for feature requests
 ├── components/              # React components
+│   ├── community/           # Community feature requests UI
 │   ├── landing/            # Landing page sections
 │   ├── dashboard/          # Dashboard views
 │   ├── vault-setup/        # Vault wizard steps
@@ -371,6 +380,23 @@ spenednsave/
 ├── _designs/               # HTML design prototypes
 └── [config files]          # TS, Tailwind, ESLint configs
 ```
+---
+
+## 🌟 Community Feature Requests
+
+SpendGuard now includes a Community Feature Requests page where users can:
+
+- Suggest new features for the platform
+- Vote on existing feature requests
+- See top-voted ideas prioritized for future development
+
+**How to use:**
+- Visit the "Feature Requests" link in the navigation bar
+- Submit your idea or vote for your favorites
+
+Backend API routes handle submission and voting. For demo, requests are stored in memory; production should use a database.
+
+---
 
 ### Key Components
 
