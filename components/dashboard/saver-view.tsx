@@ -11,6 +11,7 @@ import { formatEther, type Address } from "viem";
 import { useState, useEffect } from "react";
 import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
+import PolicyConfig from '@/components/dashboard/policy-config';
 
 export function DashboardSaverView() {
     const { address } = useAccount();
@@ -325,6 +326,9 @@ export function DashboardSaverView() {
                         <Link href="/guardians" className="block w-full mt-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-medium transition-colors text-center">
                             Manage Guardians
                         </Link>
+                        <div className="mt-4">
+                            <PolicyConfig vaultAddress={vaultAddress as any} />
+                        </div>
                     </div>
                 </section>
             </div>
