@@ -20,13 +20,25 @@ export function DashboardGuardianView() {
     useEffect(() => {
         async function fetchVaults() {
             if (!address || !GUARDIAN_SBT_ADDRESS) return;
-            // Use ethers.js to call getVaultsForGuardian
-            const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
-            const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
-            const vaultAddresses: string[] = await contract.getVaultsForGuardian(address);
-            // For each vault, fetch name, owner, and pending approvals from contract/backend
-            // TODO: Replace with actual contract calls
-            setVaults([]);
+            try {
+                // Use ethers.js to call getVaultsForGuardian
+                const provider = new providers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+                const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
+                // This call may fail if the ABI or contract is not correct, so wrap in try/catch
+                // If not implemented, just set empty
+                let vaultAddresses: string[] = [];
+                try {
+                    vaultAddresses = await contract.getVaultsForGuardian(address);
+                } catch (e) {
+                    // fallback: not implemented
+                    vaultAddresses = [];
+                }
+                // For each vault, fetch name, owner, and pending approvals from contract/backend
+                // TODO: Replace with actual contract calls
+                setVaults([]);
+            } catch (e) {
+                setVaults([]);
+            }
         }
         fetchVaults();
     }, [address]);
