@@ -63,6 +63,7 @@ export default function GuardianLeaderboardPage() {
               <th className="px-4 py-2 text-left">Approvals</th>
               <th className="px-4 py-2 text-left">Avg. Response</th>
               <th className="px-4 py-2 text-left">Longevity</th>
+              <th className="px-4 py-2 text-left">Last Activity</th>
               <th className="px-4 py-2 text-left"></th>
             </tr>
           </thead>
@@ -89,6 +90,8 @@ export default function GuardianLeaderboardPage() {
                     {g.longevityDays} days
                   </td>
                   <td className="px-4 py-2">
+                    {g.lastAction ? new Date(g.lastAction).toLocaleString() : '-'}
+                  </td>
                     <button onClick={() => setExpanded(expanded === g.account ? null : g.account)} className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
                       {expanded === g.account ? <ChevronUp size={18} /> : <ChevronDown size={18} />} Details
                     </button>
@@ -101,6 +104,7 @@ export default function GuardianLeaderboardPage() {
                         <div><span className="font-semibold">First Approval:</span> {g.firstAction ? new Date(g.firstAction).toLocaleString() : '-'}</div>
                         <div><span className="font-semibold">Last Approval:</span> {g.lastAction ? new Date(g.lastAction).toLocaleString() : '-'}</div>
                         <div><span className="font-semibold">Address:</span> <span className="font-mono">{g.account}</span></div>
+                        <div><span className="font-semibold">Last Activity:</span> {g.lastAction ? new Date(g.lastAction).toLocaleString() : '-'}</div>
                         {/* Add more details here as needed */}
                       </div>
                     </td>
