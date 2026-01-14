@@ -54,13 +54,57 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 ---
 
 
+## 📝 Changelog
+
+- **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
+
+## 📝 Changelog
+
+- **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
+
 ## ✨ Features
 
-### For Everyone (Community)
 
-- ✅ **Feature Requests & Voting**: Suggest new features and vote for your favorites on the Community Feature Requests page
+### Email Notifications
+
+- ✅ **Email Notifications**: Owners and guardians can opt-in to receive email alerts for important events (withdrawal requests, approvals, rejections, execution, and emergency unlocks). Preferences are managed in the app settings. Uses secure backend delivery (SMTP/Resend).
 
 ### For Savers (Vault Owners)
+---
+
+## 📧 Email Notification System
+
+SpendGuard includes a built-in email notification system for important vault and guardian events:
+
+- **Events Covered:**
+   - Withdrawal request submitted
+   - Withdrawal approved
+   - Withdrawal rejected
+   - Withdrawal executed
+   - Emergency unlock requested
+- **Opt-in:** Users can provide their email and manage notification preferences in the Settings page.
+- **Backend:** Uses SMTP (Nodemailer) or Resend API for secure delivery. Emails are only sent to users who have opted in.
+- **Customization:** Email templates can be customized in `lib/services/email-notifications.ts`.
+
+**How it works:**
+1. User sets their email and notification preferences in Settings.
+2. When a covered event occurs, the backend checks preferences and sends notifications to all involved parties.
+3. Emails include event details, vault info, and relevant links.
+
+**Environment setup:**
+Set SMTP or Resend credentials in your environment:
+
+```
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_pass
+SMTP_FROM="SpendGuard <no-reply@spendguard.xyz>"
+```
+
+Or configure Resend API as needed.
+
+---
 
 - ✅ **Create Vault**: Deploy your own SpendVault contract with custom quorum settings
 - ✅ **Manage Guardians**: Add/remove trusted friends with soulbound tokens (non-transferable)
@@ -176,7 +220,7 @@ NEXT_PUBLIC_VAULT_FACTORY_ADDRESS=0x...
 NEXT_PUBLIC_GUARDIAN_SBT_ADDRESS=0x...
 
 # WalletConnect Project ID (get from https://cloud.walletconnect.com)
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=2c744d31bd68644ba0831658bbd2f1d6
 
 # Optional: Analytics
 NEXT_PUBLIC_ANALYTICS_ID=
@@ -301,16 +345,39 @@ SpendVault:    [User-specific deployments]
 
 ### Tech Stack
 
-- **Framework**: Next.js 16.1 (App Router)
-- **Language**: TypeScript 5
-- **Styling**: TailwindCSS 3.4
-- **Web3**: 
-  - Wagmi 2.19 (React hooks for Ethereum)
-  - RainbowKit 2.2 (wallet connection)
-  - Viem 2.43 (TypeScript Ethereum library)
-- **State**: React Query (TanStack Query)
-- **Icons**: Lucide React
-- **Theme**: Next Themes (dark mode support)
+**Framework**: Next.js 16.1 (App Router)
+**Language**: TypeScript 5
+**Styling**: TailwindCSS 3.4
+**Web3**: 
+   - Wagmi 2.19 (React hooks for Ethereum)
+   - RainbowKit 2.2 (multi-wallet, WalletConnect v2, Zerion, etc.)
+   - Viem 2.43 (TypeScript Ethereum library)
+**Wallets**: WalletConnect v2 (Zerion, Rainbow, MetaMask, Coinbase, and more)
+**State**: React Query (TanStack Query)
+**Icons**: Lucide React
+**Theme**: Next Themes (dark mode support)
+## 🔗 WalletConnect v2 & Multi-Wallet Support
+
+This app uses RainbowKit and WalletConnect v2 for seamless multi-wallet support, including Zerion, Rainbow, MetaMask, Coinbase, Trust, and many more.
+
+**WalletConnect v2** is enabled by setting your project ID in `lib/config.ts` and `.env.local`:
+   - Project ID: `2c744d31bd68644ba0831658bbd2f1d6`
+   - Get your own at https://cloud.walletconnect.com
+**Zerion Wallet** and all major wallets are available in the connect modal by default—no extra setup required.
+To feature or prioritize a wallet, customize the RainbowKit config (see RainbowKit docs).
+
+**How to use:**
+1. Click "Connect Wallet" in the navbar or landing page.
+2. Choose from MetaMask, Zerion, Rainbow, Coinbase, Trust, and more.
+3. WalletConnect QR and mobile deep links are supported.
+
+**Config location:**
+`lib/config.ts` — RainbowKit/Wagmi config, including WalletConnect projectId and supported chains.
+`.env.local` — For environment-based overrides.
+
+**Docs:**
+[RainbowKit Wallets](https://www.rainbowkit.com/docs/introduction)
+[WalletConnect Cloud](https://cloud.walletconnect.com)
 
 
 ### Simulation Mode (Frontend-Only Demo)
@@ -435,6 +502,71 @@ npx hardhat compile      # Compile contracts
 npx hardhat test         # Run contract tests
 npx hardhat node         # Start local blockchain
 ```
+
+## 🔐 Server & Encrypted DB
+
+- The app now stores guardian pending requests and account activities server-side using a SQLite database (server-only). The DB is encrypted using AES-256-GCM; the encryption key must be provided via `DB_ENCRYPTION_KEY` in your environment.
+- Install the native SQLite dependency on the server: `better-sqlite3` is required for the server-side service.
+- Migration: if you have existing on-chain cached activity data, an import endpoint and helper script are provided. To re-encrypt or import data, run the migration script (if present) and set `DB_ENCRYPTION_KEY` prior to running:
+
+```bash
+# Ensure env contains DB_ENCRYPTION_KEY
+npm run encrypt-db
+```
+
+Files of interest:
+- `lib/services/guardian-signature-db.ts` — encrypted DB layer and API helpers
+- `app/api/activities` — server endpoints for listing/importing activities
+
+## 🛡️ GuardianBadge (Soulbound NFT)
+
+- A non-transferable `GuardianBadge` ERC-721 contract (soulbound) was added to help surface guardian achievements in the UI.
+- To enable badge display in the dashboard, set the deployed contract address for your network in `lib/contracts.ts` under `GUARDIAN_BADGE_ADDRESS` (e.g. `baseSepolia: '0xYOUR_ADDRESS'`).
+- There is a server endpoint that computes badge eligibility recommendations at `/api/badges/eligible` — minting is manual (owner) or can be automated with a secure signer.
+
+Files of interest:
+- `contracts/GuardianBadge.sol` — the soulbound badge contract
+- `lib/abis/GuardianBadge.json` and `lib/abis/GuardianBadge.ts` — ABI and wrapper
+- `lib/hooks/useContracts.ts` — client hooks for reading badges and minting (owner)
+
+## 🧭 Activity Log Troubleshooting
+
+If the Activity page shows "No Activity Yet" even when you expect events, try the following steps:
+
+- 1) Verify Vault addresses are discovered
+   - Open the browser console and look for logs prefixed with `[ActivityLogView]` and `[useVaultActivity]` to confirm `vaultAddress` and `guardianTokenAddress` are populated.
+
+- 2) Check the server API
+   - Request server-side activities for a vault:
+
+```bash
+curl "http://localhost:3000/api/activities?account=0xYOUR_VAULT_ADDRESS" | jq '.'
+```
+
+   - A non-empty JSON array indicates the server has activity records. If the array is empty, the UI will fall back to on-chain event scanning.
+
+- 3) Confirm on-chain events are being fetched
+   - The client scans the vault contract for `Deposited` and `Withdrawn` events. Look for logs like `[useDepositHistory] Decoded log:` in the browser console.
+   - If no logs appear, ensure `NEXT_PUBLIC_RPC_URL` points to a working Base Sepolia RPC and that the vault has emitted events.
+
+- 4) Check local caches and auto-import
+   - The client stores caches under keys like `deposits-cache-<vault>` and `deposits-debug-<vault>` in `localStorage`. Inspect these keys if you want debug information.
+   - On first load the app attempts an automatic import of recent on-chain activity to the server. It sets a local flag `activities-migrated-<vaultAddress>` to avoid repeating imports.
+
+- 5) Server-side DB & encryption
+   - Make sure the server process has `DB_ENCRYPTION_KEY` set; otherwise encrypted DB access will fail.
+   - If you recently changed the key, run the migration/encrypt script:
+
+```bash
+# Set DB_ENCRYPTION_KEY in your environment, then:
+npm run encrypt-db
+```
+
+- 6) Force import (advanced)
+   - The client calls an import endpoint to persist activities server-side. If needed, you can POST activity objects to `/api/activities/import` (JSON array) to seed the DB.
+
+If you still see no activity after these checks, paste the browser console logs and the output of the `curl` command above and I will help diagnose further.
+
 
 ### Adding New Features
 

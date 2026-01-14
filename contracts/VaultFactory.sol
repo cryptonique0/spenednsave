@@ -33,7 +33,11 @@ contract VaultFactory {
      * @return guardianToken Address of the deployed GuardianSBT
      * @return vault Address of the deployed SpendVault
      */
-    function createVault(uint256 _quorum) external returns (address guardianToken, address vault) {
+    function createVault(
+        uint256 _quorum,
+        string memory _name,
+        string[] memory _tags
+    ) external returns (address guardianToken, address vault) {
         require(userVaults[msg.sender] == address(0), "Vault already exists for this user");
         require(_quorum > 0, "Quorum must be greater than 0");
 
@@ -44,8 +48,8 @@ contract VaultFactory {
         // Transfer ownership to the user
         guardianSBT.transferOwnership(msg.sender);
 
-        // Deploy SpendVault for this user
-        SpendVault spendVault = new SpendVault(guardianToken, _quorum);
+        // Deploy SpendVault for this user with name and tags
+        SpendVault spendVault = new SpendVault(guardianToken, _quorum, _name, _tags);
         vault = address(spendVault);
 
         // Transfer ownership to the user

@@ -138,7 +138,7 @@ export class GuardianSignatureDB {
 
   static getPendingRequests(): PendingWithdrawalRequest[] {
     const rows = db.prepare('SELECT * FROM pending_requests').all();
-    return rows.map(row => ({
+    return rows.map((row: any) => ({
       ...row,
       request: (() => {
         try {

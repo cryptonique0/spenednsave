@@ -15,6 +15,12 @@ export const CONTRACTS_BASE_MAINNET = {
     VaultFactory: '0x0000000000000000000000000000000000000000', // TODO: Update after deployment
 } as const;
 
+// Optional: GuardianBadge contract (set after deployment)
+export const GUARDIAN_BADGE_ADDRESS = {
+    baseSepolia: '0x0000000000000000000000000000000000000000',
+    baseMainnet: '0x0000000000000000000000000000000000000000',
+};
+
 /**
  * Get contract addresses for the current chain
  */

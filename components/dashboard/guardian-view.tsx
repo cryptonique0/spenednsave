@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield, CheckCircle, XCircle, Clock, Users } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Users, Award } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { useScheduledWithdrawals } from "@/lib/hooks/useScheduledWithdrawals";
@@ -31,7 +31,15 @@ interface ScheduledWithdrawal {
 
 export function DashboardGuardianView() {
     const { address } = useAccount();
-    const [vaults, setVaults] = useState<Array<{ vaultAddress: string; vaultName: string; owner: string; pendingApprovals: number }>>([]);
+    const [vaults, setVaults] = useState<any[]>([]);
+    const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+    const [reputation, setReputation] = useState<any>(null);
+
+    useEffect(() => {
+        if (address) {
+            fetchGuardianReputation(address).then(setReputation);
+        }
+    }, [address]);
 
     useEffect(() => {
         async function fetchVaults() {
@@ -123,9 +131,25 @@ export function DashboardGuardianView() {
                         <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">{pendingRequests.length} Pending</p>
                     </div>
                 </div>
+                {badgeData && (
+                    <div className="flex items-center gap-3">
+                        <div className="text-sm text-slate-500">Badges</div>
+                        <div className="flex items-center gap-2">
+                            {(badgeData[0] || []).map((tid: any, i: number) => (
+                                <div key={String(tid)} className="inline-flex items-center gap-2 bg-white dark:bg-surface-dark border border-surface-border rounded-xl px-3 py-1 text-xs">
+                                    <Award size={16} className="text-amber-500" />
+                                    <div>
+                                        <div className="font-semibold">{badgeData[1] && badgeData[1][i] ? `Type ${String(badgeData[1][i])}` : 'Badge'}</div>
+                                        <div className="text-xs text-slate-500">{badgeData[2] && badgeData[2][i] ? new Date(Number(badgeData[2][i]) * 1000).toLocaleDateString() : ''}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats Cards: Reputation */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-2">
@@ -136,27 +160,56 @@ export function DashboardGuardianView() {
                     </div>
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{pendingRequests.length}</p>
                 </div>
-
                 <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                             <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
                         </div>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Approved This Month</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">Total Approvals</span>
                     </div>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-white">12</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{reputation?.approvals ?? '-'}</p>
                 </div>
-
                 <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <Users className="text-blue-600 dark:text-blue-400" size={20} />
                         </div>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Vaults Guarding</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">Avg. Response Time</span>
                     </div>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-white">3</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                        {reputation?.avgResponseSeconds != null ? `${Math.round(reputation.avgResponseSeconds / 60)} min` : '-'}
+                    </p>
                 </div>
             </div>
+            {/* Guardian Approval History */}
+            {reputation?.history?.length > 0 && (
+                <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Approval History</h2>
+                    <div className="space-y-3">
+                        {reputation.history.map((item: any, idx: number) => (
+                            <div key={idx} className="bg-white dark:bg-surface-dark border border-surface-border rounded-xl p-4 flex items-center justify-between">
+                                <div>
+                                    <div className="flex items-center gap-1 font-medium text-slate-900 dark:text-white">
+                                        <span>{item.recipient.slice(0, 6)}...{item.recipient.slice(-4)}</span>
+                                        <button
+                                            onClick={() => navigator.clipboard.writeText(item.recipient)}
+                                            title="Copy address"
+                                            className="ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
+                                        </button>
+                                    </div>
+                                    <div className="text-sm text-slate-500 dark:text-slate-400">{item.reason}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-bold text-slate-900 dark:text-white">{item.amount}</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">{item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Vaults Guarding */}
             <div>
@@ -184,12 +237,21 @@ export function DashboardGuardianView() {
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-start gap-4">
-                                        <div className="size-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                                            {request.saverName.charAt(0).toUpperCase()}
+                                        <div className="size-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold overflow-hidden">
+                                            <AvatarBlockie address={request.saverAddress} size={44} />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-slate-900 dark:text-white">{request.saverName}</h3>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">{request.saverAddress.slice(0, 6)}...{request.saverAddress.slice(-4)}</p>
+                                            <span className="flex items-center gap-1">
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">{request.saverAddress.slice(0, 6)}...{request.saverAddress.slice(-4)}</p>
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(request.saverAddress)}
+                                                    title="Copy address"
+                                                    className="ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
+                                                </button>
+                                            </span>
                                             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{request.timestamp}</p>
                                         </div>
                                     </div>
@@ -279,11 +341,23 @@ export function DashboardGuardianView() {
                                 className="bg-white dark:bg-surface-dark border border-surface-border rounded-xl p-4 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                                        <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                                            <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                        </div>
+                                        <AvatarBlockie address={request.saverAddress} size={24} />
                                     </div>
                                     <div>
-                                        <p className="font-medium text-slate-900 dark:text-white">{request.saverName}</p>
+                                        <p className="font-medium text-slate-900 dark:text-white flex items-center gap-1">
+                                            {request.saverName}
+                                            <button
+                                                onClick={() => navigator.clipboard.writeText(request.saverAddress)}
+                                                title="Copy address"
+                                                className="ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
+                                            </button>
+                                        </p>
                                         <p className="text-sm text-slate-500 dark:text-slate-400">{request.reason}</p>
                                     </div>
                                 </div>

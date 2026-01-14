@@ -10,7 +10,8 @@ import { Spinner } from "@/components/ui/spinner";
 
 import { useAccount, useSignTypedData, useChainId } from "wagmi";
 import { parseEther, formatEther, type Address } from "viem";
-import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner } from "@/lib/hooks/useContracts";
+import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner, useGetPolicyForAmount, useGetWithdrawalCaps, useVaultWithdrawnInPeriod } from "@/lib/hooks/useContracts";
+import { useGuardians } from "@/lib/hooks/useVaultData";
 
 export function WithdrawalForm() {
     const [step, setStep] = useState<'form' | 'signing' | 'success'>('form');
@@ -24,7 +25,10 @@ export function WithdrawalForm() {
     const { address, isConnected } = useAccount();
     const chainId = useChainId();
     const { data: userContracts } = useUserContracts(address as any);
+    const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+    const { guardians } = useGuardians(guardianTokenAddress);
+    const guardianCount = guardians ? guardians.length : 0;
     const { data: vaultBalance } = useVaultETHBalance(vaultAddress);
     const { data: quorum } = useVaultQuorum(vaultAddress);
     const { data: currentNonce } = useVaultNonce(vaultAddress);
@@ -34,6 +38,25 @@ export function WithdrawalForm() {
 
     // Calculate quorum value early for use in JSX
     const quorumValue = (quorum && typeof quorum === 'bigint') ? quorum.toString() : '2';
+
+    // Policy for the currently entered amount (for live display)
+    let parsedAmountForPolicy: bigint | undefined = undefined;
+    try {
+        parsedAmountForPolicy = amount ? parseEther(amount) as bigint : undefined;
+    } catch (e) {
+        parsedAmountForPolicy = undefined;
+    }
+
+    const policyRes = useGetPolicyForAmount(vaultAddress, parsedAmountForPolicy as any);
+    const policyApprovals = policyRes && policyRes.data ? String(policyRes.data.requiredApprovals ?? quorumValue) : quorumValue;
+    let policyRequiredApprovals = Number(quorumValue);
+    if (policyRes && policyRes.data && policyRes.data.requiredApprovals !== undefined) {
+        try {
+            policyRequiredApprovals = Number(policyRes.data.requiredApprovals);
+        } catch (e) {
+            policyRequiredApprovals = Number(quorumValue);
+        }
+    }
 
     // Handle successful signature
     useEffect(() => {
@@ -70,9 +93,90 @@ export function WithdrawalForm() {
         }
     }, [isSignSuccess, signature, withdrawalData, vaultAddress, address]);
 
+    // Client-side cap hooks (zero address = ETH)
+    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
+    const capsRes = useGetWithdrawalCaps(vaultAddress, ZERO_ADDRESS);
+    const dailyUsedRes = useVaultWithdrawnInPeriod(vaultAddress, ZERO_ADDRESS, 'daily');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSubmitting(true);
+
+        if (!isConnected || !address || !vaultAddress) {
+            alert("Please connect your wallet first");
+            return;
+        }
+
+        if (!amount || parseFloat(amount) <= 0) {
+            alert("Please enter a valid amount");
+            return;
+        }
+
+        const amountInWei = parseEther(amount);
+
+        // Check temporal caps (client-side hint)
+        try {
+            if (capsRes && (capsRes as any).data) {
+                const cap = (capsRes as any).data;
+                const capDaily = cap.daily ? BigInt(cap.daily) : 0n;
+                const used = dailyUsedRes && (dailyUsedRes as any).data ? BigInt((dailyUsedRes as any).data) : 0n;
+                if (capDaily > 0n && amountInWei + used > capDaily) {
+                    alert('This withdrawal would exceed the daily cap for the vault');
+                    return;
+                }
+            }
+        } catch (e) {
+            // ignore client-side validation errors
+        }
+        
+        // Check if user has sufficient balance
+        if (vaultBalance && typeof vaultBalance === 'bigint' && amountInWei > vaultBalance) {
+            alert("Insufficient vault balance");
+            return;
+        }
+
+        // Validate policy vs guardian count and warn if guardians are insufficient
+        if (policyRes && policyRes.data) {
+            const required = policyRes.data.requiredApprovals !== undefined ? Number(policyRes.data.requiredApprovals) : Number(quorumValue);
+            if (required > guardianCount) {
+                const proceed = confirm(`Policy requires ${required} approvals but there are only ${guardianCount} guardians. Proceed anyway?`);
+                if (!proceed) return;
+            }
+        }
+
+        // Prepare withdrawal data using the current nonce from the contract
+        const withdrawalRequest = {
+            token: '0x0000000000000000000000000000000000000000' as Address, // ETH
+            amount: amountInWei,
+            recipient: address,
+            nonce: (typeof currentNonce === 'bigint' ? currentNonce : 0n), // Use contract nonce
+            reason: reason || "Withdrawal request"
+        };
+
+        setWithdrawalData(withdrawalRequest);
+        
+        // Move to signing step to get owner's signature
+        setStep('signing');
+        
+        // EIP-712 domain
+        const domain = {
+            name: 'SpendGuard',
+            version: '1',
+            chainId: chainId,
+            verifyingContract: vaultAddress as Address,
+        };
+
+        // EIP-712 types
+        const types = {
+            Withdrawal: [
+                { name: 'token', type: 'address' },
+                { name: 'amount', type: 'uint256' },
+                { name: 'recipient', type: 'address' },
+                { name: 'nonce', type: 'uint256' },
+                { name: 'reason', type: 'string' },
+            ],
+        };
+
+        // Sign the withdrawal request
         try {
             if (!isConnected || !address || !vaultAddress) {
                 toast.error("Please connect your wallet first");
@@ -307,6 +411,25 @@ export function WithdrawalForm() {
                         <button type="button" onClick={() => setAmount("500")} className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">$500</button>
                         <button type="button" onClick={() => setAmount("5420.50")} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold hover:bg-primary/20 transition-colors ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">MAX</button>
                     </div>
+                        {/* Policy badge and guardian count */}
+                        {policyRes && policyRes.data && (
+                            <div className="mt-3 flex items-center justify-between gap-4 text-xs">
+                                <div className="px-3 py-2 bg-gray-100 dark:bg-surface-border rounded-xl border border-gray-200 dark:border-surface-border">
+                                    <div className="font-semibold">Policy</div>
+                                    <div className="mt-1 text-slate-700 dark:text-slate-300">
+                                        <div>Range: {policyRes.data.minAmount ? `${formatEther(policyRes.data.minAmount)} ETH` : '0'} - {policyRes.data.maxAmount && policyRes.data.maxAmount !== 0n ? `${formatEther(policyRes.data.maxAmount)} ETH` : '∞'}</div>
+                                        <div>Approvals: {String(policyRes.data.requiredApprovals)}</div>
+                                        <div>Cooldown: {policyRes.data.cooldown ? `${String(policyRes.data.cooldown)}s` : 'none'}</div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                    Guardians: <span className="font-medium text-slate-900 dark:text-white">{guardianCount}</span>
+                                    {policyRequiredApprovals > guardianCount && (
+                                        <span className="ml-2 text-amber-600">Insufficient guardians for policy</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                 </div>
 
                 {/* Reason */}

@@ -196,6 +196,26 @@ export function LandingView() {
                         </div>
                     </div>
                 </section>
+
+                {/* Governance Section (anchor target for nav) */}
+                <section id="governance" className="py-20 bg-white dark:bg-[#040617] border-t border-slate-100 dark:border-white/5">
+                    <div className="w-full px-6 lg:px-12">
+                        <div className="max-w-3xl mx-auto text-center">
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Governance</h2>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">Community-driven features and protocol governance ensure SpendGuard evolves securely and transparently.</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Security Section (anchor target for nav) */}
+                <section id="security" className="py-20 bg-slate-50 dark:bg-[#020617] border-t border-slate-100 dark:border-white/5">
+                    <div className="w-full px-6 lg:px-12">
+                        <div className="max-w-3xl mx-auto text-center">
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Security</h2>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">Smart contracts audited, encrypted signature storage, and guardrails designed to protect user funds. Review our security docs for details.</p>
+                        </div>
+                    </div>
+                </section>
             </main>
 
             <footer className="bg-white dark:bg-[#020617] border-t border-slate-200 dark:border-white/5 pt-16 pb-8">

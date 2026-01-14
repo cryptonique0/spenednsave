@@ -3,6 +3,7 @@ import { GuardianSBTABI } from '@/lib/abis/GuardianSBT';
 import { SpendVaultABI } from '@/lib/abis/SpendVault';
 import { VaultFactoryABI } from '@/lib/abis/VaultFactory';
 import { getContractAddresses } from '@/lib/contracts';
+import { GuardianBadgeABI } from '@/lib/abis/GuardianBadge';
 import { parseEther, type Address } from 'viem';
 
 /**
@@ -451,4 +452,161 @@ export function useExecuteWithdrawal(vaultAddress?: Address) {
         isSuccess,
         error,
     };
+}
+
+/**
+ * Hook to read guardian badges for an address
+ */
+export function useGuardianBadges(badgeContractAddress?: Address, account?: Address) {
+    return useReadContract({
+        address: badgeContractAddress as Address,
+        abi: GuardianBadgeABI,
+        functionName: 'badgesOf',
+        args: account ? [account] : undefined,
+        query: { enabled: !!badgeContractAddress && !!account },
+    }) as any;
+}
+
+/**
+ * Hook to mint a badge (owner must call)
+ */
+export function useMintBadge(badgeContractAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+    const mint = (to: Address, badgeType: number) => {
+        if (!badgeContractAddress) throw new Error('No badge contract configured');
+
+        writeContract({
+            address: badgeContractAddress,
+            abi: GuardianBadgeABI,
+            functionName: 'mintBadge',
+            args: [to, badgeType],
+        } as any);
+    };
+
+    return { mint, hash, isPending, isConfirming, isSuccess, error };
+}
+
+/**
+ * Hook to set withdrawal policies (owner only)
+ */
+export function useSetWithdrawalPolicies(vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+        hash,
+    });
+
+    const setPolicies = (policies: { minAmount: bigint | number | string; maxAmount: bigint | number | string; requiredApprovals: bigint | number | string; cooldown: bigint | number | string; }[]) => {
+        if (!vaultAddress) throw new Error('No vault address provided');
+
+        // Convert to tuple[] expected by the contract
+        const tuples = policies.map(p => [BigInt(p.minAmount), BigInt(p.maxAmount), BigInt(p.requiredApprovals), BigInt(p.cooldown)]);
+
+        writeContract({
+            address: vaultAddress,
+            abi: SpendVaultABI,
+            functionName: 'setWithdrawalPolicies',
+            args: [tuples],
+        } as any);
+    };
+
+    return { setPolicies, hash, isPending, isConfirming, isSuccess, error };
+}
+
+/**
+ * Hook to read number of withdrawal policies
+ */
+export function useWithdrawalPoliciesCount(vaultAddress?: Address) {
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'withdrawalPoliciesCount',
+        query: { enabled: !!vaultAddress },
+    });
+}
+
+/**
+ * Hook to read a single withdrawal policy by index
+ */
+export function useWithdrawalPolicyAt(vaultAddress?: Address, index?: bigint | number) {
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'withdrawalPolicies',
+        args: index !== undefined && index !== null ? [BigInt(index as any)] : undefined,
+        query: { enabled: !!vaultAddress && index !== undefined && index !== null },
+    }) as any;
+}
+
+/**
+ * Hook to get the applicable policy for a given amount
+ */
+export function useGetPolicyForAmount(vaultAddress?: Address, amount?: bigint) {
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'getPolicy',
+        args: amount !== undefined ? [amount] : undefined,
+        query: { enabled: !!vaultAddress && amount !== undefined },
+    }) as any;
+}
+
+/**
+ * Hook to read withdrawal caps for a token (address(0) for ETH)
+ */
+export function useGetWithdrawalCaps(vaultAddress?: Address, token?: Address) {
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: 'withdrawalCaps',
+        args: token ? [token] : undefined,
+        query: { enabled: !!vaultAddress && !!token },
+    }) as any;
+}
+
+/**
+ * Hook to set withdrawal caps (owner only)
+ */
+export function useSetWithdrawalCaps(vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+    const setCaps = (token: Address, daily: bigint | number | string, weekly: bigint | number | string, monthly: bigint | number | string) => {
+        if (!vaultAddress) throw new Error('No vault address provided');
+
+        writeContract({
+            address: vaultAddress,
+            abi: SpendVaultABI,
+            functionName: 'setWithdrawalCaps',
+            args: [token, BigInt(daily as any), BigInt(weekly as any), BigInt(monthly as any)],
+        } as any);
+    };
+
+    return { setCaps, hash, isPending, isConfirming, isSuccess, error };
+}
+
+/**
+ * Hook to read withdrawn amount for current period (daily/weekly/monthly)
+ */
+export function useVaultWithdrawnInPeriod(vaultAddress?: Address, token?: Address, period: 'daily' | 'weekly' | 'monthly' = 'daily') {
+    if (!vaultAddress || !token) return { data: undefined, isLoading: false, error: null } as any;
+
+    // compute index
+    const now = Math.floor(Date.now() / 1000);
+    let index = 0n;
+    if (period === 'daily') index = BigInt(Math.floor(now / 86400));
+    else if (period === 'weekly') index = BigInt(Math.floor(now / (86400 * 7)));
+    else index = BigInt(Math.floor(now / (86400 * 30)));
+
+    const fn = period === 'daily' ? 'withdrawnDaily' : period === 'weekly' ? 'withdrawnWeekly' : 'withdrawnMonthly';
+
+    return useReadContract({
+        address: vaultAddress as Address,
+        abi: SpendVaultABI,
+        functionName: fn,
+        args: [token, index],
+        query: { enabled: !!vaultAddress && !!token },
+    }) as any;
 }

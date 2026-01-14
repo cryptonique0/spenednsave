@@ -1,3 +1,161 @@
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+interface IGuardianSBT {
+    function balanceOf(address account) external view returns (uint256);
+}
+
+/**
+ * @title SpendVault
+ * @notice Multi-signature treasury vault with guardian-based approvals
+ * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
+ */
+contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+    // Guardian reputation event: logs every approval action
+    event GuardianAction(address indexed guardian, string action, uint256 timestamp, address indexed vault, address indexed recipient, uint256 amount, string reason);
+
+                // Internal helper to check withdrawal caps
+                function _checkWithdrawalCaps(address _token, uint256 amount) internal view {
+                    WithdrawalCap memory cap = withdrawalCaps[_token];
+                    uint256 dayIndex = block.timestamp / 1 days;
+                    uint256 weekIndex = block.timestamp / 1 weeks;
+                    uint256 monthIndex = block.timestamp / 30 days;
+                    if (cap.daily > 0) {
+                        uint256 usedDaily = withdrawnDaily[_token][dayIndex];
+                        require(usedDaily + amount <= cap.daily, "Daily withdrawal cap exceeded");
+                    }
+                    if (cap.weekly > 0) {
+                        uint256 usedWeekly = withdrawnWeekly[_token][weekIndex];
+                        require(usedWeekly + amount <= cap.weekly, "Weekly withdrawal cap exceeded");
+                    }
+                    if (cap.monthly > 0) {
+                        uint256 usedMonthly = withdrawnMonthly[_token][monthIndex];
+                        require(usedMonthly + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
+                    }
+                }
+
+                // Internal helper to update withdrawal counters
+                function _updateWithdrawalCounters(address _token, uint256 amount) internal {
+                    WithdrawalCap memory cap = withdrawalCaps[_token];
+                    uint256 dayIndex = block.timestamp / 1 days;
+                    uint256 weekIndex = block.timestamp / 1 weeks;
+                    uint256 monthIndex = block.timestamp / 30 days;
+                    if (cap.daily > 0) {
+                        withdrawnDaily[_token][dayIndex] += amount;
+                    }
+                    if (cap.weekly > 0) {
+                        withdrawnWeekly[_token][weekIndex] += amount;
+                    }
+                    if (cap.monthly > 0) {
+                        withdrawnMonthly[_token][monthIndex] += amount;
+                    }
+                }
+            // Helper struct for withdrawal cap checks (fixes stack too deep)
+            struct UsedCaps { uint256 daily; uint256 weekly; uint256 monthly; }
+        // ============ Vault Metadata ============
+        string public name;
+        string[] public tags;
+        event NameChanged(string newName);
+        event TagsChanged(string[] newTags);
+    using ECDSA for bytes32;
+
+    // State variables
+    address public guardianToken;
+    uint256 public quorum;
+    uint256 public nonce;
+
+    // ============ Policy-Based Withdrawal Rules ============
+
+    struct WithdrawalPolicy {
+        uint256 minAmount; // inclusive lower bound
+        uint256 maxAmount; // inclusive upper bound (0 = no upper limit)
+        uint256 requiredApprovals; // number of guardian signatures required
+        uint256 cooldown; // cooldown in seconds for repeated withdrawals in this range
+    }
+
+    WithdrawalPolicy[] public withdrawalPolicies;
+    mapping(address => mapping(uint256 => uint256)) public lastWithdrawalTime; // recipient => policyIdx => last timestamp
+
+    // ============ Temporal Withdrawal Caps (per-vault, per-token) ============
+    struct WithdrawalCap {
+        uint256 daily;   // cap per 24h window (0 = no cap)
+        uint256 weekly;  // cap per 7-day window (0 = no cap)
+        uint256 monthly; // cap per 30-day window (0 = no cap)
+    }
+
+    // caps configured by owner per token (use address(0) for native ETH)
+    mapping(address => WithdrawalCap) public withdrawalCaps;
+
+    // tracked withdrawn amounts for current period
+    mapping(address => mapping(uint256 => uint256)) public withdrawnDaily;   // token => day => amount
+    mapping(address => mapping(uint256 => uint256)) public withdrawnWeekly;  // token => week => amount
+    mapping(address => mapping(uint256 => uint256)) public withdrawnMonthly; // token => month => amount
+
+    event WithdrawalCapsSet(address indexed token, uint256 daily, uint256 weekly, uint256 monthly);
+
+    event WithdrawalPolicySet(uint256 indexed policyIdx, uint256 minAmount, uint256 maxAmount, uint256 requiredApprovals, uint256 cooldown);
+    event WithdrawalPoliciesCleared();
+
+    /**
+     * @notice Set withdrawal policies (overwrites all existing policies)
+     * @param policies Array of WithdrawalPolicy structs
+     */
+    function setWithdrawalPolicies(WithdrawalPolicy[] calldata policies) external onlyOwner {
+        delete withdrawalPolicies;
+        for (uint256 i = 0; i < policies.length; i++) {
+            require(policies[i].requiredApprovals > 0, "Approvals must be > 0");
+            withdrawalPolicies.push(policies[i]);
+            WithdrawalPolicy memory p = policies[i];
+            emit WithdrawalPolicySet(i, p.minAmount, p.maxAmount, p.requiredApprovals, p.cooldown);
+        }
+        emit WithdrawalPoliciesCleared();
+    }
+
+    /**
+     * @notice Set per-token temporal withdrawal caps (owner only)
+     * @param token Token address (address(0) for native ETH)
+     * @param daily Daily cap (in wei/token units) - 0 to disable
+     * @param weekly Weekly cap (in wei/token units) - 0 to disable
+     * @param monthly Monthly cap (in wei/token units) - 0 to disable
+     */
+    function setWithdrawalCaps(address token, uint256 daily, uint256 weekly, uint256 monthly) external onlyOwner {
+        withdrawalCaps[token] = WithdrawalCap({ daily: daily, weekly: weekly, monthly: monthly });
+        emit WithdrawalCapsSet(token, daily, weekly, monthly);
+    }
+
+    /**
+     * @notice Get the number of configured policies
+     */
+    function withdrawalPoliciesCount() external view returns (uint256) {
+        return withdrawalPolicies.length;
+    }
+
+    /**
+     * @notice Get the applicable withdrawal policy index for a given amount
+     */
+    function getPolicyIndex(uint256 amount) public view returns (uint256) {
+        for (uint256 i = 0; i < withdrawalPolicies.length; i++) {
+            WithdrawalPolicy memory p = withdrawalPolicies[i];
+            if (amount >= p.minAmount && (p.maxAmount == 0 || amount <= p.maxAmount)) {
+                return i;
+            }
+        }
+        revert("No policy for amount");
+    }
+
+    /**
+     * @notice Get the applicable withdrawal policy for a given amount
+     */
+    function getPolicy(uint256 amount) public view returns (WithdrawalPolicy memory) {
+        return withdrawalPolicies[getPolicyIndex(amount)];
+    }
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -347,13 +505,37 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     constructor(
         address _guardianToken,
-        uint256 _quorum
+        uint256 _quorum,
+        string memory _name,
+        string[] memory _tags
     ) Ownable(msg.sender) EIP712("SpendGuard", "1") {
         require(_guardianToken != address(0), "Invalid guardian token address");
         require(_quorum > 0, "Quorum must be greater than 0");
-        
         guardianToken = _guardianToken;
         quorum = _quorum;
+        name = _name;
+        for (uint256 i = 0; i < _tags.length; i++) {
+            tags.push(_tags[i]);
+        }
+    }
+
+    /**
+     * @notice Set the vault name (owner only)
+     */
+    function setName(string memory newName) external onlyOwner {
+        name = newName;
+        emit NameChanged(newName);
+    }
+
+    /**
+     * @notice Set the vault tags (owner only)
+     */
+    function setTags(string[] memory newTags) external onlyOwner {
+        delete tags;
+        for (uint256 i = 0; i < newTags.length; i++) {
+            tags.push(newTags[i]);
+        }
+        emit TagsChanged(newTags);
     }
 
     // ============ Management Functions ============
@@ -502,8 +684,33 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
             require(validSignatures >= quorum, "Quorum not met");
         }
 
+        // Enforce temporal caps (per-token/per-vault)
+        address _token = token;
+        _checkWithdrawalCaps(_token, amount);
+
         // Increment nonce to prevent replay attacks
         nonce++;
+
+        // Execute transfer
+        if (token == address(0)) {
+            // Native ETH transfer
+            require(address(this).balance >= amount, "Insufficient ETH balance");
+            (bool success, ) = recipient.call{value: amount}("");
+            require(success, "ETH transfer failed");
+        } else {
+            // ERC20 transfer
+            IERC20(token).transfer(recipient, amount);
+        }
+
+        _updateWithdrawalCounters(_token, amount);
+
+        emit Withdrawn(token, recipient, amount, reason);
+
+        // Record withdrawal time for cooldown (moved after stack variables released)
+        if (policy.cooldown > 0) {
+            uint256 policyIdx = getPolicyIndex(amount);
+            lastWithdrawalTime[recipient][policyIdx] = block.timestamp;
+        }
 
         // Execute transfer
         if (token == address(0)) {

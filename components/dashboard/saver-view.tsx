@@ -1,4 +1,6 @@
+
 "use client";
+import { AvatarBlockie } from '@/components/ui/avatar-blockie';
 
 import { Users, Lock, CreditCard, ShieldCheck } from "lucide-react";
 import { useAccount, useWatchContractEvent } from "wagmi";
@@ -11,8 +13,7 @@ import { formatEther, type Address } from "viem";
 import { useState, useEffect } from "react";
 import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
-import { VaultAnalyticsDashboard } from "./VaultAnalyticsDashboard";
-import { EmergencyContacts } from "./emergency-contacts";
+import PolicyConfig from '@/components/dashboard/policy-config';
 
 export function DashboardSaverView() {
         // Timer for stable current time in render
@@ -204,10 +205,23 @@ export function DashboardSaverView() {
                             </div>
                         </div>
                         <div className="space-y-3">
-                            <div className="flex justify-between text-sm">
+                            <div className="flex justify-between items-center text-sm gap-2">
                                 <span className="text-slate-400">Vault Address</span>
-                                <span className="text-white font-mono text-xs">
-                                    {vaultAddress ? `${vaultAddress.slice(0, 6)}...${vaultAddress.slice(-4)}` : "Loading..."}
+                                <span className="flex items-center gap-1">
+                                    <span className="text-white font-mono text-xs">
+                                        {vaultAddress ? `${vaultAddress.slice(0, 6)}...${vaultAddress.slice(-4)}` : "Loading..."}
+                                    </span>
+                                    {vaultAddress && (
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(vaultAddress);
+                                            }}
+                                            title="Copy address"
+                                            className="ml-1 p-1 rounded hover:bg-slate-700 transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
+                                        </button>
+                                    )}
                                 </span>
                             </div>
                             <div className="flex justify-between text-sm">
@@ -375,7 +389,8 @@ export function DashboardSaverView() {
                                 {guardians.length > 0 && (
                                     <div className="mt-4 space-y-2">
                                         {guardians.slice(0, 3).map((guardian) => (
-                                            <div key={guardian.address} className="text-xs text-slate-500 text-center font-mono">
+                                            <div key={guardian.address} className="flex items-center justify-center gap-2 text-xs text-slate-500 text-center font-mono">
+                                                <AvatarBlockie address={guardian.address} size={20} />
                                                 {guardian.address.slice(0, 6)}...{guardian.address.slice(-4)}
                                             </div>
                                         ))}
@@ -389,6 +404,9 @@ export function DashboardSaverView() {
                         <Link href="/guardians" className="block w-full mt-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-medium transition-colors text-center">
                             Manage Guardians
                         </Link>
+                        <div className="mt-4">
+                            <PolicyConfig vaultAddress={vaultAddress as any} />
+                        </div>
                     </div>
                 </section>
             </div>
