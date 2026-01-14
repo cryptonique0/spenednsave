@@ -372,4 +372,5 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
     }
 
     export default GuardianView;
+    export { GuardianView as DashboardGuardianView };
 
