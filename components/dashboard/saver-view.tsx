@@ -1,6 +1,5 @@
-import { EmergencyContacts } from './emergency-contacts';
-
 "use client";
+import { EmergencyContacts } from './emergency-contacts';
 import { AvatarBlockie } from '@/components/ui/avatar-blockie';
 
 import { Users, Lock, CreditCard, ShieldCheck } from "lucide-react";
