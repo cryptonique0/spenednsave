@@ -28,12 +28,12 @@ export function calculateGuardianBadges(
 ): BadgeEligibility[] {
   const now = Date.now();
   // Approvals badge
-  let approvalLevel = APPROVALS_THRESHOLDS.filter(t => approvals >= t).length;
+  const approvalLevel = APPROVALS_THRESHOLDS.filter(t => approvals >= t).length;
   // Response time badge (lower is better)
-  let responseLevel = RESPONSE_TIME_THRESHOLDS.filter(t => avgResponseTime <= t).length;
+  const responseLevel = RESPONSE_TIME_THRESHOLDS.filter(t => avgResponseTime <= t).length;
   // Longevity badge
-  let days = (now - addedAt) / (1000 * 60 * 60 * 24);
-  let longevityLevel = LONGEVITY_THRESHOLDS.filter(t => days >= t).length;
+  const days = (now - addedAt) / (1000 * 60 * 60 * 24);
+  const longevityLevel = LONGEVITY_THRESHOLDS.filter(t => days >= t).length;
 
   return [
     { badgeType: BadgeType.Approvals, level: approvalLevel, eligible: approvalLevel > 0 },
