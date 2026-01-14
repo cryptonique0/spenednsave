@@ -15,7 +15,7 @@ import { VaultAnalyticsDashboard } from "./VaultAnalyticsDashboard";
 
 export function DashboardSaverView() {
         // Timer for stable current time in render
-        const [now, setNow] = useState(0);
+        const [now, setNow] = useState(() => Date.now());
         useEffect(() => {
             setNow(Date.now()); // set initial value after mount
             const interval = setInterval(() => setNow(Date.now()), 60000); // update every minute
@@ -64,8 +64,8 @@ export function DashboardSaverView() {
         abi: SpendVaultABI,
         eventName: 'Deposited',
         enabled: !!vaultAddress,
-        onLogs(logs) {
-            console.log('[DashboardSaverView] Deposited event detected!', logs);
+        onLogs() {
+            console.log('[DashboardSaverView] Deposited event detected!');
             // Refetch balance and activities when new deposits come in
             refetchBalance();
             refetchActivities();
@@ -78,7 +78,7 @@ export function DashboardSaverView() {
         abi: GuardianSBTABI,
         eventName: 'GuardianAdded',
         enabled: !!guardianTokenAddress,
-        onLogs(logs) {
+        onLogs() {
             // Refetch activities when guardians are added
             refetchActivities();
         },
