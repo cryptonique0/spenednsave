@@ -1,5 +1,4 @@
-// Minimal ABI for GuardianBadge contract
-export default [
+[
   {
     "inputs": [
       { "internalType": "address", "name": "to", "type": "address" },
