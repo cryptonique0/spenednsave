@@ -14,6 +14,7 @@ export function WithdrawalForm() {
     const [amount, setAmount] = useState("");
     const [reason, setReason] = useState("");
     const [withdrawalData, setWithdrawalData] = useState<any>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { address, isConnected } = useAccount();
     const chainId = useChainId();
@@ -66,57 +67,53 @@ export function WithdrawalForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!isConnected || !address || !vaultAddress) {
-            alert("Please connect your wallet first");
-            return;
+        setIsSubmitting(true);
+        try {
+            if (!isConnected || !address || !vaultAddress) {
+                alert("Please connect your wallet first");
+                return;
+            }
+            if (!amount || parseFloat(amount) <= 0) {
+                alert("Please enter a valid amount");
+                return;
+            }
+            const amountInWei = parseEther(amount);
+            // Check if user has sufficient balance
+            if (vaultBalance && typeof vaultBalance === 'bigint' && amountInWei > vaultBalance) {
+                alert("Insufficient vault balance");
+                return;
+            }
+            // Prepare withdrawal data using the current nonce from the contract
+            const withdrawalRequest = {
+                token: '0x0000000000000000000000000000000000000000' as Address, // ETH
+                amount: amountInWei,
+                recipient: address,
+                nonce: (typeof currentNonce === 'bigint' ? currentNonce : 0n), // Use contract nonce
+                reason: reason || "Withdrawal request"
+            };
+            setWithdrawalData(withdrawalRequest);
+            // Move to signing step to get owner's signature
+            setStep('signing');
+            // EIP-712 domain
+            const domain = {
+                name: 'SpendGuard',
+                version: '1',
+                chainId: chainId,
+                verifyingContract: vaultAddress as Address,
+            };
+            // EIP-712 types
+            const types = {
+                Withdrawal: [
+                    { name: 'token', type: 'address' },
+                    { name: 'amount', type: 'uint256' },
+                    { name: 'recipient', type: 'address' },
+                    { name: 'nonce', type: 'uint256' },
+                    { name: 'reason', type: 'string' },
+                ],
+            };
+        } finally {
+            setIsSubmitting(false);
         }
-
-        if (!amount || parseFloat(amount) <= 0) {
-            alert("Please enter a valid amount");
-            return;
-        }
-
-        const amountInWei = parseEther(amount);
-        
-        // Check if user has sufficient balance
-        if (vaultBalance && typeof vaultBalance === 'bigint' && amountInWei > vaultBalance) {
-            alert("Insufficient vault balance");
-            return;
-        }
-
-        // Prepare withdrawal data using the current nonce from the contract
-        const withdrawalRequest = {
-            token: '0x0000000000000000000000000000000000000000' as Address, // ETH
-            amount: amountInWei,
-            recipient: address,
-            nonce: (typeof currentNonce === 'bigint' ? currentNonce : 0n), // Use contract nonce
-            reason: reason || "Withdrawal request"
-        };
-
-        setWithdrawalData(withdrawalRequest);
-        
-        // Move to signing step to get owner's signature
-        setStep('signing');
-        
-        // EIP-712 domain
-        const domain = {
-            name: 'SpendGuard',
-            version: '1',
-            chainId: chainId,
-            verifyingContract: vaultAddress as Address,
-        };
-
-        // EIP-712 types
-        const types = {
-            Withdrawal: [
-                { name: 'token', type: 'address' },
-                { name: 'amount', type: 'uint256' },
-                { name: 'recipient', type: 'address' },
-                { name: 'nonce', type: 'uint256' },
-                { name: 'reason', type: 'string' },
-            ],
-        };
 
         // Sign the withdrawal request
         try {
