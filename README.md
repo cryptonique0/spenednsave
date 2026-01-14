@@ -64,7 +64,47 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## ✨ Features
 
+
+### Email Notifications
+
+- ✅ **Email Notifications**: Owners and guardians can opt-in to receive email alerts for important events (withdrawal requests, approvals, rejections, execution, and emergency unlocks). Preferences are managed in the app settings. Uses secure backend delivery (SMTP/Resend).
+
 ### For Savers (Vault Owners)
+---
+
+## 📧 Email Notification System
+
+SpendGuard includes a built-in email notification system for important vault and guardian events:
+
+- **Events Covered:**
+   - Withdrawal request submitted
+   - Withdrawal approved
+   - Withdrawal rejected
+   - Withdrawal executed
+   - Emergency unlock requested
+- **Opt-in:** Users can provide their email and manage notification preferences in the Settings page.
+- **Backend:** Uses SMTP (Nodemailer) or Resend API for secure delivery. Emails are only sent to users who have opted in.
+- **Customization:** Email templates can be customized in `lib/services/email-notifications.ts`.
+
+**How it works:**
+1. User sets their email and notification preferences in Settings.
+2. When a covered event occurs, the backend checks preferences and sends notifications to all involved parties.
+3. Emails include event details, vault info, and relevant links.
+
+**Environment setup:**
+Set SMTP or Resend credentials in your environment:
+
+```
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_pass
+SMTP_FROM="SpendGuard <no-reply@spendguard.xyz>"
+```
+
+Or configure Resend API as needed.
+
+---
 
 - ✅ **Create Vault**: Deploy your own SpendVault contract with custom quorum settings
 - ✅ **Manage Guardians**: Add/remove trusted friends with soulbound tokens (non-transferable)
