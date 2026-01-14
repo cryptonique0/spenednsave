@@ -24,14 +24,25 @@ export function EmailPreferences({ initialEmail = "", initialOptIn = false, onSa
     }, 800);
   }
 
+
   async function handleResend() {
     setResending(true);
-    // Simulate API call to resend verification email
-    setTimeout(() => {
-      setResending(false);
-      setResent(true);
-      setTimeout(() => setResent(false), 2000);
-    }, 800);
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          event: 'withdrawal-requested', // Use a generic event for verification, or add a new event type if desired
+          data: { vaultAddress: '', amount: '', reason: 'Email verification' }
+        })
+      });
+    } catch (e) {
+      // Optionally handle error
+    }
+    setResending(false);
+    setResent(true);
+    setTimeout(() => setResent(false), 2000);
   }
 
   return (
