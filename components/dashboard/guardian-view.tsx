@@ -366,6 +366,9 @@ interface ScheduledWithdrawal {
                     </div>
                 </div>
             )}
-        </div>
-    );
+            </div>
+        );
+    }
+    
+    export default GuardianView;
 
