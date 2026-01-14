@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
 import { VaultAnalyticsDashboard } from "./VaultAnalyticsDashboard";
+import { EmergencyContacts } from "./emergency-contacts";
 
 export function DashboardSaverView() {
         // Timer for stable current time in render
@@ -508,6 +509,8 @@ export function DashboardSaverView() {
                     </div>
                 </div>
             )}
+            {/* Emergency Contacts Section */}
+            <EmergencyContacts />
         </div>
     );
 }
