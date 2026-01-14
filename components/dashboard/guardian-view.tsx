@@ -69,8 +69,8 @@ export function DashboardGuardianView() {
     let errorMsg = '';
     if (typeof error === 'string') {
         errorMsg = error;
-    } else if (error && typeof (error as any).message === 'string') {
-        errorMsg = (error as any).message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as { message?: unknown }).message === 'string') {
+        errorMsg = (error as { message: string }).message;
     }
     // Filter for pending scheduled withdrawals (not executed, not yet approved by this guardian)
     const addressStr = address ? String(address) : "";
