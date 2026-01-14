@@ -54,31 +54,31 @@ contract GuardianBadge is ERC721Enumerable, Ownable {
         return emergencyContactList;
     }
 
-        // --- Soulbound: Block all transfers and approvals ---
-        function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
-            require(from == address(0) || to == address(0), "Soulbound: Transfers disabled");
-            super._beforeTokenTransfer(from, to, tokenId, batchSize);
-        }
+    // --- Soulbound: Block all transfers and approvals ---
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
+        require(from == address(0) || to == address(0), "Soulbound: Transfers disabled");
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
 
-        function approve(address to, uint256 tokenId) public override {
-            revert("Soulbound: Approvals disabled");
-        }
+    function approve(address to, uint256 tokenId) public override {
+        revert("Soulbound: Approvals disabled");
+    }
 
-        function setApprovalForAll(address operator, bool approved) public override {
-            revert("Soulbound: Approvals disabled");
-        }
+    function setApprovalForAll(address operator, bool approved) public override {
+        revert("Soulbound: Approvals disabled");
+    }
 
-        function transferFrom(address from, address to, uint256 tokenId) public override {
-            revert("Soulbound: Transfers disabled");
-        }
+    function transferFrom(address from, address to, uint256 tokenId) public override {
+        revert("Soulbound: Transfers disabled");
+    }
 
-        function safeTransferFrom(address from, address to, uint256 tokenId) public override {
-            revert("Soulbound: Transfers disabled");
-        }
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override {
+        revert("Soulbound: Transfers disabled");
+    }
 
-        function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override {
-            revert("Soulbound: Transfers disabled");
-        }
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override {
+        revert("Soulbound: Transfers disabled");
+    }
     enum BadgeType { Approvals, ResponseTime, Longevity }
 
     struct Badge {
