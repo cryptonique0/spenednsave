@@ -16,4 +16,4 @@ contract GuardianBadge is ERC721Enumerable, Ownable {
         uint256 level;
         uint256 timestamp;
     }
-    
+}
