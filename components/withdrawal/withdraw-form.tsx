@@ -108,6 +108,15 @@ export function WithdrawalForm() {
             return;
         }
 
+        // Validate policy vs guardian count and warn if guardians are insufficient
+        if (policyRes && policyRes.data) {
+            const required = policyRes.data.requiredApprovals !== undefined ? Number(policyRes.data.requiredApprovals) : Number(quorumValue);
+            if (required > guardianCount) {
+                const proceed = confirm(`Policy requires ${required} approvals but there are only ${guardianCount} guardians. Proceed anyway?`);
+                if (!proceed) return;
+            }
+        }
+
         // Prepare withdrawal data using the current nonce from the contract
         const withdrawalRequest = {
             token: '0x0000000000000000000000000000000000000000' as Address, // ETH
