@@ -1,3 +1,4 @@
+"use client";
 import { useSimulation } from "./SimulationContext";
 import { ShieldCheck, UserCheck, Timer, CheckCircle, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
