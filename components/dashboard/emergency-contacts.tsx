@@ -27,6 +27,14 @@ export function EmergencyContacts() {
     fetchContacts();
   }, []);
 
+function getErrorMessage(err: unknown): string | undefined {
+  if (typeof err === 'string') return err;
+  if (typeof err === 'object' && err !== null && 'message' in err && typeof (err as Record<string, unknown>).message === 'string') {
+    return (err as Record<string, string>).message;
+  }
+  return undefined;
+}
+
   async function handleAdd() {
     setLoading(true);
     setError("");
