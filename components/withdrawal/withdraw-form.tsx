@@ -118,29 +118,39 @@ export function WithdrawalForm() {
         // Sign the withdrawal request
         try {
             signTypedData({
-                domain,
-                types,
-                primaryType: 'Withdrawal',
-                message: {
-                    token: withdrawalRequest.token,
-                    amount: withdrawalRequest.amount,
-                    recipient: withdrawalRequest.recipient,
-                    nonce: withdrawalRequest.nonce,
-                    reason: withdrawalRequest.reason,
-                },
-            });
-        } catch (error) {
-            console.error("Signature failed", error);
-            alert("Failed to sign withdrawal request");
-            setStep('form');
-        }
-    };
-
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-    };
-
-    const shareViaWhatsApp = () => {
+                return (
+                    <div className="w-full max-w-2xl mx-auto py-8">
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            {/* ...existing code... */}
+                            <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl p-6 shadow-sm">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Amount (ETH)</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        step="0.0001"
+                                        placeholder="0.0"
+                                        className="w-full bg-transparent text-4xl font-bold text-slate-900 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-700 outline-none"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button type="button" onClick={() => setAmount("100")} className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">$100</button>
+                                    <button type="button" onClick={() => setAmount("500")} className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">$500</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (vaultBalance && typeof vaultBalance === 'bigint') {
+                                                setAmount(parseFloat(formatEther(vaultBalance)).toString());
+                                            }
+                                        }}
+                                        className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold hover:bg-primary/20 transition-colors ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                    >
+                                        MAX
+                                    </button>
+                                </div>
+                            </div>
         const text = `I need approval for a withdrawal request: ${window.location.origin}/voting`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
