@@ -15,8 +15,8 @@ const GUARDIAN_SBT_ADDRESS = process.env.NEXT_PUBLIC_GUARDIAN_SBT_ADDRESS;
 
 export function DashboardGuardianView() {
     const { address } = useAccount();
-    const [vaults, setVaults] = useState<any[]>([]);
-    const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+    const [vaults, setVaults] = useState<Array<{ vaultAddress: string; vaultName: string; owner: string; pendingApprovals: number }>>([]);
+    // Removed unused selectedRequest state
 
     useEffect(() => {
         async function fetchVaults() {
@@ -30,14 +30,13 @@ export function DashboardGuardianView() {
                 let vaultAddresses: string[] = [];
                 try {
                     vaultAddresses = await contract.getVaultsForGuardian(address);
-                } catch (e) {
+                } catch {
                     // fallback: not implemented
-                    vaultAddresses = [];
                 }
                 // For each vault, fetch name, owner, and pending approvals from contract/backend
                 // TODO: Replace with actual contract calls
                 setVaults([]);
-            } catch (e) {
+            } catch {
                 setVaults([]);
             }
         }
@@ -45,57 +44,9 @@ export function DashboardGuardianView() {
     }, [address]);
 
     // EIP-712 signing for gasless guardian approval
-    const handleApprove = async (requestId: string) => {
-        const request = pendingRequests.find(r => r.id === requestId);
-        if (!request || !address) return;
-        // Fetch nonce from contract (mocked here, replace with actual call)
-        const nonce = Date.now(); // Replace with contract nonce
-        // EIP-712 domain and types
-        const domain = {
-            name: 'SpendGuard',
-            version: '1',
-            chainId: 84532, // Replace with actual chainId
-            verifyingContract: request.vaultAddr
-        };
-        const types = {
-            Withdrawal: [
-                { name: 'token', type: 'address' },
-                { name: 'amount', type: 'uint256' },
-                { name: 'recipient', type: 'address' },
-                { name: 'nonce', type: 'uint256' },
-                { name: 'reason', type: 'string' },
-                { name: 'category', type: 'string' },
-                { name: 'reasonHash', type: 'string' },
-                { name: 'createdAt', type: 'uint256' },
-            ],
-        };
-        // Prepare message
-        const message = {
-            token: '0x0000000000000000000000000000000000000000',
-            amount: parseFloat(request.amount) * 1e18,
-            recipient: request.saverAddress,
-            nonce,
-            reason: request.reason,
-            category: 'General', // Replace with actual category
-            reasonHash: '', // Replace with actual reasonHash
-            createdAt: Date.now(),
-        };
-        // Use wallet to signTypedData (wagmi, ethers, etc.)
-        try {
-            // @ts-ignore
-            const signature = await window.ethereum.request({
-                method: 'eth_signTypedData_v4',
-                params: [address, JSON.stringify({ domain, types, primaryType: 'Withdrawal', message })],
-            });
-            // Store signature locally or send to backend for aggregation
-            alert('Signature created! Share with owner to submit onchain.');
-        } catch (err) {
-            alert('Signature failed: ' + (err instanceof Error ? err.message : String(err)));
-        }
-    };
+    // Removed unused handleApprove function
 
     const handleReject = (requestId: string) => {
-        console.log("Rejecting request:", requestId);
         // TODO: Implement rejection logic (optional - can just not sign)
         alert("Request rejected");
     };
@@ -118,8 +69,8 @@ export function DashboardGuardianView() {
                 alert('Withdrawal approved!');
                 window.location.reload();
             }
-        } catch (err: any) {
-            alert(err.message || 'Failed to approve withdrawal');
+        } catch (err) {
+            alert((err instanceof Error ? err.message : 'Failed to approve withdrawal'));
         }
     }
     return (
@@ -287,7 +238,7 @@ export function DashboardGuardianView() {
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Pending Requests</h3>
                     <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                        You're all caught up! When your friends submit withdrawal requests, they'll appear here for your review.
+                        You&apos;re all caught up! When your friends submit withdrawal requests, they&apos;ll appear here for your review.
                     </p>
                 </div>
             )}
