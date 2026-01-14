@@ -38,7 +38,8 @@ export async function PUT(request: Request, context: any) {
       let event: import('@/lib/services/email-notifications').EmailEventType | undefined;
       if (updated.status === 'approved') event = 'withdrawal-approved';
       else if (updated.status === 'rejected') event = 'withdrawal-rejected';
-      else if (updated.status === 'executed') event = undefined; // Optionally add 'withdrawal-executed'
+      else if (updated.status === 'executed') event = 'withdrawal-executed';
+      else if (updated.status === 'emergency') event = 'emergency-unlock-requested';
       if (event) {
         const involvedAddresses = [updated.createdBy, ...(updated.guardians || [])];
         await notifyUsersOnWithdrawalEvent({
