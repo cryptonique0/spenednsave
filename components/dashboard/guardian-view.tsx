@@ -225,8 +225,8 @@ export function DashboardGuardianView() {
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-start gap-4">
-                                        <div className="size-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                                            {request.saverName.charAt(0).toUpperCase()}
+                                        <div className="size-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold overflow-hidden">
+                                            <AvatarBlockie address={request.saverAddress} size={44} />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-slate-900 dark:text-white">{request.saverName}</h3>
@@ -320,8 +320,11 @@ export function DashboardGuardianView() {
                                 className="bg-white dark:bg-surface-dark border border-surface-border rounded-xl p-4 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                                        <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                                            <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                        </div>
+                                        <AvatarBlockie address={request.saverAddress} size={24} />
                                     </div>
                                     <div>
                                         <p className="font-medium text-slate-900 dark:text-white">{request.saverName}</p>
