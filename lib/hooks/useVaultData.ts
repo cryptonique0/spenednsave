@@ -269,7 +269,7 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                     
                     try {
                         // Some RPCs are more reliable with topic filters; use the event selector as topic0
-                        const chunkLogs = await publicClient.getLogs({
+                        const chunkLogs = await (publicClient.getLogs as any)({
                             address: vaultAddress,
                             fromBlock,
                             toBlock,
@@ -428,7 +428,7 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                     
                     try {
                         // Use topic-based filtering for deposits to improve compatibility with RPC providers
-                        const chunkLogs = await publicClient.getLogs({
+                        const chunkLogs = await (publicClient.getLogs as any)({
                             address: vaultAddress,
                             fromBlock,
                             toBlock,
