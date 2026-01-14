@@ -110,7 +110,13 @@ export function DashboardSaverView() {
     // Vault transfer state
     const [showTransferModal, setShowTransferModal] = useState(false);
     const [transferAddress, setTransferAddress] = useState("");
-    const [transferRequests, setTransferRequests] = useState<any[]>([]);
+    type TransferRequest = {
+        id: number;
+        newOwner: string;
+        approvals: string[];
+        executed: boolean;
+    };
+    const [transferRequests, setTransferRequests] = useState<TransferRequest[]>([]);
     // Fetch transfer requests (mocked, replace with actual contract call)
     useEffect(() => {
         // TODO: Replace with actual fetch from contract/backend
