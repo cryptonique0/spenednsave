@@ -23,13 +23,13 @@ export function DashboardSaverView() {
         }, []);
     const { address } = useAccount();
     const { data: userContracts } = useUserContracts(address as Address);
-    const guardianTokenAddress = userContracts ? (userContracts as [Address, Address])[0] : undefined;
-    const vaultAddress = userContracts ? (userContracts as [Address, Address])[1] : undefined;
+    const guardianTokenAddress: Address | undefined = userContracts ? (userContracts as [Address, Address])[0] : undefined;
+    const vaultAddress: Address | undefined = userContracts ? (userContracts as [Address, Address])[1] : undefined;
 
     // Only call useVaultHealth after vaultAddress is available
     const { data: vaultHealth } = useVaultHealth(vaultAddress);
-    const healthScore = vaultHealth?.[0] ?? 100;
-    const healthStatus = vaultHealth?.[1] ?? "Healthy";
+    const healthScore: number = Array.isArray(vaultHealth) ? vaultHealth[0] : 100;
+    const healthStatus: string = Array.isArray(vaultHealth) ? vaultHealth[1] : "Healthy";
     let healthColor = "bg-emerald-500";
     if (healthStatus === "Warning") healthColor = "bg-yellow-400";
     if (healthStatus === "Critical") healthColor = "bg-red-500";
