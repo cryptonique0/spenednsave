@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAccount, useSignTypedData, useChainId } from "wagmi";
 import { parseEther, formatEther, type Address } from "viem";
 import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner, useGetPolicyForAmount } from "@/lib/hooks/useContracts";
+import { useGuardians } from "@/lib/hooks/useVaultData";
 
 export function WithdrawalForm() {
     const [step, setStep] = useState<'form' | 'signing' | 'success'>('form');
@@ -18,7 +19,10 @@ export function WithdrawalForm() {
     const { address, isConnected } = useAccount();
     const chainId = useChainId();
     const { data: userContracts } = useUserContracts(address as any);
+    const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
+    const { guardians } = useGuardians(guardianTokenAddress);
+    const guardianCount = guardians ? guardians.length : 0;
     const { data: vaultBalance } = useVaultETHBalance(vaultAddress);
     const { data: quorum } = useVaultQuorum(vaultAddress);
     const { data: currentNonce } = useVaultNonce(vaultAddress);
@@ -39,6 +43,14 @@ export function WithdrawalForm() {
 
     const policyRes = useGetPolicyForAmount(vaultAddress, parsedAmountForPolicy as any);
     const policyApprovals = policyRes && policyRes.data ? String(policyRes.data.requiredApprovals ?? quorumValue) : quorumValue;
+    let policyRequiredApprovals = Number(quorumValue);
+    if (policyRes && policyRes.data && policyRes.data.requiredApprovals !== undefined) {
+        try {
+            policyRequiredApprovals = Number(policyRes.data.requiredApprovals);
+        } catch (e) {
+            policyRequiredApprovals = Number(quorumValue);
+        }
+    }
 
     // Handle successful signature
     useEffect(() => {
@@ -333,6 +345,25 @@ export function WithdrawalForm() {
                         <button type="button" onClick={() => setAmount("500")} className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">$500</button>
                         <button type="button" onClick={() => setAmount("5420.50")} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold hover:bg-primary/20 transition-colors ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">MAX</button>
                     </div>
+                        {/* Policy badge and guardian count */}
+                        {policyRes && policyRes.data && (
+                            <div className="mt-3 flex items-center justify-between gap-4 text-xs">
+                                <div className="px-3 py-2 bg-gray-100 dark:bg-surface-border rounded-xl border border-gray-200 dark:border-surface-border">
+                                    <div className="font-semibold">Policy</div>
+                                    <div className="mt-1 text-slate-700 dark:text-slate-300">
+                                        <div>Range: {policyRes.data.minAmount ? `${formatEther(policyRes.data.minAmount)} ETH` : '0'} - {policyRes.data.maxAmount && policyRes.data.maxAmount !== 0n ? `${formatEther(policyRes.data.maxAmount)} ETH` : '∞'}</div>
+                                        <div>Approvals: {String(policyRes.data.requiredApprovals)}</div>
+                                        <div>Cooldown: {policyRes.data.cooldown ? `${String(policyRes.data.cooldown)}s` : 'none'}</div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                    Guardians: <span className="font-medium text-slate-900 dark:text-white">{guardianCount}</span>
+                                    {policyRequiredApprovals > guardianCount && (
+                                        <span className="ml-2 text-amber-600">Insufficient guardians for policy</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                 </div>
 
                 {/* Reason */}
