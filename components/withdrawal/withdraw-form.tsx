@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 import { useAccount, useSignTypedData, useChainId } from "wagmi";
 import { parseEther, formatEther, type Address } from "viem";
-import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner } from "@/lib/hooks/useContracts";
+import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner, useGetPolicyForAmount } from "@/lib/hooks/useContracts";
 
 export function WithdrawalForm() {
     const [step, setStep] = useState<'form' | 'signing' | 'success'>('form');
@@ -28,6 +28,17 @@ export function WithdrawalForm() {
 
     // Calculate quorum value early for use in JSX
     const quorumValue = (quorum && typeof quorum === 'bigint') ? quorum.toString() : '2';
+
+    // Policy for the currently entered amount (for live display)
+    let parsedAmountForPolicy: bigint | undefined = undefined;
+    try {
+        parsedAmountForPolicy = amount ? parseEther(amount) as bigint : undefined;
+    } catch (e) {
+        parsedAmountForPolicy = undefined;
+    }
+
+    const policyRes = useGetPolicyForAmount(vaultAddress, parsedAmountForPolicy as any);
+    const policyApprovals = policyRes && policyRes.data ? String(policyRes.data.requiredApprovals ?? quorumValue) : quorumValue;
 
     // Handle successful signature
     useEffect(() => {
