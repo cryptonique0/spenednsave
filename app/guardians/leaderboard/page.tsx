@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, Clock, Zap, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Award, Clock, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { AvatarBlockie } from '@/components/ui/avatar-blockie';
 
 export default function GuardianLeaderboardPage() {
   const [data, setData] = useState<any[]>([]);
@@ -75,7 +76,7 @@ export default function GuardianLeaderboardPage() {
                 <tr key={g.account} className="border-t border-slate-100 dark:border-slate-700">
                   <td className="px-4 py-2 font-bold text-lg">{i + 1}</td>
                   <td className="px-4 py-2 flex items-center gap-2">
-                    <User className="text-indigo-500" size={20} />
+                    <AvatarBlockie address={g.account} size={24} className="mr-1" />
                     <span className="font-mono">{g.account.slice(0, 6)}...{g.account.slice(-4)}</span>
                   </td>
                   <td className="px-4 py-2">{g.approvals}</td>
