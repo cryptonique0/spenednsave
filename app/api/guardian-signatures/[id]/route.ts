@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { GuardianSignatureDB } from '@/lib/services/guardian-signature-db';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, context: any) {
   try {
-    const { id } = params;
+    const { id } = context?.params ?? {};
     const row = GuardianSignatureDB.getPendingRequest(id);
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(row);
@@ -12,9 +12,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, context: any) {
   try {
-    const { id } = params;
+    const { id } = context?.params ?? {};
     const body = await request.json();
     const existing = GuardianSignatureDB.getPendingRequest(id);
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -36,9 +36,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context: any) {
   try {
-    const { id } = params;
+    const { id } = context?.params ?? {};
     GuardianSignatureDB.deletePendingRequest(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
