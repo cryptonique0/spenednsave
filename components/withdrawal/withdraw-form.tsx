@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 import { useAccount, useSignTypedData, useChainId } from "wagmi";
 import { parseEther, formatEther, type Address } from "viem";
-import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner, useGetPolicyForAmount } from "@/lib/hooks/useContracts";
+import { useUserContracts, useVaultETHBalance, useVaultQuorum, useVaultNonce, useIsVaultOwner, useGetPolicyForAmount, useGetWithdrawalCaps, useVaultWithdrawnInPeriod } from "@/lib/hooks/useContracts";
 import { useGuardians } from "@/lib/hooks/useVaultData";
 
 export function WithdrawalForm() {
@@ -87,6 +87,11 @@ export function WithdrawalForm() {
         }
     }, [isSignSuccess, signature, withdrawalData, vaultAddress, address]);
 
+    // Client-side cap hooks (zero address = ETH)
+    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
+    const capsRes = useGetWithdrawalCaps(vaultAddress, ZERO_ADDRESS);
+    const dailyUsedRes = useVaultWithdrawnInPeriod(vaultAddress, ZERO_ADDRESS, 'daily');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -101,6 +106,22 @@ export function WithdrawalForm() {
         }
 
         const amountInWei = parseEther(amount);
+        // Check temporal caps (client-side hint)
+        try {
+            const capsRes = useGetWithdrawalCaps(vaultAddress as any, '0x0000000000000000000000000000000000000000' as any);
+            const dailyUsedRes = useVaultWithdrawnInPeriod(vaultAddress as any, '0x0000000000000000000000000000000000000000' as any, 'daily');
+            if (capsRes && (capsRes as any).data) {
+                const cap = (capsRes as any).data;
+                const capDaily = cap.daily ? BigInt(cap.daily) : 0n;
+                const used = dailyUsedRes && (dailyUsedRes as any).data ? BigInt((dailyUsedRes as any).data) : 0n;
+                if (capDaily > 0n && amountInWei + used > capDaily) {
+                    alert('This withdrawal would exceed the daily cap for the vault');
+                    return;
+                }
+            }
+        } catch (e) {
+            // ignore client-side validation errors
+        }
         
         // Check if user has sufficient balance
         if (vaultBalance && typeof vaultBalance === 'bigint' && amountInWei > vaultBalance) {
