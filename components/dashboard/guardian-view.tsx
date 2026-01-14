@@ -1,7 +1,7 @@
 "use client";
 
 import { Shield, CheckCircle, XCircle, Clock, AlertTriangle, Users, Award } from "lucide-react";
-import AvatarBlockie from "@/components/ui/avatar-blockie";
+import { AvatarBlockie } from "@/components/ui/avatar-blockie";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { useScheduledWithdrawals } from "@/lib/hooks/useScheduledWithdrawals";
