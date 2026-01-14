@@ -30,6 +30,7 @@ interface ScheduledWithdrawal {
     hasUserSigned: boolean;
 }
 
+function GuardianView({ badgeData }: { badgeData?: any }) {
     const { address } = useAccount();
     const [vaults, setVaults] = useState<any[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
@@ -369,6 +370,6 @@ interface ScheduledWithdrawal {
             </div>
         );
     }
-    
+
     export default GuardianView;
 
