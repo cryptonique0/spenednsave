@@ -1,8 +1,8 @@
 {
+  "type": "module",
   "name": "temp_app",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev",
     "encrypt-db": "node scripts/encrypt-db.js",
