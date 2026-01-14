@@ -3,6 +3,7 @@ import { GuardianSBTABI } from '@/lib/abis/GuardianSBT';
 import { SpendVaultABI } from '@/lib/abis/SpendVault';
 import { VaultFactoryABI } from '@/lib/abis/VaultFactory';
 import { getContractAddresses } from '@/lib/contracts';
+import { GuardianBadgeABI } from '@/lib/abis/GuardianBadge';
 import { parseEther, type Address } from 'viem';
 
 /**
@@ -451,6 +452,40 @@ export function useExecuteWithdrawal(vaultAddress?: Address) {
         isSuccess,
         error,
     };
+}
+
+/**
+ * Hook to read guardian badges for an address
+ */
+export function useGuardianBadges(badgeContractAddress?: Address, account?: Address) {
+    return useReadContract({
+        address: badgeContractAddress as Address,
+        abi: GuardianBadgeABI,
+        functionName: 'badgesOf',
+        args: account ? [account] : undefined,
+        query: { enabled: !!badgeContractAddress && !!account },
+    }) as any;
+}
+
+/**
+ * Hook to mint a badge (owner must call)
+ */
+export function useMintBadge(badgeContractAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+    const mint = (to: Address, badgeType: number) => {
+        if (!badgeContractAddress) throw new Error('No badge contract configured');
+
+        writeContract({
+            address: badgeContractAddress,
+            abi: GuardianBadgeABI,
+            functionName: 'mintBadge',
+            args: [to, badgeType],
+        } as any);
+    };
+
+    return { mint, hash, isPending, isConfirming, isSuccess, error };
 }
 
 /**
