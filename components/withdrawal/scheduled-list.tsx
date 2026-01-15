@@ -42,14 +42,14 @@ export function ScheduledWithdrawalsList({ onExecute }: { onExecute?: (id: numbe
               {w.amount} ETH
             </div>
             <div className="text-xs text-slate-500">Scheduled for: {w.scheduledFor ? new Date(w.scheduledFor * 1000).toLocaleString() : "-"}</div>
-            <div className="text-xs text-slate-500">Approvals: {(w.approvals || []).length} / {w.requiredSignatures || '?'}</div>
+            <div className="text-xs text-slate-500">Approvals: {(w.approvals || []).length} / {typeof w.requiredSignatures === 'number' ? w.requiredSignatures : (Array.isArray(w.requiredSignatures) ? w.requiredSignatures.length : '?')}</div>
             <div className="text-xs text-slate-500">Executed: {w.executed ? "Yes" : "No"}</div>
           </div>
           {!w.executed && onExecute && (
             <button
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md"
               onClick={() => handleExecute(w.id)}
-              disabled={Date.now() / 1000 < w.scheduledFor || (w.approvals || []).length < (w.requiredSignatures || 1)}
+              disabled={Date.now() / 1000 < w.scheduledFor || (w.approvals || []).length < (typeof w.requiredSignatures === 'number' ? w.requiredSignatures : (Array.isArray(w.requiredSignatures) ? w.requiredSignatures.length : 1))}
             >
               <CheckCircle size={18} /> Execute
             </button>
