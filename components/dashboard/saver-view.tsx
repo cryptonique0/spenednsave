@@ -457,8 +457,6 @@ export function DashboardSaverView() {
                     </div>
                 </div>
             )}
-            {/* Emergency Contacts Section */}
-            <EmergencyContacts />
         </div>
     );
 }
