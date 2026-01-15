@@ -1,8 +1,8 @@
-import { composeEmail } from '../lib/services/email-notifications';
+import { composeEmailContent } from '../lib/services/email-notifications';
 
 describe('Email Notification Templates', () => {
   it('should compose withdrawal request email', () => {
-    const { subject, html } = composeEmail('withdrawal-requested', {
+    const { subject, html } = composeEmailContent('withdrawal-requested', {
       vaultName: 'TestVault',
       amount: '1 ETH',
       reason: 'Test reason',
@@ -14,7 +14,7 @@ describe('Email Notification Templates', () => {
   });
 
   it('should compose withdrawal approved email', () => {
-    const { subject, html } = composeEmail('withdrawal-approved', {
+    const { subject, html } = composeEmailContent('withdrawal-approved', {
       amount: '2 ETH',
       guardianName: 'Alice',
     });
@@ -24,7 +24,7 @@ describe('Email Notification Templates', () => {
   });
 
   it('should compose emergency unlock email', () => {
-    const { subject, html } = composeEmail('emergency-unlock-requested', {
+    const { subject, html } = composeEmailContent('emergency-unlock-requested', {
       vaultName: 'TestVault',
     });
     expect(subject).toMatch(/Emergency Unlock Requested/);
