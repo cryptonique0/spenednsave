@@ -331,10 +331,10 @@ export function DashboardSaverView() {
                             </div>
                         </div>
                         {guardiansLoading ? (
-                            <p className="text-slate-400 text-sm leading-relaxed text-center">Loading guardians...</p>
+                            <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed text-center">Loading guardians...</p>
                         ) : (
                             <>
-                                <p className="text-slate-400 text-sm leading-relaxed text-center">
+                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed text-center">
                                     {guardians.length > 0 
                                         ? `${quorum ? Number(quorum) : 0} of ${totalGuardians} signatures required`
                                         : 'No guardians added yet'}
@@ -342,13 +342,13 @@ export function DashboardSaverView() {
                                 {guardians.length > 0 && (
                                     <div className="mt-4 space-y-2">
                                         {guardians.slice(0, 3).map((guardian) => (
-                                            <div key={guardian.address} className="flex items-center justify-center gap-2 text-xs text-slate-500 text-center font-mono">
+                                            <div key={guardian.address} className="flex items-center justify-center gap-2 text-xs text-slate-600 dark:text-slate-500 text-center font-mono">
                                                 <AvatarBlockie address={guardian.address} size={20} />
                                                 {guardian.address.slice(0, 6)}...{guardian.address.slice(-4)}
                                             </div>
                                         ))}
                                         {guardians.length > 3 && (
-                                            <p className="text-xs text-slate-600 text-center">+{guardians.length - 3} more</p>
+                                            <p className="text-xs text-slate-600 dark:text-slate-600 text-center">+{guardians.length - 3} more</p>
                                         )}
                                     </div>
                                 )}
@@ -359,7 +359,7 @@ export function DashboardSaverView() {
                         </Link>
                     </div>
 
-                    <div className="bg-surface-dark border border-surface-border rounded-2xl p-6">
+                    <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
                         <PolicyConfig vaultAddress={vaultAddress as any} />
                     </div>
                 </section>
