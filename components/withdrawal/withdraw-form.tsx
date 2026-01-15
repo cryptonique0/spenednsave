@@ -500,6 +500,8 @@ export function WithdrawalForm() {
                         <input
                             type="number"
                             step="0.0001"
+                            min="0"
+                            max={balanceETH}
                             placeholder="0.0"
                             className="w-full bg-transparent text-4xl font-bold text-slate-900 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-700 outline-none"
                             value={amount}
@@ -508,9 +510,48 @@ export function WithdrawalForm() {
                         />
                     </div>
                     <div className="flex gap-2 mt-4">
-                        <button type="button" onClick={() => setAmount("100")} className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">$100</button>
-                        <button type="button" onClick={() => setAmount("500")} className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">$500</button>
-                        <button type="button" onClick={() => setAmount("5420.50")} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold hover:bg-primary/20 transition-colors ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">MAX</button>
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                const newAmount = "1";
+                                if (vaultBalance && typeof vaultBalance === 'bigint' && parseEther(newAmount) > vaultBalance) {
+                                    toast.error("Insufficient vault balance");
+                                } else {
+                                    setAmount(newAmount);
+                                }
+                            }} 
+                            className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                            1 ETH
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                const newAmount = "5";
+                                if (vaultBalance && typeof vaultBalance === 'bigint' && parseEther(newAmount) > vaultBalance) {
+                                    toast.error("Insufficient vault balance");
+                                } else {
+                                    setAmount(newAmount);
+                                }
+                            }} 
+                            className="px-3 py-1 bg-gray-100 dark:bg-surface-border rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-surface-border/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                            5 ETH
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                if (vaultBalance && typeof vaultBalance === 'bigint') {
+                                    setAmount(formatEther(vaultBalance));
+                                    toast.success("Set to maximum available balance");
+                                } else {
+                                    toast.error("Unable to determine vault balance");
+                                }
+                            }} 
+                            className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold hover:bg-primary/20 transition-colors ml-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                            MAX
+                        </button>
                     </div>
                         {/* Policy badge and guardian count */}
                         {policyRes && policyRes.data && (
