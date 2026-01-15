@@ -28,6 +28,7 @@ export interface PendingWithdrawalRequest {
     status: 'pending' | 'approved' | 'executed' | 'rejected';
     executedAt?: number;
     executionTxHash?: `0x${string}`;
+    guardians?: `0x${string}`[];
 }
 
 export interface GuardianSignatureStatus {
