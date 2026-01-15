@@ -96,6 +96,17 @@ const init = () => {
       timestamp INTEGER
     );
   `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guardians (
+      id TEXT PRIMARY KEY,
+      address TEXT,
+      tokenId TEXT,
+      addedAt INTEGER,
+      blockNumber TEXT,
+      txHash TEXT,
+      tokenAddress TEXT
+    );
+  `);
 };
 
 init();
@@ -323,5 +334,42 @@ export class GuardianSignatureDB {
   static deleteActivity(id: string) {
     db.prepare('DELETE FROM account_activities WHERE id = ?').run(id);
   }
+
+  // Guardian methods
+  static saveGuardian(guardian: {
+    address: string;
+    tokenId: string;
+    addedAt: number;
+    blockNumber: string;
+    txHash: string;
+    tokenAddress: string;
+  }) {
+    const id = `${guardian.tokenAddress.toLowerCase()}-${guardian.address.toLowerCase()}`;
+    db.prepare(`REPLACE INTO guardians (id, address, tokenId, addedAt, blockNumber, txHash, tokenAddress) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(
+        id,
+        guardian.address.toLowerCase(),
+        guardian.tokenId,
+        guardian.addedAt,
+        guardian.blockNumber,
+        guardian.txHash,
+        guardian.tokenAddress.toLowerCase()
+      );
+  }
+
+  static getGuardiansByTokenAddress(tokenAddress: string) {
+    const rows = db.prepare('SELECT * FROM guardians WHERE tokenAddress = ? ORDER BY addedAt ASC').all(tokenAddress.toLowerCase());
+    return rows.map((row: any) => ({
+      address: row.address,
+      tokenId: row.tokenId,
+      addedAt: row.addedAt,
+      blockNumber: row.blockNumber,
+      txHash: row.txHash,
+      tokenAddress: row.tokenAddress,
+    }));
+  }
+
+  static deleteGuardiansByTokenAddress(tokenAddress: string) {
+    db.prepare('DELETE FROM guardians WHERE tokenAddress = ?').run(tokenAddress.toLowerCase());
+  }
   // Add more methods as needed (addSignature, markAsExecuted, etc)
-}
