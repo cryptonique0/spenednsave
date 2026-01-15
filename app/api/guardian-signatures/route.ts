@@ -18,7 +18,7 @@ function serializeResponse(obj: any): any {
 export async function GET() {
   try {
     console.log('[API] GET /api/guardian-signatures - fetching pending requests');
-    const all = GuardianSignatureDB.getPendingRequests();
+    const all = await GuardianSignatureDB.getPendingRequests();
     console.log(`[API] Found ${all.length} pending requests`);
     return NextResponse.json(serializeResponse(all));
   } catch (err) {
@@ -50,22 +50,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid body - missing createdBy' }, { status: 400 });
     }
 
-    GuardianSignatureDB.savePendingRequest(body);
-    const saved = GuardianSignatureDB.getPendingRequest(body.id);
+    await GuardianSignatureDB.savePendingRequest(body);
+    const saved = await GuardianSignatureDB.getPendingRequest(body.id);
 
     // Email notification integration
     try {
       // Import here to avoid circular/server issues
       const { notifyUsersOnWithdrawalEvent } = await import('@/lib/services/email-notification-trigger');
       // Notify all guardians and the owner if they have opted in
-      const involvedAddresses = [saved.createdBy, ...(saved.guardians || [])];
+      const involvedAddresses = [saved!.createdBy, ...(saved!.guardians || [])];
       await notifyUsersOnWithdrawalEvent({
         event: 'withdrawal-requested',
-        vaultAddress: saved.vaultAddress,
-        amount: saved.request?.amount?.toString?.() || '',
-        reason: saved.request?.reason,
+        vaultAddress: saved!.vaultAddress,
+        amount: saved!.request?.amount?.toString?.() || '',
+        reason: saved!.request?.reason,
         involvedAddresses,
-        extraData: { vaultName: saved.vaultName }
+        extraData: { vaultName: (saved as any)?.vaultName }
       });
     } catch (e) {
       // Log but don't block
