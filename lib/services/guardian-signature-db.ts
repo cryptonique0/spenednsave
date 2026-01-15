@@ -82,8 +82,10 @@ const init = () => {
       requiredQuorum INTEGER,
       status TEXT,
       createdAt INTEGER,
+      createdBy TEXT,
       executedAt INTEGER,
-      executionTxHash TEXT
+      executionTxHash TEXT,
+      guardians TEXT
     );
   `);
   db.exec(`
@@ -132,8 +134,9 @@ export class GuardianSignatureDB {
     // Encrypt blobs before storing
     const encRequest = encryptString(JSON.stringify(serializableRequest));
     const encSignatures = encryptString(JSON.stringify(serializableSignatures));
+    const encGuardians = encryptString(JSON.stringify((request as any).guardians || []));
 
-    db.prepare(`REPLACE INTO pending_requests (id, vaultAddress, request, signatures, requiredQuorum, status, createdAt, executedAt, executionTxHash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    db.prepare(`REPLACE INTO pending_requests (id, vaultAddress, request, signatures, requiredQuorum, status, createdAt, createdBy, executedAt, executionTxHash, guardians) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
         request.id,
         request.vaultAddress,
@@ -142,8 +145,10 @@ export class GuardianSignatureDB {
         request.requiredQuorum,
         request.status,
         request.createdAt,
+        request.createdBy,
         request.executedAt ?? null,
-        request.executionTxHash ?? null
+        request.executionTxHash ?? null,
+        encGuardians
       );
   }
 
