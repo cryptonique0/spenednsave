@@ -162,11 +162,20 @@ export function WithdrawalForm() {
             const timestamp = Date.now();
             const newRequestId = `${vaultAddress}-${currentNonce}-${timestamp}`;
             
+            // Convert BigInt values to strings for serialization
+            const serializedRequest = {
+                token: withdrawalRequest.token,
+                amount: withdrawalRequest.amount.toString(),
+                recipient: withdrawalRequest.recipient,
+                nonce: withdrawalRequest.nonce.toString(),
+                reason: withdrawalRequest.reason,
+            };
+            
             // Create the pending request with all current guardians
             const pendingRequest = {
                 id: newRequestId,
                 vaultAddress,
-                request: withdrawalRequest,
+                request: serializedRequest,
                 signatures: [],
                 requiredQuorum: Number(quorumValue),
                 createdAt: timestamp,
