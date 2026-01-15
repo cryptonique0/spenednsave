@@ -277,9 +277,22 @@ export class GuardianSignatureDB {
           }
         }
       })(),
+      guardians: (() => {
+        try {
+          const decrypted = decryptString(row.guardians);
+          return JSON.parse(decrypted);
+        } catch (e) {
+          try {
+            return JSON.parse(row.guardians);
+          } catch (e2) {
+            return [];
+          }
+        }
+      })(),
       requiredQuorum: row.requiredQuorum,
       status: row.status,
       createdAt: row.createdAt,
+      createdBy: row.createdBy,
       executedAt: row.executedAt,
       executionTxHash: row.executionTxHash,
     };
