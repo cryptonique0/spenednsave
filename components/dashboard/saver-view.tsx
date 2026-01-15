@@ -1,5 +1,4 @@
 "use client";
-import { EmergencyContacts } from './emergency-contacts';
 import { AvatarBlockie } from '@/components/ui/avatar-blockie';
 
 import { Users, Lock, CreditCard, ShieldCheck } from "lucide-react";
@@ -14,7 +13,6 @@ import { useState, useEffect } from "react";
 import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
 import PolicyConfig from '@/components/dashboard/policy-config';
-import { VaultAnalyticsDashboard } from './VaultAnalyticsDashboard';
 
 export function DashboardSaverView() {
         // Timer for stable current time in render
