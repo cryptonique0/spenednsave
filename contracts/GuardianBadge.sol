@@ -13,8 +13,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract GuardianBadge is ERC721Enumerable, Ownable {
 
-    constructor() ERC721("GuardianBadge", "GBADGE") {}
-
+    constructor() ERC721("GuardianBadge", "GBADGE") {
+_tokenIdCounter = 0; 
+    }
+ 
     // --- Emergency Contact List ---
     mapping(address => bool) public emergencyContacts;
     address[] public emergencyContactList;
