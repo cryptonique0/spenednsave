@@ -173,20 +173,26 @@ export function WithdrawalForm() {
         
         // Create the pending withdrawal request in the database
         try {
+            console.log('[WithdrawalForm] Starting withdrawal creation...');
+            toast.loading('Creating withdrawal request...', { id: 'withdrawal-creation' });
+            
             const timestamp = Date.now();
             
             // Get guardians list - ensure it's loaded
             let guardiansList = guardians || [];
-            if (guardiansLoading || guardiansList.length === 0) {
-                console.warn('[WithdrawalForm] Guardians still loading or empty, attempting to fetch from contract');
-                // Wait a moment for guardians to load
-                if (guardiansLoading) {
-                    alert('Guardians are still loading. Please wait a moment and try again.');
-                    return;
-                }
+            if (guardiansLoading) {
+                console.warn('[WithdrawalForm] Guardians still loading');
+                alert('Guardians are still loading. Please wait a moment and try again.');
+                return;
             }
             
-            console.log('[WithdrawalForm] Creating withdrawal with guardians:', guardiansList);
+            if (guardiansList.length === 0) {
+                console.warn('[WithdrawalForm] No guardians available');
+                alert('No guardians found for this vault. Cannot create withdrawal.');
+                return;
+            }
+            
+            console.log('[WithdrawalForm] Creating withdrawal with', guardiansList.length, 'guardians:', guardiansList);
             
             // Ensure nonce is converted to string for the ID
             const nonceStr = typeof currentNonce === 'bigint' ? currentNonce.toString() : String(currentNonce);
@@ -208,7 +214,12 @@ export function WithdrawalForm() {
                 return '';
             }).filter((addr: string) => addr && addr !== '0x0000000000000000000000000000000000000000');
             
-            console.log('[WithdrawalForm] Guardian addresses to store:', guardianAddresses);
+            console.log('[WithdrawalForm] Extracted guardian addresses:', guardianAddresses);
+            
+            if (guardianAddresses.length === 0) {
+                alert('No valid guardian addresses found. Cannot create withdrawal.');
+                return;
+            }
             
             // Create the pending request with all current guardians
             const pendingRequest = {
@@ -223,7 +234,7 @@ export function WithdrawalForm() {
                 guardians: guardianAddresses,
             };
             
-            console.log('[WithdrawalForm] Pending request to save:', pendingRequest);
+            console.log('[WithdrawalForm] Sending pending request to API:', JSON.stringify(pendingRequest, null, 2));
             
             const createRes = await fetch('/api/guardian-signatures', {
                 method: 'POST',
@@ -238,20 +249,31 @@ export function WithdrawalForm() {
             }
             
             const createdRequest = await createRes.json();
-            console.log('[WithdrawalForm] Request created in database:', createdRequest);
+            console.log('[WithdrawalForm] Request created in database with response:', JSON.stringify(createdRequest, null, 2));
+            
+            if (!createdRequest.id) {
+                throw new Error('No request ID returned from API');
+            }
+            
+            toast.dismiss('withdrawal-creation');
+            toast.success('Withdrawal request created! Please sign to proceed.');
             
             setRequestId(createdRequest.id);
             
-            // Set the guardians from the created request or use the guardians from state
+            // Set the guardians from the created request for display
             const guardiansToDisplay = createdRequest.guardians && createdRequest.guardians.length > 0 
                 ? createdRequest.guardians 
-                : guardians?.map((g: any) => typeof g === 'string' ? g : g?.address) || [];
+                : guardianAddresses;
             
             console.log('[WithdrawalForm] Guardians to display:', guardiansToDisplay);
             setSigningGuardians(guardiansToDisplay);
         } catch (error) {
             console.error('Error creating withdrawal request:', error);
-            toast.error('Failed to create withdrawal request');
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error('Full error:', error);
+            toast.dismiss('withdrawal-creation');
+            toast.error(`Failed to create withdrawal: ${errorMsg}`);
+            setIsSubmitting(false);
             return;
         }
         

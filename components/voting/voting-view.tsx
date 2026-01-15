@@ -12,6 +12,7 @@ import Link from "next/link";
 export function VotingView() {
     const [status, setStatus] = useState<'loading' | 'pending' | 'signed' | 'empty' | 'unauthorized'>('loading');
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
     
     const { address, isConnected } = useAccount();
     const chainId = useChainId();
@@ -43,7 +44,7 @@ export function VotingView() {
 
         const fetchPendingRequests = async () => {
             try {
-                console.log('[VotingView] Fetching pending requests for vault:', vaultAddress);
+                console.log('[VotingView] Starting fetch for vault:', vaultAddress, 'user address:', address);
                 
                 // Fetch all pending requests for this vault from the database
                 const res = await fetch(`/api/guardian-signatures?vaultAddress=${vaultAddress}`, {
@@ -53,18 +54,20 @@ export function VotingView() {
 
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
-                    console.error('Failed to fetch pending requests:', errorData);
+                    console.error('[VotingView] Failed to fetch pending requests:', errorData);
                     setStatus('empty');
                     return;
                 }
 
                 const allRequests = await res.json();
-                console.log('[VotingView] Received requests:', allRequests.length);
+                console.log('[VotingView] Received', allRequests.length, 'total requests');
+                console.log('[VotingView] All requests:', allRequests);
                 
-                // Filter to pending-approval status and check if guardian address matches user wallet
+                // Filter to pending statuses and check if guardian address matches user wallet
                 const pending = allRequests.filter((req: any) => {
-                    // Only show pending-approval requests
-                    if (req.status !== 'pending-approval') {
+                    // Only show pending requests (awaiting-signature or pending-approval)
+                    const validStatuses = ['awaiting-signature', 'pending-approval'];
+                    if (!validStatuses.includes(req.status)) {
                         console.log('[VotingView] Filtering out request with status:', req.status);
                         return false;
                     }
@@ -191,8 +194,12 @@ export function VotingView() {
     const handleSign = async (request: any) => {
         if (!vaultAddress || !chainId || !address) return;
 
+        console.log('[VotingView] handleSign called for request:', request.id);
+        
         // Verify that the user's address matches a guardian in the database
         const guardians = request.guardians || [];
+        console.log('[VotingView] Checking if', address, 'is in guardians:', guardians);
+        
         const isAddressInGuardians = guardians.some((g: string) => g.toLowerCase() === address.toLowerCase());
         
         if (!isAddressInGuardians) {
@@ -200,6 +207,7 @@ export function VotingView() {
             return;
         }
 
+        console.log('[VotingView] Guardian verified, proceeding with signing');
         setStatus('pending');
 
         // EIP-712 domain
@@ -367,114 +375,166 @@ export function VotingView() {
         )
     }
 
-    // Get the first pending request to display
-    const pendingRequest = pendingRequests.length > 0 ? pendingRequests[0] : null;
+    // Get the selected request or the first one
+    const selectedRequest = selectedRequestId 
+        ? pendingRequests.find(r => r.id === selectedRequestId)
+        : pendingRequests.length > 0 ? pendingRequests[0] : null;
 
-    // Run risk assessment when pendingRequest or vaultBalance changes
+    // Run risk assessment when selectedRequest or vaultBalance changes
     // ...existing code...
 
-    // Render pending request if available
-    if (status === 'pending' && pendingRequest) {
+    // Render pending requests list and detail view
+    if (status === 'pending' && pendingRequests.length > 0) {
         return (
-        <div className="relative w-full max-w-md">
-            <div className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl overflow-hidden shadow-card">
-                {/* Header */}
-                <div className="bg-blue-50 dark:bg-blue-500/10 p-6 border-b border-gray-100 dark:border-surface-border text-center">
-                    <div className="inline-flex flex-col items-center mb-4">
-                        <div className="size-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md mb-3 flex items-center justify-center text-white font-bold text-xl">
-                            {pendingRequest.owner ? pendingRequest.owner[0].toUpperCase() : 'V'}
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Withdrawal Request</h3>
-                        <p className="text-xs text-slate-500">From {pendingRequest.owner?.slice(0, 6)}...{pendingRequest.owner?.slice(-4)}</p>
+            <div className="w-full max-w-4xl mx-auto space-y-6">
+                {/* Withdrawals List */}
+                <div className="w-full">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Pending Withdrawals ({pendingRequests.length})</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {pendingRequests.map((request: any, index: number) => (
+                            <button
+                                key={request.id}
+                                onClick={() => setSelectedRequestId(request.id)}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                    selectedRequest?.id === request.id
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-gray-200 dark:border-surface-border hover:border-primary/50'
+                                } bg-white dark:bg-surface-dark`}
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <p className="text-xs text-slate-500 font-mono">ID: {request.id.slice(0, 16)}...</p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                                            {formatEther(BigInt(request.request?.amount || 0))} ETH
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                                            {request.signatures?.length || 0}/{quorum?.toString() || '2'}
+                                        </div>
+                                        <div className="w-12 h-1.5 bg-gray-200 dark:bg-surface-border rounded-full overflow-hidden mt-1">
+                                            <div 
+                                                className="h-full bg-emerald-500"
+                                                style={{ width: `${((request.signatures?.length || 0) / (Number(quorum) || 1)) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 truncate">{request.request?.reason}</p>
+                            </button>
+                        ))}
                     </div>
-                    <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-surface-border/50">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Requesting</p>
-                        <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                            {formatEther(BigInt(pendingRequest.amount))} <span className="text-sm font-medium text-slate-400">ETH</span>
+                </div>
+
+                {/* Selected Withdrawal Detail */}
+                {selectedRequest && (
+            <div className="relative w-full">
+                <div className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl overflow-hidden shadow-card">
+                    {/* Header */}
+                    <div className="bg-blue-50 dark:bg-blue-500/10 p-6 border-b border-gray-100 dark:border-surface-border">
+                        <div className="mb-4">
+                            <p className="text-xs text-slate-500 font-mono mb-2">Request ID</p>
+                            <p className="text-sm font-mono text-slate-900 dark:text-white break-all">{selectedRequest.id}</p>
+                        </div>
+                        <div className="inline-flex flex-col items-center w-full text-center mb-4">
+                            <div className="size-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md mb-3 flex items-center justify-center text-white font-bold text-xl">
+                                {selectedRequest.createdBy ? selectedRequest.createdBy[2].toUpperCase() : 'V'}
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Withdrawal Request</h3>
+                            <p className="text-xs text-slate-500">From {selectedRequest.createdBy?.slice(0, 6)}...{selectedRequest.createdBy?.slice(-4)}</p>
+                        </div>
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-surface-border/50">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Requesting</p>
+                            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                                {formatEther(BigInt(selectedRequest.request?.amount || 0))} <span className="text-sm font-medium text-slate-400">ETH</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Details */}
+                    <div className="p-6 flex flex-col gap-4">
+                        <div className="flex gap-3">
+                            <span className="material-symbols-outlined text-slate-400 pt-0.5">format_quote</span>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reason</p>
+                                <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{selectedRequest.request?.reason}"</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500 font-medium">Consensus Status</span>
+                                <span className="text-slate-900 dark:text-white font-bold">
+                                    {(selectedRequest.signatures?.length || 0)} of {quorum} Signed
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 dark:bg-surface-border/50 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-yellow-400 rounded-full transition-all duration-300"
+                                    style={{ width: `${((selectedRequest.signatures?.length || 0) / (Number(quorum) || 1)) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div className="text-xs text-slate-500 space-y-1 bg-gray-50 dark:bg-surface-border/20 p-3 rounded-lg">
+                            <div className="flex justify-between">
+                                <span>Vault:</span>
+                                <span className="font-mono text-slate-700 dark:text-slate-300">{vaultAddress?.slice(0, 10)}...{vaultAddress?.slice(-8)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Recipient:</span>
+                                <span className="font-mono text-slate-700 dark:text-slate-300">{selectedRequest.request?.recipient?.slice(0, 10)}...{selectedRequest.request?.recipient?.slice(-8)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Nonce:</span>
+                                <span className="font-mono text-slate-700 dark:text-slate-300">{selectedRequest.request?.nonce}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Status:</span>
+                                <span className="font-mono text-emerald-600 dark:text-emerald-400 uppercase font-bold">{selectedRequest.status}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="p-6 pt-0 flex gap-3">
+                        <button 
+                            onClick={handleReject}
+                            disabled={isSigning}
+                            className="flex-1 py-3.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <X size={18} />
+                            Reject
+                        </button>
+                        <button
+                            onClick={() => handleSign(selectedRequest)}
+                            disabled={isSigning}
+                            className="flex-[2] py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSigning ? (
+                                <>
+                                    <Spinner />
+                                    Signing...
+                                </>
+                            ) : (
+                                <>
+                                    <Check size={18} />
+                                    Sign & Approve
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 dark:bg-background-dark/50 text-center border-t border-gray-100 dark:border-surface-border">
+                        <p className="text-xs text-slate-400 flex items-center justify-center gap-1.5">
+                            <Shield size={12} />
+                            Secured by Smart Contract
                         </p>
                     </div>
                 </div>
-
-                {/* Details */}
-                <div className="p-6 flex flex-col gap-4">
-                    <div className="flex gap-3">
-                        <span className="material-symbols-outlined text-slate-400 pt-0.5">format_quote</span>
-                        <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reason</p>
-                            <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{pendingRequest.reason}"</p>
-                        </div>
-                    </div>
-
-                    {/* Risk Assessment Removed */}
-
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-500 font-medium">Consensus Status</span>
-                            <span className="text-slate-900 dark:text-white font-bold">
-                                {(pendingRequest.signatures?.length || 0)} of {quorum} Signed
-                            </span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 dark:bg-surface-border/50 rounded-full overflow-hidden">
-                            <div 
-                                className="h-full bg-yellow-400 rounded-full transition-all duration-300"
-                                style={{ width: `${((pendingRequest.signatures?.length || 0) / (Number(quorum) || 1)) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div className="text-xs text-slate-500 space-y-1">
-                        <div className="flex justify-between">
-                            <span>Vault:</span>
-                            <span className="font-mono">{vaultAddress?.slice(0, 10)}...{vaultAddress?.slice(-8)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Recipient:</span>
-                            <span className="font-mono">{pendingRequest.recipient?.slice(0, 10)}...{pendingRequest.recipient?.slice(-8)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Nonce:</span>
-                            <span className="font-mono">{pendingRequest.nonce}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="p-6 pt-0 flex gap-3">
-                    <button 
-                        onClick={handleReject}
-                        disabled={isSigning}
-                        className="flex-1 py-3.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <X size={18} />
-                        Reject
-                    </button>
-                    <button
-                        onClick={() => handleSign(pendingRequest)}
-                        disabled={isSigning}
-                        className="flex-[2] py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSigning ? (
-                            <>
-                                <Spinner />
-                                Signing...
-                            </>
-                        ) : (
-                            <>
-                                <Check size={18} />
-                                Sign & Approve
-                            </>
-                        )}
-                    </button>
-                </div>
-
-                <div className="p-4 bg-gray-50 dark:bg-background-dark/50 text-center border-t border-gray-100 dark:border-surface-border">
-                    <p className="text-xs text-slate-400 flex items-center justify-center gap-1.5">
-                        <Shield size={12} />
-                        Secured by Smart Contract
-                    </p>
-                </div>
             </div>
-        </div>
+                )}
+            </div>
         );
     }
 

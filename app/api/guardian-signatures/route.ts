@@ -43,7 +43,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('[API] POST /api/guardian-signatures - incoming request with guardians:', body.guardians);
+    console.log('[API] POST /api/guardian-signatures');
+    console.log('[API] Request ID:', body.id);
+    console.log('[API] Vault Address:', body.vaultAddress);
+    console.log('[API] Guardians array:', body.guardians);
+    console.log('[API] Full request body:', JSON.stringify(body, null, 2));
     
     if (!body || !body.id) {
       return NextResponse.json({ error: 'Invalid body - missing id' }, { status: 400 });
@@ -65,11 +69,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid body - missing createdBy' }, { status: 400 });
     }
 
-    console.log('[API] Saving pending request:', body.id);
+    console.log('[API] All validations passed. Saving to database...');
     await GuardianSignatureDB.savePendingRequest(body);
+    console.log('[API] Saved successfully. Retrieving from database...');
     
     const saved = await GuardianSignatureDB.getPendingRequest(body.id);
-    console.log('[API] Saved request guardians:', saved?.guardians);
+    console.log('[API] Retrieved request from DB:', saved?.id);
+    console.log('[API] Guardians in saved request:', saved?.guardians);
 
     // Email notification integration
     try {
@@ -92,7 +98,9 @@ export async function POST(request: Request) {
       console.error('Email notification error:', e);
     }
 
-    return NextResponse.json(serializeResponse(saved));
+    const response = serializeResponse(saved);
+    console.log('[API] Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response);
   } catch (err) {
     console.error('POST /api/guardian-signatures error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });

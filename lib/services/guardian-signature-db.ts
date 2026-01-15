@@ -184,7 +184,14 @@ export class GuardianSignatureDB {
         { upsert: true }
       );
       
+      // Verify the save was successful
+      const savedDoc = await collection.findOne({ id: request.id });
+      if (!savedDoc) {
+        throw new Error('Failed to verify saved document in database');
+      }
+      
       console.log('[GuardianSignatureDB] Request saved successfully with ID:', request.id);
+      console.log('[GuardianSignatureDB] Verified document exists in database');
     } catch (err) {
       console.error('[GuardianSignatureDB] Error saving pending request:', err);
       throw err;
