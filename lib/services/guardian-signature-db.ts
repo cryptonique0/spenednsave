@@ -123,20 +123,21 @@ try {
 }
 
 export class GuardianSignatureDB {
-  static savePendingRequest(request: PendingWithdrawalRequest) {
+  static savePendingRequest(request: any) {
     // Serialize BigInt fields (amount, nonce) inside request and inside signatures
+    // Handle both BigInt and string values for amount and nonce
     const serializableRequest = {
       ...request.request,
-      amount: request.request.amount.toString(),
-      nonce: request.request.nonce.toString(),
+      amount: typeof request.request.amount === 'bigint' ? request.request.amount.toString() : String(request.request.amount),
+      nonce: typeof request.request.nonce === 'bigint' ? request.request.nonce.toString() : String(request.request.nonce),
     };
 
-    const serializableSignatures = request.signatures.map((s: SignedWithdrawal) => ({
+    const serializableSignatures = (request.signatures || []).map((s: any) => ({
       ...s,
       request: {
         ...s.request,
-        amount: s.request.amount.toString(),
-        nonce: s.request.nonce.toString(),
+        amount: typeof s.request.amount === 'bigint' ? s.request.amount.toString() : String(s.request.amount),
+        nonce: typeof s.request.nonce === 'bigint' ? s.request.nonce.toString() : String(s.request.nonce),
       },
     }));
 
