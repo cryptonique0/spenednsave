@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const account = url.searchParams.get('account');
     if (!account) return NextResponse.json({ error: 'Missing account' }, { status: 400 });
-    const activities = GuardianSignatureDB.getActivitiesByAccount(account);
+    const activities = await GuardianSignatureDB.getActivitiesByAccount(account);
     const rep = computeGuardianReputation(activities);
     return NextResponse.json(rep);
   } catch (err) {
