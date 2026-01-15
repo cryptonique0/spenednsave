@@ -18,7 +18,7 @@ function serializeResponse(obj: any): any {
 export async function GET(request: Request, context: any) {
   try {
     const { id } = context?.params ?? {};
-    const row = GuardianSignatureDB.getPendingRequest(id);
+    const row = await GuardianSignatureDB.getPendingRequest(id);
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(serializeResponse(row));
   } catch (err) {
@@ -30,7 +30,7 @@ export async function PUT(request: Request, context: any) {
   try {
     const { id } = context?.params ?? {};
     const body = await request.json();
-    const existing = GuardianSignatureDB.getPendingRequest(id);
+    const existing = await GuardianSignatureDB.getPendingRequest(id);
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     // Merge existing with provided body
@@ -42,8 +42,8 @@ export async function PUT(request: Request, context: any) {
       signatures: body.signatures ?? existing.signatures,
     };
 
-    GuardianSignatureDB.savePendingRequest(updated);
-    const saved = GuardianSignatureDB.getPendingRequest(id);
+    await GuardianSignatureDB.savePendingRequest(updated);
+    const saved = await GuardianSignatureDB.getPendingRequest(id);
 
     // Email notification integration
     try {
@@ -78,7 +78,7 @@ export async function PUT(request: Request, context: any) {
 export async function DELETE(request: Request, context: any) {
   try {
     const { id } = context?.params ?? {};
-    GuardianSignatureDB.deletePendingRequest(id);
+    await GuardianSignatureDB.deletePendingRequest(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
