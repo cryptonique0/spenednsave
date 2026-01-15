@@ -39,6 +39,7 @@ export async function sendNotification({ to, subject, html }: SendNotificationPa
 }
 
 // Helper: Compose email content for each event type
+export function composeEmailContent(event: EmailEventType, data: any): { subject: string; html: string } {
   switch (event) {
     case 'withdrawal-requested':
       return {
