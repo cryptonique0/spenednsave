@@ -271,8 +271,17 @@ export function useGuardians(guardianTokenAddress?: Address) {
             } catch (err) {
                 console.error('[useGuardians] Error fetching guardians:', err);
                 
-                // Try to load from cache as fallback
+                // Try to load from server DB or cache as fallback
                 try {
+                    // First try server guardians if we have them
+                    if (serverGuardians && serverGuardians.length > 0) {
+                        console.log('[useGuardians] Using server guardians as fallback:', serverGuardians.length);
+                        setGuardians(serverGuardians);
+                        setError(null);
+                        return;
+                    }
+                    
+                    // Then try cache
                     const cacheKey = `guardians-cache-${guardianTokenAddress.toLowerCase()}`;
                     const cached = localStorage.getItem(cacheKey);
                     if (cached) {
@@ -283,11 +292,18 @@ export function useGuardians(guardianTokenAddress?: Address) {
                         }));
                         console.log('[useGuardians] Loaded guardians from cache as fallback');
                         setGuardians(cachedGuardians);
-                    } else {
-                        setError(err instanceof Error ? err : new Error('Failed to fetch guardians'));
+                        setError(null); // Clear error since we have cached data
+                        return;
                     }
+                    
+                    // No cache available, set error
+                    const errorMsg = err instanceof Error ? err.message : 'Failed to fetch guardians';
+                    setError(new Error(`${errorMsg}. Please refresh the page or try again later.`));
+                    setGuardians([]); // Set empty list rather than failing completely
                 } catch (cacheErr) {
+                    console.error('[useGuardians] Error in fallback:', cacheErr);
                     setError(err instanceof Error ? err : new Error('Failed to fetch guardians'));
+                    setGuardians([]);
                 }
             } finally {
                 setIsLoading(false);
@@ -329,6 +345,24 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 const cacheKey = `withdrawals-cache-${vaultAddress.toLowerCase()}`;
                 console.log('[useWithdrawalHistory] Fetching withdrawals for vault:', vaultAddress);
                 
+                // Try to load from cache first
+                try {
+                    const cached = localStorage.getItem(cacheKey);
+                    if (cached) {
+                        const cachedWithdrawals = JSON.parse(cached).map((w: any) => ({
+                            ...w,
+                            amount: BigInt(w.amount),
+                            blockNumber: BigInt(w.blockNumber),
+                        }));
+                        console.log('[useWithdrawalHistory] Loaded withdrawals from cache');
+                        setWithdrawals(cachedWithdrawals.slice(-limit));
+                        setIsLoading(false);
+                        return;
+                    }
+                } catch (cacheErr) {
+                    console.warn('[useWithdrawalHistory] Cache load failed:', cacheErr);
+                }
+                
                 // Get current block number
                 const currentBlock = await publicClient.getBlockNumber();
                 
@@ -345,11 +379,15 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 });
                 console.log('[useWithdrawalHistory] Withdrawn event topic:', withdrawnTopic);
                 
-                // Fetch logs in chunks of 100,000 blocks (RPC limit)
+                // Fetch logs in chunks of 100,000 blocks (RPC limit) - only scan last 5M blocks for efficiency
                 const CHUNK_SIZE = 100000n;
+                const MAX_BLOCKS_BACK = 5000000n;
+                const startBlock = currentBlock > MAX_BLOCKS_BACK ? currentBlock - MAX_BLOCKS_BACK : 0n;
                 const allLogs: any[] = [];
                 
-                let fromBlock = 0n;
+                let fromBlock = startBlock;
+                console.log('[useWithdrawalHistory] Scanning from block', String(fromBlock), 'to', String(currentBlock));
+                
                 while (fromBlock <= currentBlock) {
                     const toBlock = currentBlock < fromBlock + CHUNK_SIZE - 1n ? currentBlock : fromBlock + CHUNK_SIZE - 1n;
                     
@@ -361,6 +399,7 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                             toBlock,
                             topics: [withdrawnTopic],
                         });
+                        console.log('[useWithdrawalHistory] Chunk', String(fromBlock), '-', String(toBlock), ':', chunkLogs.length, 'logs');
                         allLogs.push(...chunkLogs);
                     } catch (chunkErr) {
                         console.error('[useWithdrawalHistory] Error fetching chunk:', chunkErr);
@@ -372,6 +411,23 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 console.log('[useWithdrawalHistory] Total logs from vault:', allLogs.length);
                 
                 const withdrawalEvents: WithdrawalEvent[] = [];
+                const blockCache = new Map<bigint, { timestamp: bigint }>();
+                
+                // Batch fetch blocks to get timestamps (max 10 at a time)
+                const uniqueBlockNumbers = [...new Set(allLogs.map(l => l.blockNumber))];
+                console.log('[useWithdrawalHistory] Fetching timestamps for', uniqueBlockNumbers.length, 'unique blocks');
+                
+                for (let i = 0; i < uniqueBlockNumbers.length; i += 10) {
+                    const batch = uniqueBlockNumbers.slice(i, i + 10);
+                    try {
+                        const blocks = await Promise.all(batch.map(bn => publicClient.getBlock({ blockNumber: bn as any })));
+                        blocks.forEach((block, idx) => {
+                            if (block) blockCache.set(batch[idx], block);
+                        });
+                    } catch (err) {
+                        console.warn('[useWithdrawalHistory] Failed to fetch block batch:', err);
+                    }
+                }
                 
                 for (const log of allLogs) {
                     try {
@@ -388,19 +444,18 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                             const transactionHash = log.transactionHash;
                             
                             if (blockNumber && transactionHash) {
-                                // Get block to get timestamp
-                                const block = await publicClient.getBlock({ blockNumber });
-                                if (block) {
-                                    withdrawalEvents.push({
-                                        token: args.token as Address,
-                                        recipient: args.recipient as Address,
-                                        amount: args.amount as bigint,
-                                        reason: args.reason as string,
-                                        timestamp: Number(block.timestamp) * 1000,
-                                        blockNumber,
-                                        txHash: transactionHash as Hex,
-                                    });
-                                }
+                                const block = blockCache.get(blockNumber);
+                                const timestamp = block ? Number(block.timestamp) * 1000 : 0;
+                                
+                                withdrawalEvents.push({
+                                    token: args.token as Address,
+                                    recipient: args.recipient as Address,
+                                    amount: args.amount as bigint,
+                                    reason: args.reason as string,
+                                    timestamp,
+                                    blockNumber,
+                                    txHash: transactionHash as Hex,
+                                });
                             }
                         }
                     } catch (decodeErr) {
@@ -426,25 +481,7 @@ export function useWithdrawalHistory(vaultAddress?: Address, limit = 50) {
                 }
             } catch (err) {
                 console.error('Error fetching withdrawals:', err);
-                
-                // Try to load from cache as fallback
-                try {
-                    const cacheKey = `withdrawals-cache-${vaultAddress.toLowerCase()}`;
-                    const cached = localStorage.getItem(cacheKey);
-                    if (cached) {
-                        const cachedWithdrawals = JSON.parse(cached).map((w: any) => ({
-                            ...w,
-                            amount: BigInt(w.amount),
-                            blockNumber: BigInt(w.blockNumber),
-                        }));
-                        console.log('[useWithdrawalHistory] Loaded withdrawals from cache as fallback');
-                        setWithdrawals(cachedWithdrawals.slice(-limit));
-                    } else {
-                        setError(err instanceof Error ? err : new Error('Failed to fetch withdrawals'));
-                    }
-                } catch (cacheErr) {
-                    setError(err instanceof Error ? err : new Error('Failed to fetch withdrawals'));
-                }
+                setError(err instanceof Error ? err : new Error('Failed to fetch withdrawals'));
             } finally {
                 setIsLoading(false);
             }
@@ -485,6 +522,24 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 console.log('[useDepositHistory] Fetching deposits for vault:', vaultAddress);
                 console.log('[useDepositHistory] PublicClient available:', !!publicClient);
                 
+                // Try to load from cache first
+                try {
+                    const cached = localStorage.getItem(cacheKey);
+                    if (cached) {
+                        const cachedDeposits = JSON.parse(cached).map((d: any) => ({
+                            ...d,
+                            amount: BigInt(d.amount),
+                            blockNumber: BigInt(d.blockNumber),
+                        }));
+                        console.log('[useDepositHistory] Loaded deposits from cache');
+                        setDeposits(cachedDeposits.slice(-limit));
+                        setIsLoading(false);
+                        return;
+                    }
+                } catch (cacheErr) {
+                    console.warn('[useDepositHistory] Cache load failed:', cacheErr);
+                }
+                
                 // Get current block number
                 const currentBlockNum = await publicClient.getBlockNumber();
                 console.log('[useDepositHistory] Current block:', currentBlockNum);
@@ -501,12 +556,14 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 });
                 console.log('[useDepositHistory] Deposited event topic:', depositedTopic);
                 
-                // Fetch logs in chunks of 100,000 blocks (RPC limit)
+                // Fetch logs in chunks of 100,000 blocks (RPC limit) - only scan last 5M blocks for efficiency
                 const CHUNK_SIZE = 100000n;
+                const MAX_BLOCKS_BACK = 5000000n;
+                const startBlock = currentBlockNum > MAX_BLOCKS_BACK ? currentBlockNum - MAX_BLOCKS_BACK : 0n;
                 const allLogs: any[] = [];
                 
-                let fromBlock = 0n;
-                console.log('[useDepositHistory] Starting chunked fetch with fromBlock:', fromBlock, 'currentBlock:', currentBlockNum);
+                let fromBlock = startBlock;
+                console.log('[useDepositHistory] Scanning from block', String(fromBlock), 'to', String(currentBlockNum));
                 
                 while (fromBlock <= currentBlockNum) {
                     const toBlock = currentBlockNum < fromBlock + CHUNK_SIZE - 1n ? currentBlockNum : fromBlock + CHUNK_SIZE - 1n;
@@ -551,6 +608,24 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 
                 console.log('[useDepositHistory] Processing', allLogs.length, 'logs...');
                 
+                const blockCache = new Map<bigint, { timestamp: bigint }>();
+                
+                // Batch fetch blocks to get timestamps (max 10 at a time)
+                const uniqueBlockNumbers = [...new Set(allLogs.map(l => l.blockNumber))];
+                console.log('[useDepositHistory] Fetching timestamps for', uniqueBlockNumbers.length, 'unique blocks');
+                
+                for (let i = 0; i < uniqueBlockNumbers.length; i += 10) {
+                    const batch = uniqueBlockNumbers.slice(i, i + 10);
+                    try {
+                        const blocks = await Promise.all(batch.map(bn => publicClient.getBlock({ blockNumber: bn as any })));
+                        blocks.forEach((block, idx) => {
+                            if (block) blockCache.set(batch[idx], block);
+                        });
+                    } catch (err) {
+                        console.warn('[useDepositHistory] Failed to fetch block batch:', err);
+                    }
+                }
+                
                 for (const log of allLogs) {
                     try {
                         // Try to decode as Deposited event
@@ -568,18 +643,17 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                             const transactionHash = log.transactionHash;
                             
                             if (blockNumber && transactionHash) {
-                                // Get block to get timestamp
-                                const block = await publicClient.getBlock({ blockNumber });
-                                if (block) {
-                                    depositEvents.push({
-                                        token: args.token as Address,
-                                        from: args.from as Address,
-                                        amount: args.amount as bigint,
-                                        timestamp: Number(block.timestamp) * 1000,
-                                        blockNumber,
-                                        txHash: transactionHash as Hex,
-                                    });
-                                }
+                                const block = blockCache.get(blockNumber);
+                                const timestamp = block ? Number(block.timestamp) * 1000 : 0;
+                                
+                                depositEvents.push({
+                                    token: args.token as Address,
+                                    from: args.from as Address,
+                                    amount: args.amount as bigint,
+                                    timestamp,
+                                    blockNumber,
+                                    txHash: transactionHash as Hex,
+                                });
                             }
                         }
                     } catch (decodeErr) {
@@ -608,25 +682,7 @@ export function useDepositHistory(vaultAddress?: Address, limit = 50) {
                 }
             } catch (err) {
                 console.error('Error fetching deposits:', err);
-                
-                // Try to load from cache as fallback
-                try {
-                    const cacheKey = `deposits-cache-${vaultAddress.toLowerCase()}`;
-                    const cached = localStorage.getItem(cacheKey);
-                    if (cached) {
-                        const cachedDeposits = JSON.parse(cached).map((d: any) => ({
-                            ...d,
-                            amount: BigInt(d.amount),
-                            blockNumber: BigInt(d.blockNumber),
-                        }));
-                        console.log('[useDepositHistory] Loaded deposits from cache as fallback');
-                        setDeposits(cachedDeposits.slice(-limit));
-                    } else {
-                        setError(err instanceof Error ? err : new Error('Failed to fetch deposits'));
-                    }
-                } catch (cacheErr) {
-                    setError(err instanceof Error ? err : new Error('Failed to fetch deposits'));
-                }
+                setError(err instanceof Error ? err : new Error('Failed to fetch deposits'));
             } finally {
                 setIsLoading(false);
             }
