@@ -373,3 +373,4 @@ export class GuardianSignatureDB {
     db.prepare('DELETE FROM guardians WHERE tokenAddress = ?').run(tokenAddress.toLowerCase());
   }
   // Add more methods as needed (addSignature, markAsExecuted, etc)
+}
