@@ -20,7 +20,7 @@ export async function notifyUsersOnWithdrawalEvent({
   for (const address of involvedAddresses) {
     const pref = getEmailPreference(address);
     if (pref && pref.optIn && pref.email) {
-      const { subject, html } = composeEmail(event, {
+      const { subject, html } = composeEmailContent(event, {
         vaultAddress,
         amount,
         reason,
