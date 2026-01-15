@@ -160,7 +160,9 @@ export function WithdrawalForm() {
         // Create the pending withdrawal request in the database
         try {
             const timestamp = Date.now();
-            const newRequestId = `${vaultAddress}-${currentNonce}-${timestamp}`;
+            // Ensure nonce is converted to string for the ID
+            const nonceStr = typeof currentNonce === 'bigint' ? currentNonce.toString() : String(currentNonce);
+            const newRequestId = `${vaultAddress}-${nonceStr}-${timestamp}`;
             
             // Convert BigInt values to strings for serialization
             const serializedRequest = {
@@ -180,7 +182,7 @@ export function WithdrawalForm() {
                 requiredQuorum: Number(quorumValue),
                 createdAt: timestamp,
                 createdBy: address,
-                status: 'pending' as const,
+                status: 'pending',
                 guardians: guardians?.map((g: any) => typeof g === 'string' ? g : g?.address) || [],
             };
             
