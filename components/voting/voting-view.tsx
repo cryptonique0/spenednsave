@@ -126,14 +126,16 @@ export function VotingView() {
     }, [address]);
 
     useEffect(() => {
-        if (isSignSuccess && signature && pendingRequests.length > 0) {
+        if (isSignSuccess && signature && pendingRequests.length > 0 && selectedRequest) {
             // Save guardian signature to database
             const saveGuardianSignature = async () => {
                 try {
-                    const currentRequest = pendingRequests[0];
+                    const currentRequest = selectedRequest;
+                    console.log('[VotingView] Saving signature for request:', currentRequest.id);
                     
                     // Verify address matches guardian list before saving
                     const guardians = currentRequest.guardians || [];
+                    console.log('[VotingView] Request guardians:', guardians, 'User address:', address);
                     const isAddressInGuardians = guardians.some((g: string) => g.toLowerCase() === address?.toLowerCase());
                     
                     if (!isAddressInGuardians) {
@@ -154,6 +156,8 @@ export function VotingView() {
                         }
                     ];
                     
+                    console.log('[VotingView] Saving signatures:', updatedSignatures);
+                    
                     // Update the request in the database
                     const updateRes = await fetch(`/api/guardian-signatures/${currentRequest.id}`, {
                         method: 'PUT',
@@ -164,21 +168,24 @@ export function VotingView() {
                     });
                     
                     if (!updateRes.ok) {
-                        console.error('Failed to save guardian signature');
-                        alert('Failed to save your signature');
+                        const errorData = await updateRes.json().catch(() => ({ error: 'Unknown error' }));
+                        console.error('Failed to save guardian signature:', errorData);
+                        alert(`Failed to save your signature: ${errorData.error || 'Unknown error'}`);
                         return;
                     }
                     
+                    console.log('Signature saved successfully');
+                    
                 } catch (error) {
                     console.error('Error saving signature:', error);
-                    alert('Error saving your signature');
+                    alert(`Error saving your signature: ${error instanceof Error ? error.message : String(error)}`);
                 }
             };
             
             saveGuardianSignature();
             setStatus('signed');
         }
-    }, [isSignSuccess, signature, pendingRequests, address]);
+    }, [isSignSuccess, signature, selectedRequest, address, pendingRequests]);
 
     const handleSign = async (request: any) => {
         if (!vaultAddress || !chainId || !address) return;
@@ -375,20 +382,20 @@ export function VotingView() {
     // Render pending requests list and detail view
     if (status === 'pending' && pendingRequests.length > 0) {
         return (
-            <div className="w-full max-w-4xl mx-auto space-y-6">
+            <div className="w-full space-y-6 px-4">
                 {/* Withdrawals List */}
                 <div className="w-full">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Pending Withdrawals ({pendingRequests.length})</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Pending Withdrawals ({pendingRequests.length})</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {pendingRequests.map((request: any, index: number) => (
                             <button
                                 key={request.id}
                                 onClick={() => setSelectedRequestId(request.id)}
-                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                className={`p-5 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105 ${
                                     selectedRequest?.id === request.id
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-gray-200 dark:border-surface-border hover:border-primary/50'
-                                } bg-white dark:bg-surface-dark`}
+                                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/20'
+                                        : 'border-gray-200 dark:border-surface-border hover:border-primary/50 hover:shadow-md'
+                                } bg-white dark:bg-surface-dark/80`}
                             >
                                 <div className="flex items-start justify-between mb-3">
                                     <div>
@@ -418,30 +425,30 @@ export function VotingView() {
                 {/* Selected Withdrawal Detail */}
                 {selectedRequest && (
             <div className="relative w-full">
-                <div className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl overflow-hidden shadow-card">
+                <div className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl overflow-hidden shadow-lg">
                     {/* Header */}
-                    <div className="bg-blue-50 dark:bg-blue-500/10 p-6 border-b border-gray-100 dark:border-surface-border">
-                        <div className="mb-4">
-                            <p className="text-xs text-slate-500 font-mono mb-2">Request ID</p>
-                            <p className="text-sm font-mono text-slate-900 dark:text-white break-all">{selectedRequest.id}</p>
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/5 dark:to-indigo-500/5 p-8 border-b border-gray-100 dark:border-surface-border">
+                        <div className="mb-6">
+                            <p className="text-xs text-slate-500 font-semibold mb-2 uppercase tracking-wider">Request ID</p>
+                            <p className="text-xs font-mono text-slate-600 dark:text-slate-400 break-all bg-white dark:bg-surface-dark/50 p-2 rounded-lg">{selectedRequest.id}</p>
                         </div>
-                        <div className="inline-flex flex-col items-center w-full text-center mb-4">
-                            <div className="size-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md mb-3 flex items-center justify-center text-white font-bold text-xl">
+                        <div className="flex flex-col items-center w-full text-center mb-6">
+                            <div className="size-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg mb-4 flex items-center justify-center text-white font-bold text-2xl">
                                 {selectedRequest.createdBy ? selectedRequest.createdBy[2].toUpperCase() : 'V'}
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Withdrawal Request</h3>
-                            <p className="text-xs text-slate-500">From {selectedRequest.createdBy?.slice(0, 6)}...{selectedRequest.createdBy?.slice(-4)}</p>
+                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Withdrawal Request</h3>
+                            <p className="text-sm text-slate-500 font-mono">From {selectedRequest.createdBy?.slice(0, 6)}...{selectedRequest.createdBy?.slice(-4)}</p>
                         </div>
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 shadow-sm border border-gray-100 dark:border-surface-border/50">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Requesting</p>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                                {formatEther(BigInt(selectedRequest.request?.amount || 0))} <span className="text-sm font-medium text-slate-400">ETH</span>
+                        <div className="bg-white dark:bg-surface-dark/50 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-surface-border/50">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Requesting</p>
+                            <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                                {formatEther(BigInt(selectedRequest.request?.amount || 0))} <span className="text-base font-semibold text-slate-400">ETH</span>
                             </p>
                         </div>
                     </div>
 
                     {/* Details */}
-                    <div className="p-6 flex flex-col gap-4">
+                    <div className="p-8 flex flex-col gap-6">
                         <div className="flex gap-3">
                             <span className="material-symbols-outlined text-slate-400 pt-0.5">format_quote</span>
                             <div>
@@ -450,64 +457,64 @@ export function VotingView() {
                             </div>
                         </div>
 
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-500 font-medium">Consensus Status</span>
-                                <span className="text-slate-900 dark:text-white font-bold">
-                                    {(selectedRequest.signatures?.length || 0)} of {quorum} Signed
+                        <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-surface-border/20 dark:to-blue-500/5 p-6 rounded-xl space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Consensus Status</span>
+                                <span className="text-lg font-bold text-slate-900 dark:text-white">
+                                    {(selectedRequest.signatures?.length || 0)}/{quorum} Signed
                                 </span>
                             </div>
-                            <div className="w-full h-2 bg-gray-100 dark:bg-surface-border/50 rounded-full overflow-hidden">
+                            <div className="w-full h-3 bg-gray-200 dark:bg-surface-border rounded-full overflow-hidden shadow-inner">
                                 <div 
-                                    className="h-full bg-yellow-400 rounded-full transition-all duration-300"
+                                    className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full transition-all duration-300 shadow-sm"
                                     style={{ width: `${((selectedRequest.signatures?.length || 0) / (Number(quorum) || 1)) * 100}%` }}
                                 ></div>
                             </div>
                         </div>
 
-                        <div className="text-xs text-slate-500 space-y-1 bg-gray-50 dark:bg-surface-border/20 p-3 rounded-lg">
-                            <div className="flex justify-between">
-                                <span>Vault:</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">{vaultAddress?.slice(0, 10)}...{vaultAddress?.slice(-8)}</span>
+                        <div className="text-sm text-slate-600 dark:text-slate-400 space-y-3 bg-gray-50 dark:bg-surface-border/10 p-5 rounded-xl border border-gray-100 dark:border-surface-border/30">
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Vault:</span>
+                                <span className="font-mono text-slate-600 dark:text-slate-400 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded">{vaultAddress?.slice(0, 10)}...{vaultAddress?.slice(-8)}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>Recipient:</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">{selectedRequest.request?.recipient?.slice(0, 10)}...{selectedRequest.request?.recipient?.slice(-8)}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Recipient:</span>
+                                <span className="font-mono text-slate-600 dark:text-slate-400 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded">{selectedRequest.request?.recipient?.slice(0, 10)}...{selectedRequest.request?.recipient?.slice(-8)}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>Nonce:</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">{selectedRequest.request?.nonce}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Nonce:</span>
+                                <span className="font-mono text-slate-600 dark:text-slate-400 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded">{selectedRequest.request?.nonce}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>Status:</span>
-                                <span className="font-mono text-emerald-600 dark:text-emerald-400 uppercase font-bold">{selectedRequest.status}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="font-medium text-slate-700 dark:text-slate-300">Status:</span>
+                                <span className="font-mono text-emerald-600 dark:text-emerald-400 uppercase font-bold text-xs bg-emerald-500/10 px-2 py-1 rounded">{selectedRequest.status}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="p-6 pt-0 flex gap-3">
+                    <div className="p-8 pt-0 flex gap-4">
                         <button 
                             onClick={handleReject}
                             disabled={isSigning}
-                            className="flex-1 py-3.5 rounded-xl border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 py-4 rounded-xl border-2 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
                         >
-                            <X size={18} />
+                            <X size={20} />
                             Reject
                         </button>
                         <button
                             onClick={() => handleSign(selectedRequest)}
                             disabled={isSigning}
-                            className="flex-[2] py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-[2] py-4 rounded-xl bg-gradient-to-r from-primary to-primary-hover hover:shadow-lg hover:shadow-primary/30 text-white font-bold shadow-lg shadow-primary/25 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                         >
                             {isSigning ? (
                                 <>
-                                    <Spinner />
+                                    <Spinner className="w-5 h-5" />
                                     Signing...
                                 </>
                             ) : (
                                 <>
-                                    <Check size={18} />
+                                    <Check size={20} />
                                     Sign & Approve
                                 </>
                             )}

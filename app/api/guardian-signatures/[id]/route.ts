@@ -29,9 +29,16 @@ export async function GET(request: Request, context: any) {
 export async function PUT(request: Request, context: any) {
   try {
     const { id } = context?.params ?? {};
+    console.log('[PUT /api/guardian-signatures/:id] Updating request:', id);
+    
     const body = await request.json();
+    console.log('[PUT] Request body:', JSON.stringify(body, null, 2));
+    
     const existing = await GuardianSignatureDB.getPendingRequest(id);
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!existing) {
+      console.error('[PUT] Request not found:', id);
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
 
     // Merge existing with provided body
     const updated = {
@@ -41,13 +48,14 @@ export async function PUT(request: Request, context: any) {
       request: body.request ?? existing.request,
       signatures: body.signatures ?? existing.signatures,
     };
+    
+    console.log('[PUT] Updated signatures:', updated.signatures);
 
     await GuardianSignatureDB.savePendingRequest(updated);
+    console.log('[PUT] Saved successfully');
+    
     const saved = await GuardianSignatureDB.getPendingRequest(id);
-
-    // Email notification integration
-    try {
-      const { notifyUsersOnWithdrawalEvent } = await import('@/lib/services/email-notification-trigger');
+    console.log('[PUT] Retrieved saved request:', saved?.id);
       // Determine event type
       let event: import('@/lib/services/email-notifications').EmailEventType | undefined;
       if (updated.status === 'approved') event = 'withdrawal-approved';
@@ -71,6 +79,7 @@ export async function PUT(request: Request, context: any) {
 
     return NextResponse.json(serializeResponse(saved));
   } catch (err) {
+    console.error('[PUT /api/guardian-signatures/:id] Error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
