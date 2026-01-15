@@ -305,16 +305,51 @@ export function WithdrawalForm() {
 
     if (step === 'signing') {
         return (
-            <div className="w-full max-w-md mx-auto">
-                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl p-12 text-center">
-                    <Spinner className="w-16 h-16 text-primary mx-auto mb-6" />
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Sign Request</h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">
-                        Please sign the withdrawal request in your wallet to continue
-                    </p>
+            <div className="w-full max-w-2xl mx-auto">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl p-8">
+                    <div className="text-center mb-8">
+                        <Spinner className="w-16 h-16 text-primary mx-auto mb-6" />
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Sign Request</h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                            Please sign the withdrawal request in your wallet to continue
+                        </p>
+                    </div>
+
+                    {/* Signature Progress */}
+                    <div className="mb-6 p-4 bg-gray-50 dark:bg-surface-border/30 rounded-lg border border-gray-200 dark:border-surface-border">
+                        <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Required Signatures: 0 / {policyRequiredApprovals}</div>
+                        <div className="w-full bg-gray-200 dark:bg-surface-border rounded-full h-2">
+                            <div 
+                                className="bg-primary h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(0 / policyRequiredApprovals) * 100}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    {/* Guardians List */}
+                    <div className="mb-6">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Guardians</h3>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {guardians && guardians.length > 0 ? (
+                                guardians.map((guardian: any, index: number) => (
+                                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-surface-border/20 rounded-lg border border-gray-200 dark:border-surface-border/50">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-mono text-slate-600 dark:text-slate-400 truncate">
+                                                {guardian}
+                                            </p>
+                                        </div>
+                                        <div className="text-xs text-slate-400 whitespace-nowrap">Pending</div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-slate-500 dark:text-slate-400">No guardians assigned</p>
+                            )}
+                        </div>
+                    </div>
+
                     <button 
                         onClick={() => setStep('form')} 
-                        className="mt-6 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium"
+                        className="w-full text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium py-2"
                     >
                         Cancel
                     </button>
