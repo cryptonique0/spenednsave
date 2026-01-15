@@ -47,7 +47,7 @@ export function WithdrawalForm() {
         parsedAmountForPolicy = undefined;
     }
 
-    const policyRes = useGetPolicyForAmount(vaultAddress, parsedAmountForPolicy as any);
+    const policyRes = useGetPolicyForAmount(vaultAddress || ('0x0000000000000000000000000000000000000000' as Address), parsedAmountForPolicy as any);
     const policyApprovals = policyRes && policyRes.data ? String(policyRes.data.requiredApprovals ?? quorumValue) : quorumValue;
     let policyRequiredApprovals = Number(quorumValue);
     if (policyRes && policyRes.data && policyRes.data.requiredApprovals !== undefined) {
@@ -95,8 +95,8 @@ export function WithdrawalForm() {
 
     // Client-side cap hooks (zero address = ETH)
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
-    const capsRes = useGetWithdrawalCaps(vaultAddress, ZERO_ADDRESS);
-    const dailyUsedRes = useVaultWithdrawnInPeriod(vaultAddress, ZERO_ADDRESS, 'daily');
+    const capsRes = useGetWithdrawalCaps(vaultAddress || ZERO_ADDRESS, ZERO_ADDRESS);
+    const dailyUsedRes = useVaultWithdrawnInPeriod(vaultAddress || ZERO_ADDRESS, ZERO_ADDRESS, 'daily');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
