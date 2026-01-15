@@ -146,14 +146,18 @@ export class GuardianSignatureDB {
         nonce: typeof request.request.nonce === 'bigint' ? request.request.nonce.toString() : String(request.request.nonce),
       };
 
-      const serializableSignatures = (request.signatures || []).map((s: any) => ({
-        ...s,
-        request: {
-          ...s.request,
-          amount: typeof s.request.amount === 'bigint' ? s.request.amount.toString() : String(s.request.amount),
-          nonce: typeof s.request.nonce === 'bigint' ? s.request.nonce.toString() : String(s.request.nonce),
-        },
-      }));
+      const serializableSignatures = (request.signatures || []).map((s: any) => {
+        // If signature doesn't have request field, use the top-level request
+        const signatureRequest = s.request || request.request;
+        return {
+          ...s,
+          request: {
+            ...signatureRequest,
+            amount: typeof signatureRequest.amount === 'bigint' ? signatureRequest.amount.toString() : String(signatureRequest.amount),
+            nonce: typeof signatureRequest.nonce === 'bigint' ? signatureRequest.nonce.toString() : String(signatureRequest.nonce),
+          },
+        };
+      });
 
       // Encrypt blobs before storing
       const encRequest = encryptString(JSON.stringify(serializableRequest));

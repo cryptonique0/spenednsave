@@ -16,7 +16,8 @@ function serializeResponse(obj: any): any {
 
 export async function GET(request: Request, context: any) {
   try {
-    const { id } = context?.params ?? {};
+    const params = await context?.params ?? {};
+    const { id } = params;
     const row = await GuardianSignatureDB.getPendingRequest(id);
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(serializeResponse(row));
@@ -27,7 +28,8 @@ export async function GET(request: Request, context: any) {
 
 export async function PUT(request: Request, context: any) {
   try {
-    const { id } = context?.params ?? {};
+    const params = await context?.params ?? {};
+    const { id } = params;
     const body = await request.json();
     const existing = await GuardianSignatureDB.getPendingRequest(id);
 
@@ -53,7 +55,8 @@ export async function PUT(request: Request, context: any) {
 
 export async function DELETE(request: Request, context: any) {
   try {
-    const { id } = context?.params ?? {};
+    const params = await context?.params ?? {};
+    const { id } = params;
     await GuardianSignatureDB.deletePendingRequest(id);
     return NextResponse.json({ ok: true });
   } catch (err) {

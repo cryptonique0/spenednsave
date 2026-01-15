@@ -198,6 +198,31 @@ export function VotingView() {
                     
                     console.log('Signature saved successfully');
                     
+                    // Refetch the specific request to show updated signatures
+                    setTimeout(async () => {
+                        try {
+                            const specificRes = await fetch(`/api/guardian-signatures/${currentRequest.id}`, {
+                                method: 'GET',
+                                headers: { 'Content-Type': 'application/json' },
+                            });
+                            
+                            if (specificRes.ok) {
+                                const updatedRequest = await specificRes.json();
+                                // Temporarily update selectedRequest to show the new signature count
+                                // This will show the updated progress bar
+                                const requestCopy = { ...updatedRequest };
+                                // Keep the selected request visible to show updated signature count
+                                setPendingRequests(prev => 
+                                    prev.map(r => r.id === currentRequest.id ? requestCopy : r)
+                                );
+                            }
+                        } catch (error) {
+                            console.error('Error refetching specific request:', error);
+                        }
+                    }, 100);
+                    
+                    setStatus('signed');
+                    
                 } catch (error) {
                     console.error('Error saving signature:', error);
                     alert(`Error saving your signature: ${error instanceof Error ? error.message : String(error)}`);
@@ -205,7 +230,6 @@ export function VotingView() {
             };
             
             saveGuardianSignature();
-            setStatus('signed');
         }
     }, [isSignSuccess, signature, selectedRequest, address, pendingRequests]);
 
@@ -365,22 +389,66 @@ export function VotingView() {
                         Back to Dashboard
                     </Link>
                     <button
-                        onClick={() => {
-                            // Reload requests
-                            const storedRequests = localStorage.getItem(`withdrawal-requests-${vaultAddress}`);
-                            if (storedRequests) {
-                                const requests = JSON.parse(storedRequests);
-                                const pending = requests.filter((req: any) => {
-                                    const signatures = req.signatures || [];
-                                    return !signatures.some((sig: any) => sig.signer === address && sig.role === 'guardian');
+                        onClick={async () => {
+                            // Refetch pending requests from database
+                            try {
+                                const res = await fetch('/api/guardian-signatures', {
+                                    method: 'GET',
+                                    headers: { 'Content-Type': 'application/json' },
                                 });
-                                if (pending.length > 0) {
-                                    setPendingRequests(pending);
-                                    setStatus('pending');
-                                } else {
-                                    setStatus('empty');
+
+                                if (res.ok) {
+                                    const allRequests = await res.json();
+                                    const pending = allRequests.filter((req: any) => {
+                                        const validStatuses = ['awaiting-signature', 'pending-approval'];
+                                        if (!validStatuses.includes(req.status)) {
+                                            return false;
+                                        }
+                                        
+                                        let guardians: string[] = [];
+                                        if (Array.isArray(req.guardians)) {
+                                            guardians = req.guardians;
+                                        } else if (typeof req.guardians === 'string') {
+                                            try {
+                                                guardians = JSON.parse(req.guardians);
+                                            } catch (e) {
+                                                guardians = [];
+                                            }
+                                        }
+                                        
+                                        const isAddressInGuardians = guardians.some((g: string) => {
+                                            const normalizedG = typeof g === 'string' ? g : g?.address || '';
+                                            return normalizedG.toLowerCase() === address?.toLowerCase();
+                                        });
+                                        
+                                        if (!isAddressInGuardians) {
+                                            return false;
+                                        }
+                                        
+                                        let signatures: any[] = [];
+                                        if (Array.isArray(req.signatures)) {
+                                            signatures = req.signatures;
+                                        } else if (typeof req.signatures === 'string') {
+                                            try {
+                                                signatures = JSON.parse(req.signatures);
+                                            } catch (e) {
+                                                signatures = [];
+                                            }
+                                        }
+                                        
+                                        const alreadySigned = signatures.some((sig: any) => sig.signer === address && sig.role === 'guardian');
+                                        return !alreadySigned;
+                                    });
+                                    
+                                    if (pending.length > 0) {
+                                        setPendingRequests(pending);
+                                        setStatus('pending');
+                                    } else {
+                                        setStatus('empty');
+                                    }
                                 }
-                            } else {
+                            } catch (error) {
+                                console.error('Error loading more requests:', error);
                                 setStatus('empty');
                             }
                         }}
