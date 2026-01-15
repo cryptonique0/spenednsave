@@ -30,7 +30,7 @@ export function WithdrawalForm() {
     const { data: userContracts } = useUserContracts(address as any);
     const guardianTokenAddress = userContracts ? (userContracts as any)[0] : undefined;
     const vaultAddress = userContracts ? (userContracts as any)[1] : undefined;
-    const { guardians } = useGuardians(guardianTokenAddress || ('0x0000000000000000000000000000000000000000' as Address));
+    const { guardians, isLoading: guardiansLoading } = useGuardians(guardianTokenAddress || ('0x0000000000000000000000000000000000000000' as Address));
     const guardianCount = guardians ? guardians.length : 0;
     const { data: vaultBalance } = useVaultETHBalance(vaultAddress);
     const { data: quorum } = useVaultQuorum(vaultAddress);
@@ -107,6 +107,11 @@ export function WithdrawalForm() {
 
         if (!isConnected || !address || !vaultAddress) {
             alert("Please connect your wallet first");
+            return;
+        }
+
+        if (guardiansLoading) {
+            alert("Loading guardians... Please wait");
             return;
         }
 
@@ -201,8 +206,14 @@ export function WithdrawalForm() {
             
             const createdRequest = await createRes.json();
             setRequestId(createdRequest.id);
-            // Set the guardians from the created request
-            setSigningGuardians(createdRequest.guardians || []);
+            
+            // Set the guardians from the created request or use the guardians from state
+            const guardiansToDisplay = createdRequest.guardians && createdRequest.guardians.length > 0 
+                ? createdRequest.guardians 
+                : guardians?.map((g: any) => typeof g === 'string' ? g : g?.address) || [];
+            
+            console.log('[WithdrawalForm] Guardians to display:', guardiansToDisplay);
+            setSigningGuardians(guardiansToDisplay);
         } catch (error) {
             console.error('Error creating withdrawal request:', error);
             toast.error('Failed to create withdrawal request');
@@ -572,10 +583,10 @@ export function WithdrawalForm() {
 
                 <button
                     type="submit"
-                    disabled={!amount || isSubmitting}
+                    disabled={!amount || isSubmitting || guardiansLoading}
                     className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-[0.99] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                    {isScheduled ? 'Schedule Withdrawal' : 'Create Withdrawal Request'}
+                    {guardiansLoading ? 'Loading guardians...' : (isScheduled ? 'Schedule Withdrawal' : 'Create Withdrawal Request')}
                 </button>
             </form>
         </div>
