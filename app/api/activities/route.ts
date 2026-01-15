@@ -7,11 +7,11 @@ export async function GET(request: Request) {
     const account = url.searchParams.get('account');
 
     if (account) {
-      const activities = GuardianSignatureDB.getActivitiesByAccount(account);
+      const activities = await GuardianSignatureDB.getActivitiesByAccount(account);
       return NextResponse.json(activities);
     }
 
-    const all = GuardianSignatureDB.getAllActivities();
+    const all = await GuardianSignatureDB.getAllActivities();
     return NextResponse.json(all);
   } catch (err) {
     console.error('[/api/activities] Error:', err);
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
 
-    GuardianSignatureDB.saveActivity(body);
-    const saved = GuardianSignatureDB.getActivity(body.id);
+    await GuardianSignatureDB.saveActivity(body);
+    const saved = await GuardianSignatureDB.getActivity(body.id);
     return NextResponse.json(saved);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
