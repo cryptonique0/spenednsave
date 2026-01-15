@@ -42,11 +42,72 @@ export function useGuardians(guardianTokenAddress?: Address) {
     const [guardians, setGuardians] = useState<Guardian[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    const [serverGuardians, setServerGuardians] = useState<Guardian[] | null>(null);
+    const [serverLoading, setServerLoading] = useState(false);
+    const [shouldLoadOnChain, setShouldLoadOnChain] = useState(true);
+
+    // Fetch guardians from DB first
+    async function fetchServerGuardians() {
+        if (!guardianTokenAddress) return;
+        setServerLoading(true);
+        try {
+            const res = await fetch(`/api/guardians?tokenAddress=${encodeURIComponent(String(guardianTokenAddress))}`);
+            if (!res.ok) {
+                console.log('[useGuardians] DB query returned error, will load from RPC');
+                setServerGuardians([]);
+                setShouldLoadOnChain(true);
+                return;
+            }
+            const items = await res.json();
+            if (Array.isArray(items) && items.length > 0) {
+                console.log('[useGuardians] Found guardians in DB, using those instead of RPC');
+                const mapped = items.map((g: any) => ({
+                    address: g.address,
+                    tokenId: typeof g.tokenId === 'string' ? BigInt(g.tokenId) : g.tokenId,
+                    addedAt: g.addedAt,
+                    blockNumber: typeof g.blockNumber === 'string' ? BigInt(g.blockNumber) : g.blockNumber,
+                    txHash: g.txHash,
+                }));
+                setServerGuardians(mapped);
+                setShouldLoadOnChain(false); // Don't load from RPC since we have DB data
+            } else {
+                console.log('[useGuardians] DB is empty, will load from RPC');
+                setServerGuardians([]);
+                setShouldLoadOnChain(true); // Load from RPC since DB is empty
+            }
+        } catch (e) {
+            console.error('Failed to fetch server guardians:', e);
+            setServerGuardians([]);
+            setShouldLoadOnChain(true); // Load from RPC if fetch fails
+        } finally {
+            setServerLoading(false);
+        }
+    }
 
     useEffect(() => {
         async function fetchGuardians() {
             if (!guardianTokenAddress || !publicClient) {
                 setGuardians([]);
+                return;
+            }
+
+            // Fetch from DB first
+            await fetchServerGuardians();
+        }
+
+        fetchGuardians();
+    }, [guardianTokenAddress]);
+
+    useEffect(() => {
+        async function fetchFromRPC() {
+            if (!guardianTokenAddress || !publicClient || !shouldLoadOnChain) {
+                if (serverGuardians && serverGuardians.length > 0) {
+                    console.log('[useGuardians] Using guardians from DB:', serverGuardians.length);
+                    setGuardians(serverGuardians);
+                } else {
+                    setGuardians([]);
+                }
+                setIsLoading(false);
                 return;
             }
 
@@ -56,7 +117,7 @@ export function useGuardians(guardianTokenAddress?: Address) {
             try {
                 const cacheKey = `guardians-cache-${guardianTokenAddress.toLowerCase()}`;
                 
-                console.log('[useGuardians] Fetching all guardians from', guardianTokenAddress);
+                console.log('[useGuardians] Fetching all guardians from RPC');
                 
                 // Get current block number
                 const currentBlock = await publicClient.getBlockNumber();
@@ -113,9 +174,6 @@ export function useGuardians(guardianTokenAddress?: Address) {
                 console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
                 console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
 
-                console.log('[useGuardians] Found', addedLogs.length, 'GuardianAdded events');
-                console.log('[useGuardians] Found', removedLogs.length, 'GuardianRemoved events');
-
                 // Build map of current guardians (added but not removed)
                 const guardianMap = new Map<string, Guardian>();
                 const removedSet = new Set<string>();
@@ -148,6 +206,99 @@ export function useGuardians(guardianTokenAddress?: Address) {
                     // Add active guardians
                     for (const entry of activeGuardians) {
                         const args = (entry.decoded as any).args;
+                        const blockNumber = entry.log.blockNumber;
+                        const transactionHash = entry.log.transactionHash;
+
+                        if (!args?.guardian || blockNumber === null || transactionHash === null) continue;
+
+                        const block = blockMap.get(blockNumber);
+                        if (block) {
+                            guardianMap.set(args.guardian.toLowerCase(), {
+                                address: args.guardian as Address,
+                                tokenId: args.tokenId as bigint,
+                                addedAt: Number(block.timestamp) * 1000,
+                                blockNumber,
+                                txHash: transactionHash as Hex,
+                            });
+                        }
+                    }
+                }
+
+                const guardianList = Array.from(guardianMap.values())
+                    .sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
+
+                console.log('[useGuardians] Final guardian list:', guardianList);
+                setGuardians(guardianList);
+
+                // Cache the results for faster reloads
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(guardianList.map(g => ({
+                        ...g,
+                        tokenId: g.tokenId.toString(),
+                        blockNumber: g.blockNumber.toString(),
+                    }))));
+                } catch (e) {
+                    console.warn('[useGuardians] Failed to cache results:', e);
+                }
+
+                // Auto-migrate to DB if DB is empty
+                try {
+                    if (serverGuardians !== null && serverGuardians.length === 0 && guardianList.length > 0) {
+                        console.log('[useGuardians] Auto-migrating guardians to DB:', guardianList.length);
+                        const payload = guardianList.map(g => ({
+                            address: g.address,
+                            tokenId: g.tokenId.toString(),
+                            addedAt: g.addedAt,
+                            blockNumber: g.blockNumber.toString(),
+                            txHash: g.txHash,
+                            tokenAddress: String(guardianTokenAddress),
+                        }));
+                        const resp = await fetch('/api/guardians/import', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                        });
+                        if (resp.ok) {
+                            console.log('[useGuardians] Auto-migration to DB successful');
+                            setServerGuardians(guardianList);
+                        } else {
+                            console.warn('[useGuardians] Failed to import guardians to server', resp.status);
+                        }
+                    }
+                } catch (e) {
+                    console.error('[useGuardians] Auto-migration failed:', e);
+                }
+            } catch (err) {
+                console.error('[useGuardians] Error fetching guardians:', err);
+                
+                // Try to load from cache as fallback
+                try {
+                    const cacheKey = `guardians-cache-${guardianTokenAddress.toLowerCase()}`;
+                    const cached = localStorage.getItem(cacheKey);
+                    if (cached) {
+                        const cachedGuardians = JSON.parse(cached).map((g: any) => ({
+                            ...g,
+                            tokenId: BigInt(g.tokenId),
+                            blockNumber: BigInt(g.blockNumber),
+                        }));
+                        console.log('[useGuardians] Loaded guardians from cache as fallback');
+                        setGuardians(cachedGuardians);
+                    } else {
+                        setError(err instanceof Error ? err : new Error('Failed to fetch guardians'));
+                    }
+                } catch (cacheErr) {
+                    setError(err instanceof Error ? err : new Error('Failed to fetch guardians'));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchFromRPC();
+    }, [guardianTokenAddress, publicClient, shouldLoadOnChain, serverGuardians]);
+
+    return { guardians, isLoading, error };
+}
                         const blockNumber = entry.log.blockNumber;
                         const transactionHash = entry.log.transactionHash;
 
