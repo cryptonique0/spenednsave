@@ -14,7 +14,23 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     if (!body || !body.id) {
-      return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid body - missing id' }, { status: 400 });
+    }
+
+    if (!body.vaultAddress) {
+      return NextResponse.json({ error: 'Invalid body - missing vaultAddress' }, { status: 400 });
+    }
+
+    if (!body.request) {
+      return NextResponse.json({ error: 'Invalid body - missing request' }, { status: 400 });
+    }
+
+    if (body.requiredQuorum === undefined) {
+      return NextResponse.json({ error: 'Invalid body - missing requiredQuorum' }, { status: 400 });
+    }
+
+    if (!body.createdBy) {
+      return NextResponse.json({ error: 'Invalid body - missing createdBy' }, { status: 400 });
     }
 
     GuardianSignatureDB.savePendingRequest(body);
@@ -41,6 +57,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(saved);
   } catch (err) {
+    console.error('POST /api/guardian-signatures error:', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
