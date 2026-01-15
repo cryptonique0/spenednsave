@@ -7,7 +7,7 @@ import { GuardianSignatureDB } from '@/lib/services/guardian-signature-db';
  */
 export async function GET() {
     try {
-        const activities = GuardianSignatureDB.getAllActivities();
+        const activities = await GuardianSignatureDB.getAllActivities();
 
         // Aggregate by account
         const stats: Record<string, { approvals: number; responseTimes: number[]; firstSeen?: number; lastSeen?: number }> = {};
