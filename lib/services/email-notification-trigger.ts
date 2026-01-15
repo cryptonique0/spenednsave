@@ -1,6 +1,6 @@
 // Helper to trigger email notifications for withdrawal events
 import { getEmailPreference } from './email-preferences-db';
-import { sendNotification, composeEmail, EmailEventType } from './email-notifications';
+import { sendNotification, composeEmailContent, EmailEventType } from './email-notifications';
 
 export async function notifyUsersOnWithdrawalEvent({
   event,
