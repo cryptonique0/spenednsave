@@ -191,7 +191,9 @@ export function WithdrawalForm() {
             });
             
             if (!createRes.ok) {
-                throw new Error('Failed to create withdrawal request');
+                const errorData = await createRes.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('API error:', errorData);
+                throw new Error(errorData.error || 'Failed to create withdrawal request');
             }
             
             const createdRequest = await createRes.json();
