@@ -5,7 +5,6 @@ import { Users, Lock, CreditCard, ShieldCheck } from "lucide-react";
 import { useAccount, useWatchContractEvent } from "wagmi";
 import { useDepositETH, useVaultETHBalance, useUserContracts, useVaultQuorum } from "@/lib/hooks/useContracts";
 import { useGuardians, useVaultActivity } from "@/lib/hooks/useVaultData";
-import { SignatureStorageService } from '@/lib/services/signature-storage';
 import { SpendVaultABI } from "@/lib/abis/SpendVault";
 import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
 import { formatEther, type Address } from "viem";
@@ -217,25 +216,6 @@ export function DashboardSaverView() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Refresh
-                        </button>
-
-                        <button
-                            onClick={async () => {
-                                try {
-                                    if (!vaultAddress) return alert('No vault address');
-                                    console.log('[DashboardSaverView] Starting migration of cached activity to server');
-                                    const res = await SignatureStorageService.migrateChainActivityToServer(String(vaultAddress), String(guardianTokenAddress));
-                                    console.log('Migration result', res);
-                                    alert('Migration completed');
-                                    refetchActivities();
-                                } catch (err) {
-                                    console.error('Migration failed', err);
-                                    alert('Migration failed: ' + (err instanceof Error ? err.message : String(err)));
-                                }
-                            }}
-                            className="text-sm font-medium text-slate-400 hover:text-slate-200"
-                        >
-                            Migrate
                         </button>
                         </div>
                     </div>
