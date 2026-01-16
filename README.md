@@ -125,6 +125,21 @@ Or configure Resend API as needed.
 - ✅ **Emergency Mode**: Request emergency unlock (30-day timelock for solo access)
 - ✅ **Multi-Asset Support**: Store ETH and ERC-20 tokens (USDC, DEGEN, etc.)
 
+### 💰 Spending Limits
+
+SpendGuard includes sophisticated spending limit controls to enforce daily, weekly, and monthly withdrawal caps per token:
+
+- **Granular Limits**: Set separate daily, weekly, and monthly caps for each token
+- **Enhanced Approvals**: Withdrawals exceeding limits automatically require 75% of guardians to approve (instead of standard quorum)
+- **Real-Time Monitoring**: Dashboard shows current spending vs limits with color-coded warnings:
+  - 🟢 **Safe** (< 75%): Green progress bar
+  - 🟡 **Warning** (75-95%): Yellow progress bar
+  - 🔴 **Critical** (> 95%): Red progress bar
+- **Temporal Resets**: Daily limits reset every 24 hours, weekly every 7 days, monthly on the 1st
+- **Smart Defaults**: Set limits based on vault's daily operational needs (e.g., $1000/day, $10,000/week, $50,000/month)
+
+**Use Case**: Protect against compromised accounts or malicious insiders by requiring additional consensus for large withdrawals.
+
 ### For Guardians (Trusted Friends)
 
 - ✅ **Voting Dashboard**: View and approve pending withdrawal requests
