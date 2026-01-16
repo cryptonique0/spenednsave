@@ -22,9 +22,22 @@ SpendGuard is a smart contract system that enables secure fund management throug
 - [Development](#-development)
 - [Deployment](#-deployment)
 - [Security](#-security)
-- [Testing](#-testing)
 - [Contributing](#-contributing)
 - [License](#-license)
+
+---
+
+## 🔗 Quick Links
+
+| Resource | Link |
+|----------|------|
+| Live Demo | [spendguard.xyz](https://spendguard.xyz) |
+| Contracts | [contracts/](contracts/) |
+| Frontend Code | [app/](app/), [components/](components/) |
+| Smart Contract Specs | [contract-spec.md](contract-spec.md) |
+| Deployment Guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Issues | [GitHub Issues](https://github.com/cryptonique0/spenednsave/issues) |
+| Feature Requests | [Discussions](https://github.com/cryptonique0/spenednsave/discussions) |
 
 ---
 
@@ -56,10 +69,9 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## 📝 Changelog
 
-- **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
-
-## 📝 Changelog
-
+- **2026-01-17**: Cleaned up dependencies and removed test files for frontend-only production build
+- **2026-01-16**: Added GuardianBadge and GuardianSBT contracts with comprehensive test coverage
+- **2026-01-15**: Email notification system integration with SMTP/Resend API support
 - **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
 
 ## ✨ Features
@@ -112,6 +124,21 @@ Or configure Resend API as needed.
 - ✅ **Track Activity**: View all withdrawal history and guardian votes
 - ✅ **Emergency Mode**: Request emergency unlock (30-day timelock for solo access)
 - ✅ **Multi-Asset Support**: Store ETH and ERC-20 tokens (USDC, DEGEN, etc.)
+
+### 💰 Spending Limits
+
+SpendGuard includes sophisticated spending limit controls to enforce daily, weekly, and monthly withdrawal caps per token:
+
+- **Granular Limits**: Set separate daily, weekly, and monthly caps for each token
+- **Enhanced Approvals**: Withdrawals exceeding limits automatically require 75% of guardians to approve (instead of standard quorum)
+- **Real-Time Monitoring**: Dashboard shows current spending vs limits with color-coded warnings:
+  - 🟢 **Safe** (< 75%): Green progress bar
+  - 🟡 **Warning** (75-95%): Yellow progress bar
+  - 🔴 **Critical** (> 95%): Red progress bar
+- **Temporal Resets**: Daily limits reset every 24 hours, weekly every 7 days, monthly on the 1st
+- **Smart Defaults**: Set limits based on vault's daily operational needs (e.g., $1000/day, $10,000/week, $50,000/month)
+
+**Use Case**: Protect against compromised accounts or malicious insiders by requiring additional consensus for large withdrawals.
 
 ### For Guardians (Trusted Friends)
 
@@ -193,8 +220,8 @@ Or configure Resend API as needed.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/spendguard.git
-cd spendguard
+git clone https://github.com/cryptonique0/spenednsave.git
+cd spenednsave
 
 # Install dependencies
 npm install
@@ -700,17 +727,23 @@ Recommended auditors for future:
    - Switch back to owner
    - Submit transaction with signatures
 
-### Automated Tests (Coming Soon)
+### Running Locally
 
 ```bash
-# Unit tests
-npm run test
+# Start development server
+npm run dev
 
-# Integration tests
-npm run test:integration
+# Open http://localhost:3000 in your browser
+```
 
-# E2E tests
-npm run test:e2e
+### Building for Production
+
+```bash
+# Create optimized build
+npm run build
+
+# Start production server
+npm run start
 ```
 
 ---
@@ -764,9 +797,9 @@ Contributions are welcome! Please follow these guidelines:
 
 ### Community
 
-- Discord: [Join Server](#)
-- Twitter: [@SpendGuard](#)
-- GitHub Discussions: [Forum](https://github.com/yourusername/spendguard/discussions)
+- GitHub: [cryptonique0/spenednsave](https://github.com/cryptonique0/spenednsave)
+- Issues: [Bug Reports & Features](https://github.com/cryptonique0/spenednsave/issues)
+- Discussions: [Community Forum](https://github.com/cryptonique0/spenednsave/discussions)
 
 ---
 
@@ -790,9 +823,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Need help? Reach out through:
 
-- 📧 Email: support@spendguard.xyz
-- 💬 Discord: [SpendGuard Community](#)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/spendguard/issues)
+- � Issues: [GitHub Issues](https://github.com/cryptonique0/spenednsave/issues)
+- 💬 Discussions: [Community Forum](https://github.com/cryptonique0/spenednsave/discussions)
+- 📚 Docs: Check [contract-spec.md](contract-spec.md) and [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ---
 
@@ -800,6 +833,6 @@ Need help? Reach out through:
 
 **Built with ❤️ on Base**
 
-[Website](#) • [Docs](#) • [Twitter](#) • [Discord](#)
+[GitHub](https://github.com/cryptonique0/spenednsave) • [Docs](contract-spec.md) • [Issues](https://github.com/cryptonique0/spenednsave/issues) • [Discussions](https://github.com/cryptonique0/spenednsave/discussions)
 
 </div>

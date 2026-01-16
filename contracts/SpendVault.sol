@@ -90,6 +90,15 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 monthly; // cap per 30-day window (0 = no cap)
     }
 
+    struct SpendingLimitStatus {
+        bool exceedsDaily;
+        bool exceedsWeekly;
+        bool exceedsMonthly;
+        uint256 dailyUsed;
+        uint256 weeklyUsed;
+        uint256 monthlyUsed;
+    }
+
     // caps configured by owner per token (use address(0) for native ETH)
     mapping(address => WithdrawalCap) public withdrawalCaps;
 
@@ -98,7 +107,14 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     mapping(address => mapping(uint256 => uint256)) public withdrawnWeekly;  // token => week => amount
     mapping(address => mapping(uint256 => uint256)) public withdrawnMonthly; // token => month => amount
 
+    // Enhanced approvals required for limit violations (stored per withdrawal nonce)
+    mapping(uint256 => bool) public requiresEnhancedApprovals; // nonce => requires enhanced approvals
+    mapping(uint256 => uint256) public enhancedApprovalsNeeded; // nonce => count needed
+    mapping(uint256 => uint256) public enhancedApprovalsReceived; // nonce => count received
+
     event WithdrawalCapsSet(address indexed token, uint256 daily, uint256 weekly, uint256 monthly);
+    event SpendingLimitExceeded(address indexed token, string limitType, uint256 attemptedAmount, uint256 limit);
+    event EnhancedApprovalsRequired(uint256 indexed nonce, uint256 approvalsNeeded, string limitExceeded);
 
     event WithdrawalPolicySet(uint256 indexed policyIdx, uint256 minAmount, uint256 maxAmount, uint256 requiredApprovals, uint256 cooldown);
     event WithdrawalPoliciesCleared();
@@ -128,6 +144,55 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     function setWithdrawalCaps(address token, uint256 daily, uint256 weekly, uint256 monthly) external onlyOwner {
         withdrawalCaps[token] = WithdrawalCap({ daily: daily, weekly: weekly, monthly: monthly });
         emit WithdrawalCapsSet(token, daily, weekly, monthly);
+    }
+
+    /**
+     * @notice Check current spending status against limits
+     * @param token Token address (address(0) for ETH)
+     * @param amount Amount to withdraw
+     * @return status SpendingLimitStatus struct with current usage and violations
+     */
+    function checkSpendingLimitStatus(address token, uint256 amount) 
+        external 
+        view 
+        returns (SpendingLimitStatus memory status) 
+    {
+        WithdrawalCap memory cap = withdrawalCaps[token];
+        uint256 dayIndex = block.timestamp / 1 days;
+        uint256 weekIndex = block.timestamp / 1 weeks;
+        uint256 monthIndex = block.timestamp / 30 days;
+
+        status.dailyUsed = withdrawnDaily[token][dayIndex];
+        status.weeklyUsed = withdrawnWeekly[token][weekIndex];
+        status.monthlyUsed = withdrawnMonthly[token][monthIndex];
+
+        if (cap.daily > 0) {
+            status.exceedsDaily = (status.dailyUsed + amount > cap.daily);
+        }
+        if (cap.weekly > 0) {
+            status.exceedsWeekly = (status.weeklyUsed + amount > cap.weekly);
+        }
+        if (cap.monthly > 0) {
+            status.exceedsMonthly = (status.monthlyUsed + amount > cap.monthly);
+        }
+    }
+
+    /**
+     * @notice Get total guardian count for this vault
+     * @return Number of guardians
+     */
+    function getGuardianCount() public view returns (uint256) {
+        return guardians.length;
+    }
+
+    /**
+     * @notice Calculate required approvals for a limit-violated withdrawal
+     * @return Number of additional guardian approvals required
+     */
+    function getEnhancedApprovalsRequired() public view returns (uint256) {
+        uint256 totalGuardians = getGuardianCount();
+        // Require 75% of guardians (rounded up) for limit violations
+        return (totalGuardians * 3) / 4 + ((totalGuardians * 3) % 4 != 0 ? 1 : 0);
     }
 
     /**
@@ -678,14 +743,40 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
             emit GuardianSignature(signer, nonce, category, reasonHash, createdAt);
         }
 
-        if (weightedQuorumEnabled) {
-            require(trustScoreSum >= weightedQuorumThreshold, "Weighted quorum not met");
+        // Check spending limits
+        address _token = token;
+        SpendingLimitStatus memory limitStatus = checkSpendingLimitStatus(_token, amount);
+        bool limitViolated = limitStatus.exceedsDaily || limitStatus.exceedsWeekly || limitStatus.exceedsMonthly;
+        
+        uint256 requiredApprovals;
+        
+        if (limitViolated) {
+            // Enhanced approvals required for limit violations
+            requiredApprovals = getEnhancedApprovalsRequired();
+            require(validSignatures >= requiredApprovals, "Enhanced approvals required for spending limit violation");
+            
+            // Track enhanced approval requirement for this withdrawal
+            requiresEnhancedApprovals[nonce] = true;
+            enhancedApprovalsNeeded[nonce] = requiredApprovals;
+            
+            // Emit event with details
+            string memory limitType = limitStatus.exceedsDaily ? "daily" : 
+                                      limitStatus.exceedsWeekly ? "weekly" : "monthly";
+            uint256 limitAmount = limitStatus.exceedsDaily ? withdrawalCaps[_token].daily :
+                                 limitStatus.exceedsWeekly ? withdrawalCaps[_token].weekly :
+                                 withdrawalCaps[_token].monthly;
+            emit SpendingLimitExceeded(_token, limitType, amount, limitAmount);
+            emit EnhancedApprovalsRequired(nonce, requiredApprovals, limitType);
         } else {
-            require(validSignatures >= quorum, "Quorum not met");
+            // Standard quorum validation for normal withdrawals
+            if (weightedQuorumEnabled) {
+                require(trustScoreSum >= weightedQuorumThreshold, "Weighted quorum not met");
+            } else {
+                require(validSignatures >= quorum, "Quorum not met");
+            }
         }
 
         // Enforce temporal caps (per-token/per-vault)
-        address _token = token;
         _checkWithdrawalCaps(_token, amount);
 
         // Increment nonce to prevent replay attacks
