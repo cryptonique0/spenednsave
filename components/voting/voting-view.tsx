@@ -75,7 +75,7 @@ export function VotingView() {
                     
                     console.log('[VotingView] Request guardians:', guardians, 'User address:', address);
                     
-                    const isAddressInGuardians = guardians.some((g: string) => {
+                    const isAddressInGuardians = guardians.some((g: any) => {
                         const normalizedG = typeof g === 'string' ? g : g?.address || '';
                         return normalizedG.toLowerCase() === address?.toLowerCase();
                     });
@@ -416,7 +416,7 @@ export function VotingView() {
                                             }
                                         }
                                         
-                                        const isAddressInGuardians = guardians.some((g: string) => {
+                                        const isAddressInGuardians = guardians.some((g: any) => {
                                             const normalizedG = typeof g === 'string' ? g : g?.address || '';
                                             return normalizedG.toLowerCase() === address?.toLowerCase();
                                         });

@@ -269,7 +269,7 @@ export function useBatchItems(batchManagerAddress: Address, batchId: bigint | nu
   });
 
   const items: WithdrawalItem[] = itemsData && Array.isArray(itemsData)
-    ? itemsData.map((item: any) => ({
+    ? (itemsData as any[]).map((item: any) => ({
         token: item.token as Address,
         amount: item.amount as bigint,
         recipient: item.recipient as Address,

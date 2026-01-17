@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ethers } from "ethers";
+import { ethers, BrowserProvider, Contract } from "ethers";
 import GuardianBadgeABI from "../abis/GuardianBadge.json";
 
 export interface GuardianBadge {
@@ -12,8 +12,8 @@ export function useGuardianBadges(guardianBadgeAddress: string | undefined, guar
   const [badges, setBadges] = useState<GuardianBadge[]>([]);
   useEffect(() => {
     if (!guardianBadgeAddress || !guardian || !window.ethereum) return;
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const contract = new ethers.Contract(
+    const provider = new BrowserProvider(window.ethereum as any);
+    const contract = new Contract(
       guardianBadgeAddress,
       GuardianBadgeABI.default ?? GuardianBadgeABI,
       provider
