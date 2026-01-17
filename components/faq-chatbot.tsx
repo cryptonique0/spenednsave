@@ -195,23 +195,24 @@ function generateAssistantResponse(userInput: string, relatedFAQs: string[]): st
     const faqId = relatedFAQs[0];
     const faq = FAQS.find(f => f.id === faqId);
     if (faq) {
-      return `Based on your question, I found this helpful information:\n\n**${faq.question}**\n${faq.answer}\n\n${relatedFAQs.length > 1 ? 'I found other related articles too—would you like me to share those?' : 'Is there anything else you'd like to know?'}`;
+      const followUp = relatedFAQs.length > 1 ? 'I found other related articles too. Would you like me to share those?' : 'Is there anything else you would like to know?';
+      return `Based on your question, I found this helpful information:\n\n**${faq.question}**\n${faq.answer}\n\n${followUp}`;
     }
   }
 
   if (input.includes('hi') || input.includes('hello') || input.includes('hey')) {
-    return 'Hello! 👋 Welcome to SpendGuard support. I can help you with questions about vaults, guardians, withdrawals, security, and more. What would you like to know?';
+    return 'Hello! Welcome to SpendGuard support. I can help you with questions about vaults, guardians, withdrawals, security, and more. What would you like to know?';
   }
 
   if (input.includes('thanks') || input.includes('thank you')) {
-    return 'You're welcome! If you have any other questions about SpendGuard, feel free to ask. Happy to help! 😊';
+    return 'You are welcome! If you have any other questions about SpendGuard, feel free to ask. Happy to help!';
   }
 
   if (input.includes('?')) {
-    return 'I'm not sure about that specific question. Try searching our FAQ database or contact our support team at support@spendguard.io. You can also ask about: vaults, guardians, withdrawals, security, spending limits, settings, and more.';
+    return 'I am not sure about that specific question. Try searching our FAQ database or contact our support team at support@spendguard.io. You can also ask about: vaults, guardians, withdrawals, security, spending limits, settings, and more.';
   }
 
-  return 'I didn't quite understand that. Could you rephrase your question or ask about a specific SpendGuard feature?';
+  return 'I did not quite understand that. Could you rephrase your question or ask about a specific SpendGuard feature?';
 }
 
 interface FAQChatbotProps {

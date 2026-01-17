@@ -1,6 +1,8 @@
+'use client';
+
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
-import { Share2, Users, Gift, TrendingUp, Copy, Check, DollarSign, Zap } from 'lucide-react';
+import { Users, Gift, TrendingUp, Copy, Check, DollarSign, Zap } from 'lucide-react';
 import { useState } from 'react';
 
 interface ReferralTier {
@@ -186,7 +188,7 @@ export default function ReferralProgramPage() {
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Share Your Referral Link</h2>
             <div className="bg-white dark:bg-surface-dark rounded-lg shadow-lg p-8">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Copy and share this link with friends. They'll be credited to your referral dashboard when they sign up and make their first transaction.</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">Copy and share this link with friends. They will be credited to your referral dashboard when they sign up and make their first transaction.</p>
               <div className="flex gap-3 mb-6">
                 <input
                   type="text"

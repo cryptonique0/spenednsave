@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Lightbulb, X, ArrowRight, CheckCircle, AlertCircle, Zap, Users, Lock, TrendingUp, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Lightbulb, X, ArrowRight, CheckCircle, AlertCircle, Zap, Users, Lock, TrendingUp } from 'lucide-react';
 
 interface Suggestion {
   id: string;
@@ -174,14 +174,8 @@ function getDefaultSuggestions(): Suggestion[] {
 }
 
 export function SmartSuggestions({ userContext }: SmartSuggestionsProps) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState(true);
-
-  useEffect(() => {
-    const allSuggestions = generateContextualSuggestions(userContext);
-    setSuggestions(allSuggestions);
-  }, [userContext]);
+  const suggestions = useState(() => generateContextualSuggestions(userContext))[0];
 
   const activeSuggestions = suggestions.filter(s => !dismissed.has(s.id));
   const highPrioritySuggestions = activeSuggestions.filter(s => s.priority === 'high');
@@ -274,12 +268,7 @@ export function SmartSuggestions({ userContext }: SmartSuggestionsProps) {
 
 // Compact version for sidebars/cards
 export function SmartSuggestionsCompact({ userContext, limit = 3 }: SmartSuggestionsProps & { limit?: number }) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-
-  useEffect(() => {
-    const allSuggestions = generateContextualSuggestions(userContext);
-    setSuggestions(allSuggestions.slice(0, limit));
-  }, [userContext, limit]);
+  const suggestions = useState(() => generateContextualSuggestions(userContext).slice(0, limit))[0];
 
   if (suggestions.length === 0) {
     return null;
