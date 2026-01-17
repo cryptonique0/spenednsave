@@ -3,7 +3,7 @@
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Users, Share, Heart } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { CommunityHighlights } from "@/components/community/community-highlights";
 import { CustomWithdrawalMessages } from "@/components/custom-withdrawal-messages";
@@ -14,10 +14,13 @@ type CommunityTab = 'highlights' | 'withdrawal-messages' | 'guardian-roles';
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState<CommunityTab>('highlights');
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  
+  // Force re-render when language changes
+  const memoizedLanguage = useMemo(() => language, [language]);
   
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen" data-lang={memoizedLanguage}>
       <Navbar />
       <CommunityChatAssistant />
       <main className="flex-grow flex flex-col justify-start px-6 py-8 md:px-8 md:py-12">
