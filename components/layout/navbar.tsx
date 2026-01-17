@@ -59,8 +59,9 @@ export function Navbar() {
                             { name: "Voting", href: "/voting" },
                             { name: "Activity", href: "/activity" },
                             { name: "Emergency", href: "/emergency" },
-                            { name: "Feature Requests", href: "/feature-requests" },
+                            { name: "Updates", href: "/updates" },
                             { name: "Blog", href: "/blog" },
+                            { name: "Support", href: "/support" },
                         ].map((link) => {
                             const isActive = pathname === link.href;
                             return (

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { AlertTriangle, CheckCircle, Clock, AlertCircle, Shield, ExternalLink } from "lucide-react";
-import { useI18n } from '@/lib/hooks/useI18n';
 
 interface SecurityAdvisory {
   id: string;
@@ -77,7 +76,6 @@ const SECURITY_ADVISORIES: SecurityAdvisory[] = [
 ];
 
 export default function SecurityAdvisoriesPage() {
-  const { t } = useI18n();
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 

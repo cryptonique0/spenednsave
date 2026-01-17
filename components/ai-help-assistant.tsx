@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, X, Plus, HelpCircle, Sparkles, Copy, Check } from 'lucide-react';
+import { Send, X, Copy, Check, Sparkles } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -198,7 +198,7 @@ export function AIHelpAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
+      id: '0',
       role: 'assistant',
       content: "👋 Hi! I'm your SpendGuard AI Assistant. I'm here to help you learn about vaults, guardians, withdrawals, and more. What would you like help with today?",
       timestamp: new Date(),
@@ -255,7 +255,7 @@ export function AIHelpAssistant() {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${messages.length}`,
       role: 'user',
       content: inputValue,
       timestamp: new Date(),
@@ -268,7 +268,7 @@ export function AIHelpAssistant() {
     // Simulate AI response delay
     setTimeout(() => {
       const assistantResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `assistant-${messages.length + 1}`,
         role: 'assistant',
         content: generateResponse(inputValue),
         timestamp: new Date(),
@@ -283,7 +283,7 @@ export function AIHelpAssistant() {
     setInputValue('');
     
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${messages.length}`,
       role: 'user',
       content: question,
       timestamp: new Date(),
@@ -295,7 +295,7 @@ export function AIHelpAssistant() {
     setTimeout(() => {
       const kb = KNOWLEDGE_BASE[topic.id as keyof typeof KNOWLEDGE_BASE];
       const assistantResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `assistant-${messages.length + 1}`,
         role: 'assistant',
         content: `${kb.title}\n\n${kb.content}`,
         timestamp: new Date(),
