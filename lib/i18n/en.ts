@@ -304,6 +304,57 @@ export const en = {
     requestFeature: 'Request a Feature',
   },
 
+  // Blog & News
+  blog: {
+    title: 'Blog & News',
+    allPosts: 'All Posts',
+    latestNews: 'Latest News',
+    readMore: 'Read More',
+    readFullArticle: 'Read Full Article',
+    publishedOn: 'Published on',
+    author: 'Author',
+    category: 'Category',
+    tags: 'Tags',
+    relatedPosts: 'Related Posts',
+    noPostsFound: 'No posts found',
+    searchPosts: 'Search posts...',
+    filterByCategory: 'Filter by category',
+    filterByTag: 'Filter by tag',
+    shareArticle: 'Share Article',
+    backToBlog: 'Back to Blog',
+    comments: 'Comments',
+    leaveComment: 'Leave a Comment',
+    subscribe: 'Subscribe to Newsletter',
+    subscribeDescription: 'Get the latest news and updates delivered to your inbox.',
+    email: 'Email Address',
+    categories: {
+      announcement: 'Announcements',
+      security: 'Security Updates',
+      feature: 'New Features',
+      guide: 'Guides & Tutorials',
+      news: 'News',
+      community: 'Community',
+      development: 'Development',
+    },
+    posts: {
+      welcome: {
+        title: 'Welcome to SpendVault Blog',
+        excerpt: 'Stay updated with the latest news, features, and security updates from the SpendVault team.',
+        content: 'Welcome to our official blog! Here you\'ll find the latest news, feature announcements, security updates, and helpful guides to get the most out of SpendVault.',
+      },
+      newFeature: {
+        title: 'Introducing Guardian Roles Management',
+        excerpt: 'Manage guardian roles more effectively with our new role hierarchy system.',
+        content: 'We\'re excited to announce a major update to our guardian management system. The new role hierarchy system allows you to organize guardians by their responsibilities and permissions.',
+      },
+      security: {
+        title: 'Enhanced Security with WebAuthn Support',
+        excerpt: 'We now support WebAuthn for stronger authentication methods like YubiKey and Windows Hello.',
+        content: 'Security is our top priority. We\'ve added WebAuthn support to provide you with even stronger authentication options using hardware security keys.',
+      },
+    },
+  },
+
   // Footer
   footer: {
     copyright: '© 2026 SpendVault. All rights reserved.',

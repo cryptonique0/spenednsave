@@ -15,6 +15,8 @@ import { zh } from './zh';
 import { ja } from './ja';
 import { pt } from './pt';
 import { ru } from './ru';
+import { ar } from './ar';
+import { he } from './he';
 
 /**
  * All translation files
@@ -28,6 +30,8 @@ const translations = {
   ja,
   pt,
   ru,
+  ar,
+  he,
 };
 
 /**
