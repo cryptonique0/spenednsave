@@ -6,25 +6,25 @@ import { useState } from "react";
 import { useSimulation } from "../simulation/SimulationContext";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Shield, X, Menu, Globe } from "lucide-react";
+import { Shield, X, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useLanguage } from "@/lib/i18n/i18n-context";
 import { useI18n } from "@/lib/i18n/i18n-context";
+import type { Language } from "@/lib/i18n/languages";
 
 export function Navbar() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { language, setLanguage, languages } = useLanguage();
     const { t } = useI18n();
-    const {
-        enabled: simulationEnabled,
-        setEnabled: setSimulationEnabled,
-        reset: resetSimulation
-    } = useSimulation();
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = useSimulation();
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-surface-border bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl" aria-label="Main Navigation">
+            {/* DEBUG: Navbar is rendering */}
             <div className="w-full px-6 md:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-3">
@@ -90,13 +90,18 @@ export function Navbar() {
 
                     <div className="flex items-center gap-4">
                         <NotificationBell />
-                        <div className="relative">
+                        <div className="relative z-40">
+                            <button
+                              onClick={() => alert(`Languages available: ${Object.keys(languages).join(', ')}`)}
+                              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors"
+                            >
+                              🌐 {language.toUpperCase()}
+                            </button>
                             <select 
                               value={language}
-                              onChange={(e) => setLanguage(e.target.value as any)}
-                              className="appearance-none px-3 py-2 bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-md text-sm text-slate-700 dark:text-slate-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors hover:bg-slate-50 dark:hover:bg-surface-dark/80" 
+                              onChange={(e) => setLanguage(e.target.value as Language)}
+                              className="absolute opacity-0 w-full h-full cursor-pointer" 
                               aria-label="Language selection"
-                              title={`Available languages: ${Object.keys(languages || {}).join(', ')}`}
                             >
                                 {Object.entries(languages || {}).length === 0 ? (
                                   <option>No languages available</option>
@@ -108,7 +113,6 @@ export function Navbar() {
                                   ))
                                 )}
                             </select>
-                            <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none" />
                         </div>
                         <ConnectButton
                             accountStatus={{
