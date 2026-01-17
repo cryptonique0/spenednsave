@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { Users, Share, Heart, Gavel } from "lucide-react";
+import { Users, Share, Heart } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { CommunityHighlights } from "@/components/community/community-highlights";
