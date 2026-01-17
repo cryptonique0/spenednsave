@@ -4,24 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSimulation } from "../simulation/SimulationContext";
-import { cn } from "@/lib/utils"; // We need to create this utility
+import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Shield, X, Menu } from "lucide-react"; // Using Lucide for the logo icon for now, or SVG
+import { Shield, X, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { Globe } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/i18n-context";
+import { useI18n } from "@/lib/i18n/i18n-context";
+import type { Language } from "@/lib/i18n/languages";
 
 export function Navbar() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const {
-        enabled: simulationEnabled,
-        setEnabled: setSimulationEnabled,
-        reset: resetSimulation
-    } = useSimulation();
+    const { language, setLanguage, languages } = useLanguage();
+    const { t } = useI18n();
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = useSimulation();
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-surface-border bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl" aria-label="Main Navigation">
+            {/* DEBUG: Navbar is rendering */}
             <div className="w-full px-6 md:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-3">
@@ -54,20 +57,20 @@ export function Navbar() {
 
                     <div className="hidden md:flex items-center gap-1 p-1 bg-surface-light dark:bg-surface-border rounded-full border border-surface-border dark:border-gray-700/50 shadow-sm" role="menubar" aria-label="Primary">
                         {[
-                            { name: "Dashboard", href: "/dashboard" },
-                            { name: "Analytics", href: "/analytics" },
-                            { name: "Guardians", href: "/guardians" },
-                            { name: "Voting", href: "/voting" },
-                            { name: "Activity", href: "/activity" },
-                            { name: "Emergency", href: "/emergency" },
-                            { name: "Updates", href: "/updates" },
-                            { name: "Referrals", href: "/referral-program" },
-                            { name: "Blog", href: "/blog" },
+                            { labelKey: "nav.dashboard", fallback: "Dashboard", href: "/dashboard" },
+                            { labelKey: "common.analytics", fallback: "Analytics", href: "/analytics" },
+                            { labelKey: "nav.guardians", fallback: "Guardians", href: "/guardians" },
+                            { labelKey: "nav.activity", fallback: "Activity", href: "/activity" },
+                            { labelKey: "common.voting", fallback: "Voting", href: "/voting" },
+                            { labelKey: "common.emergency", fallback: "Emergency", href: "/emergency" },
+                            { labelKey: "nav.updates", fallback: "Updates", href: "/updates" },
+                            { labelKey: "common.referrals", fallback: "Referrals", href: "/referral-program" },
+                            { labelKey: "blog.title", fallback: "Blog", href: "/blog" },
                         ].map((link) => {
                             const isActive = pathname === link.href;
                             return (
                                 <Link
-                                    key={link.name}
+                                    key={link.href}
                                     href={link.href}
                                     className={cn(
                                         "px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
@@ -79,7 +82,7 @@ export function Navbar() {
                                     role="menuitem"
                                     aria-current={isActive ? "page" : undefined}
                                 >
-                                    <span className="sr-only">{isActive ? "Current page: " : "Go to "}</span>{link.name}
+                                    <span className="sr-only">{isActive ? "Current page: " : "Go to "}</span>{t(link.labelKey, link.fallback)}
                                 </Link>
                             );
                         })}
@@ -87,19 +90,18 @@ export function Navbar() {
 
                     <div className="flex items-center gap-4">
                         <NotificationBell />
-                        <div className="relative">
-                            <select className="appearance-none px-3 py-2 bg-white dark:bg-surface-dark border border-surface-border dark:border-gray-700 rounded-md text-sm text-slate-700 dark:text-slate-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors hover:bg-slate-50 dark:hover:bg-surface-dark/80" aria-label="Language selection" defaultValue="en">
-                                <option value="en">English</option>
-                                <option value="es">Español</option>
-                                <option value="fr">Français</option>
-                                <option value="de">Deutsch</option>
-                                <option value="it">Italiano</option>
-                                <option value="pt">Português</option>
-                                <option value="ja">日本語</option>
-                                <option value="zh">中文</option>
-                            </select>
-                            <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none" />
-                        </div>
+                        <select
+                          value={language}
+                          onChange={(e) => setLanguage(e.target.value as Language)}
+                          className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 transition-colors text-sm"
+                          aria-label="Language selection"
+                        >
+                          {Object.entries(languages || {}).map(([code, info]) => (
+                            <option key={code} value={code} className="bg-slate-900 text-white">
+                              {info.flag} {info.nativeName}
+                            </option>
+                          ))}
+                        </select>
                         <ConnectButton
                             accountStatus={{
                                 smallScreen: 'avatar',
@@ -119,17 +121,17 @@ export function Navbar() {
                     <div className="md:hidden py-4 border-t border-gray-200 dark:border-surface-border" role="menu" aria-label="Mobile Navigation">
                         <div className="flex flex-col gap-2">
                             {[
-                                { name: "Dashboard", href: "/dashboard" },
-                                { name: "Guardians", href: "/guardians" },
-                                { name: "Voting", href: "/voting" },
-                                { name: "Activity", href: "/activity" },
-                                { name: "Emergency", href: "/emergency" },
-                                { name: "Feature Requests", href: "/feature-requests" },
+                                { labelKey: "nav.dashboard", fallback: "Dashboard", href: "/dashboard" },
+                                { labelKey: "nav.guardians", fallback: "Guardians", href: "/guardians" },
+                                { labelKey: "common.voting", fallback: "Voting", href: "/voting" },
+                                { labelKey: "nav.activity", fallback: "Activity", href: "/activity" },
+                                { labelKey: "common.emergency", fallback: "Emergency", href: "/emergency" },
+                                { labelKey: "common.featureRequests", fallback: "Feature Requests", href: "/feature-requests" },
                             ].map((link) => {
                                 const isActive = pathname === link.href;
                                 return (
                                     <Link
-                                        key={link.name}
+                                        key={link.href}
                                         href={link.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
@@ -142,7 +144,7 @@ export function Navbar() {
                                         role="menuitem"
                                         aria-current={isActive ? "page" : undefined}
                                     >
-                                        <span className="sr-only">{isActive ? "Current page: " : "Go to "}</span>{link.name}
+                                        <span className="sr-only">{isActive ? "Current page: " : "Go to "}</span>{t(link.labelKey, link.fallback)}
                                     </Link>
                                 );
                             })}

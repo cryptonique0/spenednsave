@@ -3,7 +3,7 @@ import { AvatarBlockie } from '@/components/ui/avatar-blockie';
 
 import { Users, Lock, CreditCard, ShieldCheck } from "lucide-react";
 import { useAccount, useWatchContractEvent } from "wagmi";
-import { useDepositETH, useVaultETHBalance, useUserContracts, useVaultQuorum } from "@/lib/hooks/useContracts";
+import { useVaultETHBalance, useUserContracts, useVaultQuorum } from "@/lib/hooks/useContracts";
 import { useGuardians, useVaultActivity } from "@/lib/hooks/useVaultData";
 import { SpendVaultABI } from "@/lib/abis/SpendVault";
 import { GuardianSBTABI } from "@/lib/abis/GuardianSBT";
@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useVaultHealth } from "@/lib/hooks/useVaultHealth";
 import Link from "next/link";
 import PolicyConfig from '@/components/dashboard/policy-config';
+import { TokenDepositForm } from '@/components/dashboard/token-deposit-form';
 
 export function DashboardSaverView() {
         // Timer for stable current time in render
@@ -34,10 +35,8 @@ export function DashboardSaverView() {
     if (healthStatus === "Warning") healthColor = "bg-yellow-400";
     if (healthStatus === "Critical") healthColor = "bg-red-500";
     
-    const { deposit, isPending, isConfirming, isSuccess } = useDepositETH(vaultAddress);
     const { data: vaultBalance, refetch: refetchBalance } = useVaultETHBalance(vaultAddress);
     const { data: quorum } = useVaultQuorum(vaultAddress);
-    const [depositAmount, setDepositAmount] = useState("0.01");
     const [showDepositModal, setShowDepositModal] = useState(false);
     
     // Use new hooks for guardians and activity
@@ -79,28 +78,6 @@ export function DashboardSaverView() {
             refetchActivities();
         },
     });
-
-    // Refetch balance after successful deposit
-    useEffect(() => {
-        if (isSuccess) {
-            console.log('[DashboardSaverView] Deposit successful, refetching...');
-            // Wait a bit for the transaction to be indexed
-            const timer = setTimeout(() => {
-                refetchBalance();
-                refetchActivities();
-            }, 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [isSuccess, refetchBalance, refetchActivities]);
-
-    const handleDeposit = () => {
-        try {
-            deposit(depositAmount);
-        } catch (error) {
-            console.error("Deposit failed:", error);
-            alert(error instanceof Error ? error.message : "Deposit failed");
-        }
-    };
 
     // Format vault balance for display
     const ethBalance = vaultBalance && typeof vaultBalance === 'bigint' ? formatEther(vaultBalance) : "0";
@@ -242,7 +219,7 @@ export function DashboardSaverView() {
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-surface-dark border border-surface-border rounded-2xl overflow-hidden divide-y divide-surface-border">
+                        <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl overflow-hidden divide-y divide-gray-200 dark:divide-surface-border">
                             {activities.map((activity, i) => {
                                 const isDeposit = activity.type === 'deposit';
                                 const isGuardianAdded = activity.type === 'guardian_added';
@@ -303,8 +280,8 @@ export function DashboardSaverView() {
 
                 {/* Quick Actions / Guardians */}
                 <section className="flex flex-col gap-6">
-                    <div className="bg-surface-dark border border-surface-border rounded-2xl p-6">
-                        <h3 className="text-white text-xl font-bold mb-6">Guardians</h3>
+                    <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
+                        <h3 className="text-slate-900 dark:text-white text-xl font-bold mb-6">Guardians</h3>
                         <div className="flex items-center justify-center mb-6">
                             <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                 <Users size={32} />
@@ -340,7 +317,7 @@ export function DashboardSaverView() {
                     </div>
 
                     <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
-                        <PolicyConfig vaultAddress={vaultAddress as any} />
+                        <PolicyConfig vaultAddress={vaultAddress} />
                     </div>
                 </section>
             </div>
@@ -349,45 +326,23 @@ export function DashboardSaverView() {
             {/* Deposit Modal */}
             {showDepositModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowDepositModal(false)}>
-                    <div className="bg-surface-dark border border-surface-border rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-white text-xl font-bold">Deposit ETH</h3>
-                            <button onClick={() => setShowDepositModal(false)} className="text-slate-400 hover:text-white">
+                    <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-surface-border">
+                            <h3 className="text-slate-900 dark:text-white text-xl font-bold">Deposit to Vault</h3>
+                            <button onClick={() => setShowDepositModal(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm text-slate-400 mb-2">Amount (ETH)</label>
-                                <input
-                                    type="text"
-                                    value={depositAmount}
-                                    onChange={(e) => setDepositAmount(e.target.value)}
-                                    className="w-full bg-background-dark border border-border-dark rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
-                                    placeholder="0.01"
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                {["0.01", "0.05", "0.1"].map((amount) => (
-                                    <button
-                                        key={amount}
-                                        onClick={() => setDepositAmount(amount)}
-                                        className="flex-1 py-2 bg-surface-border hover:bg-surface-border/80 text-white rounded-lg text-sm transition-colors"
-                                    >
-                                        {amount} ETH
-                                    </button>
-                                ))}
-                            </div>
-                            <button
-                                onClick={() => {
-                                    handleDeposit();
+                        <div className="p-6">
+                            <TokenDepositForm 
+                                vaultAddress={vaultAddress}
+                                onDepositSuccess={() => {
                                     setShowDepositModal(false);
+                                    // Refetch data
+                                    refetchBalance();
+                                    refetchActivities();
                                 }}
-                                disabled={isPending || isConfirming || !depositAmount}
-                                className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
-                            >
-                                {isPending || isConfirming ? "Processing..." : "Confirm Deposit"}
-                            </button>
+                            />
                         </div>
                     </div>
                 </div>

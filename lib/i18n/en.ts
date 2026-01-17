@@ -355,6 +355,31 @@ export const en = {
     },
   },
 
+  // Community
+  community: {
+    title: 'Community',
+    highlights: 'Community Highlights',
+    featuredStories: 'Featured Stories',
+    featuredStoriesDesc: 'Read real user stories and testimonials about how SpendGuard transformed their fund management.',
+    shareYourStory: 'Share Your Story',
+    shareYourStoryDesc: 'Have a great experience with SpendGuard? We\'d love to hear and feature your story in our community.',
+    joinCommunity: 'Join the Community',
+    joinCommunityDesc: 'Connect with other users on Discord, Twitter, and GitHub. Ask questions and share ideas.',
+    guidelines: 'Community Guidelines',
+    beRespectful: 'Be Respectful',
+    beRespectfulDesc: 'Treat all community members with respect and kindness. We celebrate diverse perspectives and experiences.',
+    beHelpful: 'Be Helpful',
+    beHelpfulDesc: 'Share knowledge and help others. Answering questions strengthens the entire community.',
+    beConstructive: 'Be Constructive',
+    beConstructiveDesc: 'Provide feedback that helps improve SpendGuard. Critical feedback is welcome when it\'s constructive.',
+    beSecure: 'Be Secure',
+    beSecureDesc: 'Never share private keys or sensitive information. Report security issues responsibly.',
+    submitYourStory: 'Submit Your Story',
+    joinDiscord: 'Join Discord Community',
+    withdrawalMessages: 'Withdrawal Messages',
+    guardianRoles: 'Guardian Roles',
+  },
+
   // Footer
   footer: {
     copyright: '© 2026 SpendVault. All rights reserved.',

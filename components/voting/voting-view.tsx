@@ -333,14 +333,14 @@ export function VotingView() {
     if (status === 'empty') {
         return (
             <div className="relative w-full max-w-md">
-                <div className="bg-[#1a1d26] dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-10 md:p-14 flex flex-col items-center shadow-card overflow-hidden group">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-10 md:p-14 flex flex-col items-center shadow-card overflow-hidden group">
                     <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
                     <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
                         <div className="absolute inset-0 bg-emerald-500/10 blur-[40px] rounded-full"></div>
-                        <div className="relative z-10 w-24 h-24 bg-gradient-to-b from-slate-800 to-slate-900 rounded-full flex items-center justify-center border border-surface-border shadow-lg group-hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)] transition-all duration-500">
+                        <div className="relative z-10 w-24 h-24 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-full flex items-center justify-center border border-gray-200 dark:border-surface-border shadow-lg group-hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)] transition-all duration-500">
                             <Shield size={44} className="text-emerald-500" />
                         </div>
-                        <div className="absolute top-1 right-1 w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center border border-surface-border">
+                        <div className="absolute top-1 right-1 w-6 h-6 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center border border-gray-300 dark:border-surface-border">
                             <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse"></div>
                         </div>
                     </div>
@@ -619,14 +619,14 @@ export function VotingView() {
     // If no pending requests, show empty state
     return (
         <div className="relative w-full max-w-md">
-            <div className="bg-[#1a1d26] dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-10 md:p-14 flex flex-col items-center shadow-card overflow-hidden group">
+            <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-10 md:p-14 flex flex-col items-center shadow-card overflow-hidden group">
                 <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
                 <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
                     <div className="absolute inset-0 bg-emerald-500/10 blur-[40px] rounded-full"></div>
-                    <div className="relative z-10 w-24 h-24 bg-gradient-to-b from-slate-800 to-slate-900 rounded-full flex items-center justify-center border border-surface-border shadow-lg group-hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)] transition-all duration-500">
+                    <div className="relative z-10 w-24 h-24 bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 rounded-full flex items-center justify-center border border-gray-200 dark:border-surface-border shadow-lg group-hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)] transition-all duration-500">
                         <Shield size={44} className="text-emerald-500" />
                     </div>
-                    <div className="absolute top-1 right-1 w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center border border-surface-border">
+                    <div className="absolute top-1 right-1 w-6 h-6 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center border border-gray-300 dark:border-surface-border">
                         <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse"></div>
                     </div>
                 </div>

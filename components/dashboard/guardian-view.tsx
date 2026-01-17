@@ -115,7 +115,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
     return (
         <div className="w-full flex flex-col gap-8">
             {loading && (
-                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-12 text-center">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-12 text-center">
                     <p className="text-slate-600 dark:text-slate-400">Loading requests...</p>
                 </div>
             )}
@@ -142,7 +142,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                         <div className="text-sm text-slate-500">Badges</div>
                         <div className="flex items-center gap-2">
                             {(badgeData[0] || []).map((tid: any, i: number) => (
-                                <div key={String(tid)} className="inline-flex items-center gap-2 bg-white dark:bg-surface-dark border border-surface-border rounded-xl px-3 py-1 text-xs">
+                                <div key={String(tid)} className="inline-flex items-center gap-2 bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl px-3 py-1 text-xs">
                                     <Award size={16} className="text-amber-500" />
                                     <div>
                                         <div className="font-semibold">{badgeData[1] && badgeData[1][i] ? `Type ${String(badgeData[1][i])}` : 'Badge'}</div>
@@ -157,7 +157,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
 
             {/* Stats Cards: Reputation */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                             <Clock className="text-orange-600 dark:text-orange-400" size={20} />
@@ -166,7 +166,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                     </div>
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{pendingRequests.length}</p>
                 </div>
-                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                             <CheckCircle className="text-emerald-600 dark:text-emerald-400" size={20} />
@@ -175,7 +175,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                     </div>
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{reputation?.approvals ?? '-'}</p>
                 </div>
-                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <Users className="text-blue-600 dark:text-blue-400" size={20} />
@@ -193,7 +193,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Approval History</h2>
                     <div className="space-y-3">
                         {reputation.history.map((item: any, idx: number) => (
-                            <div key={idx} className="bg-white dark:bg-surface-dark border border-surface-border rounded-xl p-4 flex items-center justify-between">
+                            <div key={idx} className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl p-4 flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 font-medium text-slate-900 dark:text-white">
                                         <span>{item.recipient.slice(0, 6)}...{item.recipient.slice(-4)}</span>
@@ -222,7 +222,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Vaults Guarding</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {vaults.map((vault) => (
-                        <div key={vault.vaultAddress} className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6">
+                        <div key={vault.vaultAddress} className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6">
                             <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2">{vault.vaultName}</h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Owner: {vault.owner}</p>
                             <p className="text-sm text-slate-600 dark:text-slate-400">Pending Approvals: {vault.pendingApprovals}</p>
@@ -239,7 +239,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                         {pendingRequests.map((request) => (
                             <div
                                 key={request.id}
-                                className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-6 hover:border-primary/50 transition-all"
+                                className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6 hover:border-primary/50 transition-all"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-start gap-4">
@@ -325,7 +325,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
 
             {/* Empty State */}
             {pendingRequests.length === 0 && (
-                <div className="bg-white dark:bg-surface-dark border border-surface-border rounded-2xl p-12 text-center">
+                <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-12 text-center">
                     <div className="inline-flex items-center justify-center size-16 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
                         <Shield className="text-slate-400" size={32} />
                     </div>
@@ -344,7 +344,7 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
                         {completedRequests.map((request) => (
                             <div
                                 key={request.id}
-                                className="bg-white dark:bg-surface-dark border border-surface-border rounded-xl p-4 flex items-center justify-between"
+                                className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl p-4 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2">

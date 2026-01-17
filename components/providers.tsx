@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { SimulationProvider } from './simulation/SimulationContext';
 import { NotificationsProvider } from './notifications/NotificationsContext';
+import { I18nProvider } from '@/lib/i18n';
 import {
     RainbowKitProvider,
     darkTheme,
@@ -24,16 +25,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <SimulationProvider>
             <NotificationsProvider>
-                <WagmiProvider config={config}>
-                    <QueryClientProvider client={queryClient}>
-                        <RainbowKitProvider
-                            theme={mounted && theme === 'dark' ? darkTheme() : lightTheme()}
-                            initialChain={84532} // Base Mainnet
-                        >
-                            {children}
-                        </RainbowKitProvider>
-                    </QueryClientProvider>
-                </WagmiProvider>
+                <I18nProvider>
+                    <WagmiProvider config={config}>
+                        <QueryClientProvider client={queryClient}>
+                            <RainbowKitProvider
+                                theme={mounted && theme === 'dark' ? darkTheme() : lightTheme()}
+                                initialChain={84532} // Base Mainnet
+                            >
+                                {children}
+                            </RainbowKitProvider>
+                        </QueryClientProvider>
+                    </WagmiProvider>
+                </I18nProvider>
             </NotificationsProvider>
         </SimulationProvider>
     );

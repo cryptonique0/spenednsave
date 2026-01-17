@@ -27,3 +27,5 @@ export { zh } from './zh';
 export { ja } from './ja';
 export { pt } from './pt';
 export { ru } from './ru';
+export { ar } from './ar';
+export { he } from './he';

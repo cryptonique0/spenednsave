@@ -3,18 +3,28 @@
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Users, Share, Heart } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useI18n } from "@/lib/i18n";
 import { CommunityHighlights } from "@/components/community/community-highlights";
 import { CustomWithdrawalMessages } from "@/components/custom-withdrawal-messages";
 import { GuardianRoleCustomization } from "@/components/guardian-role-customization";
+import { CommunityChatAssistant } from "@/components/community/community-chat-assistant";
+import { GovDaoDashboard } from "@/components/community/govdao-dashboard";
+import { VotingPowerBreakdown } from "@/components/community/voting-power-breakdown";
 
-type CommunityTab = 'highlights' | 'withdrawal-messages' | 'guardian-roles';
+type CommunityTab = 'highlights' | 'withdrawal-messages' | 'guardian-roles' | 'governance';
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState<CommunityTab>('highlights');
+  const { t, language } = useI18n();
+  
+  // Force re-render when language changes
+  const memoizedLanguage = useMemo(() => language, [language]);
+  
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen" data-lang={memoizedLanguage}>
       <Navbar />
+      <CommunityChatAssistant />
       <main className="flex-grow flex flex-col justify-start px-6 py-8 md:px-8 md:py-12">
         <div className="max-w-7xl mx-auto w-full">
           {/* Header */}
@@ -25,12 +35,12 @@ export default function CommunityPage() {
               </div>
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white">
-                  Community Highlights
+                  {t('community.highlights', 'Community Highlights')}
                 </h1>
               </div>
             </div>
             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl">
-              Celebrate the amazing stories, tutorials, and contributions from the SpendGuard community.
+              {t('community.joinCommunityDesc', 'Connect with other users on Discord, Twitter, and GitHub. Ask questions and share ideas.')}
             </p>
           </div>
 
@@ -40,9 +50,9 @@ export default function CommunityPage() {
               <div className="size-10 rounded-lg bg-heart-100 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 mb-3">
                 <Heart size={20} />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-2">Featured Stories</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2">{t('community.featuredStories', 'Featured Stories')}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Read real user stories and testimonials about how SpendGuard transformed their fund management.
+                {t('community.featuredStoriesDesc', 'Read real user stories and testimonials about how SpendGuard transformed their fund management.')}
               </p>
             </div>
 
@@ -50,9 +60,9 @@ export default function CommunityPage() {
               <div className="size-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3">
                 <Share size={20} />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-2">Share Your Story</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2">{t('community.shareYourStory', 'Share Your Story')}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Have a great experience with SpendGuard? We&apos;d love to hear and feature your story in our community.
+                {t('community.shareYourStoryDesc', 'Have a great experience with SpendGuard? We\'d love to hear and feature your story in our community.')}
               </p>
             </div>
 
@@ -60,9 +70,9 @@ export default function CommunityPage() {
               <div className="size-10 rounded-lg bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-3">
                 <Users size={20} />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white mb-2">Join the Community</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2">{t('community.joinCommunity', 'Join the Community')}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Connect with other users on Discord, Twitter, and GitHub. Ask questions and share ideas.
+                {t('community.joinCommunityDesc', 'Connect with other users on Discord, Twitter, and GitHub. Ask questions and share ideas.')}
               </p>
             </div>
           </div>
@@ -78,7 +88,7 @@ export default function CommunityPage() {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Community Highlights
+                {t('community.highlights', 'Community Highlights')}
               </button>
               <button
                 onClick={() => setActiveTab('withdrawal-messages')}
@@ -88,7 +98,7 @@ export default function CommunityPage() {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Withdrawal Messages
+                {t('community.withdrawalMessages', 'Withdrawal Messages')}
               </button>
               <button
                 onClick={() => setActiveTab('guardian-roles')}
@@ -98,7 +108,17 @@ export default function CommunityPage() {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                Guardian Roles
+                {t('community.guardianRoles', 'Guardian Roles')}
+              </button>
+              <button
+                onClick={() => setActiveTab('governance')}
+                className={`px-6 py-3 font-semibold transition-colors whitespace-nowrap ${
+                  activeTab === 'governance'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {'GovDao Governance'}
               </button>
             </div>
           </div>
@@ -108,36 +128,42 @@ export default function CommunityPage() {
             {activeTab === 'highlights' && <CommunityHighlights />}
             {activeTab === 'withdrawal-messages' && <CustomWithdrawalMessages />}
             {activeTab === 'guardian-roles' && <GuardianRoleCustomization />}
+            {activeTab === 'governance' && (
+              <div className="space-y-8">
+                <VotingPowerBreakdown />
+                <GovDaoDashboard />
+              </div>
+            )}
           </div>
 
           {/* Community Guidelines */}
           <div className="bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-xl p-8 mb-12">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
-              Community Guidelines
+              {t('community.guidelines', 'Community Guidelines')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Be Respectful</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{t('community.beRespectful', 'Be Respectful')}</h3>
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Treat all community members with respect and kindness. We celebrate diverse perspectives and experiences.
+                  {t('community.beRespectfulDesc', 'Treat all community members with respect and kindness. We celebrate diverse perspectives and experiences.')}
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Be Helpful</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{t('community.beHelpful', 'Be Helpful')}</h3>
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Share knowledge and help others. Answering questions strengthens the entire community.
+                  {t('community.beHelpfulDesc', 'Share knowledge and help others. Answering questions strengthens the entire community.')}
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Be Constructive</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{t('community.beConstructive', 'Be Constructive')}</h3>
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Provide feedback that helps improve SpendGuard. Critical feedback is welcome when it&apos;s constructive.
+                  {t('community.beConstructiveDesc', 'Provide feedback that helps improve SpendGuard. Critical feedback is welcome when it\'s constructive.')}
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Be Secure</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">{t('community.beSecure', 'Be Secure')}</h3>
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Never share private keys or sensitive information. Report security issues responsibly.
+                  {t('community.beSecureDesc', 'Never share private keys or sensitive information. Report security issues responsibly.')}
                 </p>
               </div>
             </div>
@@ -146,10 +172,10 @@ export default function CommunityPage() {
           {/* CTA */}
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-500/5 dark:to-pink-500/5 border border-purple-200 dark:border-purple-500/20 rounded-xl p-8 text-center">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-              Share Your SpendGuard Story
+              {t('community.shareYourStory', 'Share Your SpendGuard Story')}
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-2xl mx-auto">
-              Have a tutorial, testimonial, or use case to share? We would love to feature your content and celebrate your contribution to the community!
+              {t('community.shareYourStoryDesc', 'Have a tutorial, testimonial, or use case to share? We would love to feature your content and celebrate your contribution to the community!')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
@@ -157,7 +183,7 @@ export default function CommunityPage() {
                 className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
               >
                 <Share className="w-5 h-5" />
-                Submit Your Story
+                {t('community.submitYourStory', 'Submit Your Story')}
               </a>
               <a
                 href="https://discord.gg/spendguard"
@@ -165,7 +191,7 @@ export default function CommunityPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border text-slate-900 dark:text-white rounded-lg font-semibold hover:shadow-md transition-all"
               >
-                Join Discord Community
+                {t('community.joinDiscord', 'Join Discord Community')}
               </a>
             </div>
           </div>

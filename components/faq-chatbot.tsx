@@ -344,26 +344,30 @@ export function FAQChatbot({ isOpen = false, onClose }: FAQChatbotProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-slate-900">
         {messages.map((message) => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-xs px-4 py-2 rounded-lg ${
+              className={`max-w-xs px-4 py-3 rounded-lg ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-gray-100 dark:bg-surface-dark-secondary text-gray-900 dark:text-gray-100 rounded-bl-none'
+                  ? 'bg-blue-600 text-white rounded-br-none shadow-sm'
+                  : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-none shadow-sm border border-gray-200 dark:border-slate-700'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap break-words font-medium">{message.content}</p>
               {message.relatedFAQs && message.relatedFAQs.length > 0 && (
-                <div className="mt-2 space-y-2">
+                <div className="mt-3 space-y-2">
                   {message.relatedFAQs.map(faqId => {
                     const faq = FAQS.find(f => f.id === faqId);
                     return faq ? (
                       <button
                         key={faqId}
                         onClick={() => handleQuickQuestion(faqId)}
-                        className="block w-full text-left text-xs bg-blue-50 dark:bg-surface-dark hover:bg-blue-100 dark:hover:bg-surface-dark p-2 rounded transition-colors"
+                        className={`block w-full text-left text-xs p-2 rounded transition-colors font-semibold ${
+                          message.role === 'user'
+                            ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                            : 'bg-blue-50 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-slate-600 text-gray-800 dark:text-white'
+                        }`}
                       >
                         {faq.question}
                       </button>
@@ -392,11 +396,11 @@ export function FAQChatbot({ isOpen = false, onClose }: FAQChatbotProps) {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-surface-dark-secondary rounded-lg rounded-bl-none p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg rounded-bl-none p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
               <div className="flex gap-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
               </div>
             </div>
           </div>
@@ -405,7 +409,7 @@ export function FAQChatbot({ isOpen = false, onClose }: FAQChatbotProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 dark:border-surface-dark-secondary p-4 space-y-3">
+      <div className="border-t border-gray-200 dark:border-slate-700 p-4 space-y-3 bg-white dark:bg-surface-dark">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -414,7 +418,7 @@ export function FAQChatbot({ isOpen = false, onClose }: FAQChatbotProps) {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Ask a question..."
-            className="flex-1 px-3 py-2 border border-gray-300 dark:border-surface-dark-secondary rounded-lg bg-white dark:bg-surface-dark text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           />
           <button
@@ -428,25 +432,25 @@ export function FAQChatbot({ isOpen = false, onClose }: FAQChatbotProps) {
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => handleQuickQuestion('faq-2')}
-            className="text-xs px-3 py-2 bg-gray-100 dark:bg-surface-dark-secondary hover:bg-gray-200 dark:hover:bg-surface-dark rounded transition-colors text-gray-700 dark:text-gray-300 truncate"
+            className="text-xs px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors text-gray-700 dark:text-white font-medium truncate"
           >
             Create Vault
           </button>
           <button
             onClick={() => handleQuickQuestion('faq-3')}
-            className="text-xs px-3 py-2 bg-gray-100 dark:bg-surface-dark-secondary hover:bg-gray-200 dark:hover:bg-surface-dark rounded transition-colors text-gray-700 dark:text-gray-300 truncate"
+            className="text-xs px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors text-gray-700 dark:text-white font-medium truncate"
           >
             What are Guardians?
           </button>
           <button
             onClick={() => handleQuickQuestion('faq-6')}
-            className="text-xs px-3 py-2 bg-gray-100 dark:bg-surface-dark-secondary hover:bg-gray-200 dark:hover:bg-surface-dark rounded transition-colors text-gray-700 dark:text-gray-300 truncate"
+            className="text-xs px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors text-gray-700 dark:text-white font-medium truncate"
           >
             Withdraw Funds
           </button>
           <button
             onClick={() => handleQuickQuestion('faq-8')}
-            className="text-xs px-3 py-2 bg-gray-100 dark:bg-surface-dark-secondary hover:bg-gray-200 dark:hover:bg-surface-dark rounded transition-colors text-gray-700 dark:text-gray-300 truncate"
+            className="text-xs px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded transition-colors text-gray-700 dark:text-white font-medium truncate"
           >
             Emergency Freeze
           </button>

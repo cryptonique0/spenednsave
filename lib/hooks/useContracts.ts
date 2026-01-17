@@ -2,6 +2,7 @@ import { useAccount, useReadContract, useWriteContract, useWaitForTransactionRec
 import { GuardianSBTABI } from '@/lib/abis/GuardianSBT';
 import { SpendVaultABI } from '@/lib/abis/SpendVault';
 import { VaultFactoryABI } from '@/lib/abis/VaultFactory';
+import { ERC20ABI } from '@/lib/abis/ERC20';
 import { getContractAddresses } from '@/lib/contracts';
 import { GuardianBadgeABI } from '@/lib/abis/GuardianBadge';
 import { parseEther, type Address } from 'viem';
@@ -221,6 +222,94 @@ export function useDepositETH(vaultAddress?: Address) {
     };
 }
 
+/**
+ * Hook to approve USDC spending to vault
+ */
+export function useApproveUSDC(usdcAddress?: Address, vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+    const approve = (amount: bigint) => {
+        if (!usdcAddress || !vaultAddress) {
+            throw new Error('USDC or vault address not provided');
+        }
+
+        writeContract({
+            address: usdcAddress,
+            abi: ERC20ABI,
+            functionName: 'approve',
+            args: [vaultAddress, amount],
+        } as any);
+    };
+
+    return { approve, hash, isPending, isConfirming, isSuccess, error };
+}
+
+/**
+ * Hook to deposit USDC to vault
+ */
+export function useDepositUSDC(usdcAddress?: Address, vaultAddress?: Address) {
+    const { writeContract, data: hash, isPending, error } = useWriteContract();
+    const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+    const deposit = (amount: string) => {
+        if (!usdcAddress || !vaultAddress) {
+            throw new Error('USDC or vault address not provided');
+        }
+
+        // USDC has 6 decimals
+        const amountInWei = BigInt(parseFloat(amount) * 1e6);
+
+        // Call the vault's deposit function for ERC20 tokens
+        writeContract({
+            address: vaultAddress,
+            abi: SpendVaultABI,
+            functionName: 'deposit',
+            args: [usdcAddress, amountInWei],
+        } as any);
+    };
+
+    return { deposit, hash, isPending, isConfirming, isSuccess, error };
+}
+
+/**
+ * Hook to get USDC balance
+ */
+export function useUSDCBalance(usdcAddress?: Address, userAddress?: Address) {
+    return useReadContract({
+        address: usdcAddress as Address,
+        abi: ERC20ABI,
+        functionName: 'balanceOf',
+        args: userAddress ? [userAddress] : undefined,
+        query: { enabled: !!usdcAddress && !!userAddress },
+    }) as any;
+}
+
+/**
+ * Hook to get vault USDC balance
+ */
+export function useVaultUSDCBalance(usdcAddress?: Address, vaultAddress?: Address) {
+    return useReadContract({
+        address: usdcAddress as Address,
+        abi: ERC20ABI,
+        functionName: 'balanceOf',
+        args: vaultAddress ? [vaultAddress] : undefined,
+        query: { enabled: !!usdcAddress && !!vaultAddress },
+    }) as any;
+}
+
+/**
+ * Hook to get USDC allowance
+ */
+export function useUSDCAllowance(usdcAddress?: Address, ownerAddress?: Address, spenderAddress?: Address) {
+    return useReadContract({
+        address: usdcAddress as Address,
+        abi: ERC20ABI,
+        functionName: 'allowance',
+        args: ownerAddress && spenderAddress ? [ownerAddress, spenderAddress] : undefined,
+        query: { enabled: !!usdcAddress && !!ownerAddress && !!spenderAddress },
+    }) as any;
+}
 
 /**
  * Hook to add a guardian

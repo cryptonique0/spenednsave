@@ -6,8 +6,8 @@
 'use client';
 
 import React from 'react';
-import { useLanguage } from '@/lib/i18n/i18n-context';
-import { useI18n } from '@/lib/i18n/use-i18n';
+import { useLanguage, useI18n } from '@/lib/i18n/i18n-context';
+import type { Language } from '@/lib/i18n/languages';
 
 interface LanguageSwitcherProps {
   variant?: 'dropdown' | 'grid' | 'inline';
@@ -34,7 +34,7 @@ export function LanguageSwitcher({
         <select
           id="language-select"
           value={language}
-          onChange={(e) => setLanguage(e.target.value as any)}
+          onChange={(e) => setLanguage(e.target.value as Language)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
                      bg-white dark:bg-gray-900 text-gray-900 dark:text-white 
                      focus:outline-none focus:ring-2 focus:ring-blue-500 
@@ -58,7 +58,7 @@ export function LanguageSwitcher({
         {Object.entries(languages).map(([code, info]) => (
           <button
             key={code}
-            onClick={() => setLanguage(code as any)}
+            onClick={() => setLanguage(code as Language)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all
               ${
                 language === code
@@ -83,7 +83,7 @@ export function LanguageSwitcher({
         {Object.entries(languages).map(([code, info]) => (
           <button
             key={code}
-            onClick={() => setLanguage(code as any)}
+            onClick={() => setLanguage(code as Language)}
             className={`text-sm transition-all ${
               language === code
                 ? 'text-blue-500 font-semibold underline'
@@ -113,7 +113,7 @@ export function LanguageSwitcherCompact({ className = '' }: { className?: string
       {Object.entries(languages).map(([code, info]) => (
         <button
           key={code}
-          onClick={() => setLanguage(code as any)}
+          onClick={() => setLanguage(code as Language)}
           className={`text-xl p-1 rounded transition-all ${
             language === code
               ? 'bg-blue-100 dark:bg-blue-900 scale-110'
@@ -161,7 +161,7 @@ export function LanguageSwitcherNav({ className = '' }: { className?: string }) 
               <button
                 key={code}
                 onClick={() => {
-                  setLanguage(code as any);
+                  setLanguage(code as Language);
                   setIsOpen(false);
                 }}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm 

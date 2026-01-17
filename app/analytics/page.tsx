@@ -10,6 +10,7 @@ import { TokenDistributionChart } from '@/components/analytics/token-distributio
 import { RiskScoreHistoryChart } from '@/components/analytics/risk-score-history-chart';
 import { AnalyticsMetrics } from '@/components/analytics/analytics-metrics';
 import { GuardianLeaderboard } from '@/components/analytics/guardian-leaderboard';
+import SpendingAnalyticsDashboard from '@/components/analytics/spending-analytics-dashboard';
 import { useAccount } from 'wagmi';
 
 export default function AnalyticsPage() {
@@ -57,8 +58,13 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Analytics Tabs */}
-        <Tabs defaultValue="withdrawal-trends" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-8 bg-card border border-border">
+        <Tabs defaultValue="spending-analytics" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-8 bg-card border border-border">
+            <TabsTrigger value="spending-analytics" className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">trending_up</span>
+              <span className="hidden sm:inline">Spending</span>
+              <span className="sm:hidden">$</span>
+            </TabsTrigger>
             <TabsTrigger value="withdrawal-trends" className="flex items-center gap-2">
               <BarChart className="w-4 h-4" />
               <span className="hidden sm:inline">Withdrawals</span>
@@ -66,8 +72,8 @@ export default function AnalyticsPage() {
             </TabsTrigger>
             <TabsTrigger value="spending" className="flex items-center gap-2">
               <LineChart className="w-4 h-4" />
-              <span className="hidden sm:inline">Spending</span>
-              <span className="sm:hidden">$</span>
+              <span className="hidden sm:inline">Analysis</span>
+              <span className="sm:hidden">A</span>
             </TabsTrigger>
             <TabsTrigger value="participation" className="flex items-center gap-2">
               <span className="material-symbols-outlined text-base">people</span>
@@ -86,17 +92,15 @@ export default function AnalyticsPage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Spending Analytics Tab */}
+          <TabsContent value="spending-analytics" className="space-y-6">
+            <SpendingAnalyticsDashboard />
+          </TabsContent>
+
           {/* Withdrawal Trends Tab */}
           <TabsContent value="withdrawal-trends" className="space-y-6">
             <div className="bg-card border border-border rounded-lg p-6">
               <WithdrawalTrendsChart timeRange={timeRange} />
-            </div>
-          </TabsContent>
-
-          {/* Spending Analysis Tab */}
-          <TabsContent value="spending" className="space-y-6">
-            <div className="bg-card border border-border rounded-lg p-6">
-              <SpendingAnalysisChart timeRange={timeRange} />
             </div>
           </TabsContent>
 
