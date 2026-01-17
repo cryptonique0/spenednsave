@@ -706,14 +706,15 @@ export class TwoFactorAuthService {
   static async removeWebAuthnCredential(userId: string, credentialId: string): Promise<void> {
     // In production: remove from database
     
-    this.recordSecurityEvent({
+    this.logSecurityEvent({
       userId,
       eventType: 'webauthn_removed',
       method: 'webauthn',
       timestamp: new Date(),
       ipAddress: '',
       userAgent: '',
-      details: { credentialId }
+      details: { credentialId },
+      severity: 'info'
     });
   }
 
