@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Phone, Mail, Check, Clock, AlertCircle, Shield, Copy } from 'lucide-react';
+import { Phone, Mail, Check, Shield, Copy } from 'lucide-react';
 
 interface EmergencyContact {
   id: string;
@@ -96,7 +96,7 @@ export function EmergencyContactVerification() {
   const [contacts, setContacts] = useState<EmergencyContact[]>(EMERGENCY_CONTACTS);
   const [otpValues, setOtpValues] = useState<Record<string, string>>({});
   const [verifyingContactId, setVerifyingContactId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newContactType, setNewContactType] = useState<'phone' | 'email'>('phone');
   const [newContactValue, setNewContactValue] = useState('');
@@ -121,10 +121,8 @@ export function EmergencyContactVerification() {
     }
   };
 
-  const handleCopyValue = (value: string, id: string) => {
+  const handleCopyValue = (value: string) => {
     navigator.clipboard.writeText(value);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleAddContact = () => {
@@ -311,7 +309,7 @@ export function EmergencyContactVerification() {
                       {contact.masked}
                     </code>
                     <button
-                      onClick={() => handleCopyValue(contact.value, contact.id)}
+                      onClick={() => handleCopyValue(contact.value)}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
                       title="Copy full value"
                     >
@@ -342,7 +340,7 @@ export function EmergencyContactVerification() {
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          maxLength="6"
+                          maxLength={6}
                           placeholder="000000"
                           value={otpValues[contact.id] || ''}
                           onChange={(e) => {

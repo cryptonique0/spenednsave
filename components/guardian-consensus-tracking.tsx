@@ -15,14 +15,6 @@ interface Guardian {
   confidence?: number;
 }
 
-interface ConsensusVote {
-  id: string;
-  guardianId: string;
-  vote: 'approve' | 'decline' | 'pending';
-  timestamp?: string;
-  comment?: string;
-}
-
 const GUARDIANS: Guardian[] = [
   {
     id: '1',
@@ -66,10 +58,8 @@ const CONSENSUS_RULES = [
 
 export function GuardianConsensusTracking() {
   const [guardians, setGuardians] = useState<Guardian[]>(GUARDIANS);
-  const [selectedGuardian, setSelectedGuardian] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [revokeConfirm, setRevokeConfirm] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<string, string>>({});
   const [showGuardianDetails, setShowGuardianDetails] = useState<string | null>(null);
 
   const handleSendReminder = (guardianId: string) => {
@@ -323,16 +313,14 @@ export function GuardianConsensusTracking() {
                   </p>
                 </div>
 
-                {comments[guardian.id] && (
-                  <div>
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                      Guardian Comment
-                    </p>
-                    <p className="text-sm text-slate-900 dark:text-white italic">
-                      "{comments[guardian.id]}"
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Guardian Comment
+                  </p>
+                  <p className="text-sm text-slate-900 dark:text-white italic">
+                    &quot;Comments pending&quot;
+                  </p>
+                </div>
 
                 {guardian.status !== 'approved' && (
                   <button className="w-full px-4 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-colors text-sm mt-3">
@@ -346,7 +334,7 @@ export function GuardianConsensusTracking() {
             {revokeConfirm === guardian.id && (
               <div className="border-t border-current border-opacity-20 mt-4 pt-4">
                 <p className="text-sm text-slate-900 dark:text-white mb-3">
-                  Are you sure you want to revoke {guardian.name}'s approval? They will need to re-approve.
+                  Are you sure you want to revoke {guardian.name}&apos;s approval? They will need to re-approve.
                 </p>
                 <div className="flex gap-2">
                   <button

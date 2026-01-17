@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Palette, Bell, Eye, Lock, Globe, Zap, Save, RotateCcw } from 'lucide-react';
+import { Palette, Bell, Globe, Save, RotateCcw, Check } from 'lucide-react';
 
 interface CustomizationSettings {
   theme: 'light' | 'dark' | 'auto';
@@ -126,7 +126,7 @@ export function CustomizationOptions() {
               {ACCENT_COLORS.map((color) => (
                 <button
                   key={color.id}
-                  onClick={() => updateSetting('accentColor', color.id as any)}
+                  onClick={() => updateSetting('accentColor', color.id as 'primary' | 'success' | 'warning' | 'error')}
                   className={`p-4 rounded-lg border-2 transition-all text-sm font-semibold flex items-center gap-2 ${
                     settings.accentColor === color.id
                       ? 'border-current'
@@ -166,8 +166,8 @@ export function CustomizationOptions() {
                     type="radio"
                     name="density"
                     value={density.id}
-                    checked={settings.density === density.id as any}
-                    onChange={(e) => updateSetting('density', e.target.value as any)}
+                    checked={settings.density === density.id as 'compact' | 'comfortable' | 'spacious'}
+                    onChange={(e) => updateSetting('density', e.target.value as 'compact' | 'comfortable' | 'spacious')}
                     className="w-4 h-4"
                   />
                   <div>
@@ -404,8 +404,8 @@ export function CustomizationOptions() {
                     type="radio"
                     name="dateFormat"
                     value={format}
-                    checked={settings.dateFormat === format as any}
-                    onChange={(e) => updateSetting('dateFormat', e.target.value as any)}
+                    checked={settings.dateFormat === format as 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD'}
+                    onChange={(e) => updateSetting('dateFormat', e.target.value as 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD')}
                     className="w-4 h-4"
                   />
                   <span className="text-sm text-slate-900 dark:text-white font-mono">
