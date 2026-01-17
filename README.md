@@ -93,6 +93,14 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## 📝 Changelog
 
+- **2026-01-18**: Complete Multi-Language (i18n) Implementation:
+  - Full support for 8 languages: English, Spanish, French, German, Chinese, Japanese, Portuguese, and Russian
+  - 2,000+ translated strings covering all UI sections
+  - Lightweight custom i18n system (no external dependencies, ~50KB total)
+  - Language switcher components with 4 variants (dropdown, grid, inline, compact)
+  - Persistent language preferences with localStorage
+  - Language selector integrated into Settings page
+  - Comprehensive documentation: [I18N_DOCUMENTATION.md](I18N_DOCUMENTATION.md), [I18N_INTEGRATION_GUIDE.md](I18N_INTEGRATION_GUIDE.md), [I18N_QUICK_REFERENCE.md](I18N_QUICK_REFERENCE.md)
 - **2026-01-17**: Launched Enhanced Settings Page with comprehensive account management:
   - Theme/appearance customization (light/dark/system modes)
   - Notification preferences with 6+ notification types
