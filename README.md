@@ -46,6 +46,7 @@ SpendGuard is a smart contract system that enables secure fund management throug
 - USDC & Token Deposits → [USDC_DEPOSIT_INTEGRATION.md](USDC_DEPOSIT_INTEGRATION.md)
 - Multi-Token Expansion → [MULTI_TOKEN_EXPANSION.md](MULTI_TOKEN_EXPANSION.md)
 - **GovDao Governance** → [GOVDAO_DOCUMENTATION.md](GOVDAO_DOCUMENTATION.md)
+- **Spending Analytics & Dashboard** → [SPENDING_ANALYTICS_DOCUMENTATION.md](SPENDING_ANALYTICS_DOCUMENTATION.md)
 - Recovery System → [PHASE_11_COMPLETION_SUMMARY.md](PHASE_11_COMPLETION_SUMMARY.md)
 
 ---
@@ -68,6 +69,7 @@ SpendGuard is a smart contract system that enables secure fund management throug
 | USDC & Token Deposits | [USDC_DEPOSIT_INTEGRATION.md](USDC_DEPOSIT_INTEGRATION.md) |
 | Multi-Token Expansion & Price Feeds | [MULTI_TOKEN_EXPANSION.md](MULTI_TOKEN_EXPANSION.md) |
 | **GovDao Governance System** | **[GOVDAO_DOCUMENTATION.md](GOVDAO_DOCUMENTATION.md)** |
+| **Spending Analytics & Dashboard** | **[SPENDING_ANALYTICS_DOCUMENTATION.md](SPENDING_ANALYTICS_DOCUMENTATION.md)** |
 | Vault Recovery System | [PHASE_11_COMPLETION_SUMMARY.md](PHASE_11_COMPLETION_SUMMARY.md) |
 | Custom Features (Messages & Roles) | [CUSTOM_FEATURES_IMPLEMENTATION.md](CUSTOM_FEATURES_IMPLEMENTATION.md) |
 | Enhanced Withdrawal Messages | [ENHANCED_WITHDRAWAL_MESSAGES.md](ENHANCED_WITHDRAWAL_MESSAGES.md) |
@@ -96,6 +98,7 @@ SpendGuard is a smart contract system that enables secure fund management throug
 | USDC & Multi-Token Deposits | ✅ Complete | 100% | [USDC_DEPOSIT_INTEGRATION.md](USDC_DEPOSIT_INTEGRATION.md) |
 | Multi-Token Expansion & Price Feeds | ✅ Complete | 100% | [MULTI_TOKEN_EXPANSION.md](MULTI_TOKEN_EXPANSION.md) |
 | **GovDao Governance System** | **✅ Complete** | **100%** | **[GOVDAO_DOCUMENTATION.md](GOVDAO_DOCUMENTATION.md)** |
+| **Spending Analytics & Dashboard** | **✅ Complete** | **100%** | **[SPENDING_ANALYTICS_DOCUMENTATION.md](SPENDING_ANALYTICS_DOCUMENTATION.md)** |
 | **Future Features** | 🔄 Proposed | — | [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md) |
 | Guardian Reputation System | 🔄 Proposed | — | [#1](https://github.com/cryptonique0/spenednsave/issues/1) |
 | Multi-Token Batching | 🔄 Proposed | — | [#2](https://github.com/cryptonique0/spenednsave/issues/2) |
@@ -622,6 +625,71 @@ SpendGuard includes a sophisticated governance DAO where users gain voting power
 - Real-time governance metrics
 
 **Learn More:** [GOVDAO_DOCUMENTATION.md](GOVDAO_DOCUMENTATION.md) - Complete voting system documentation | [GOVDAO_QUICKREF.md](GOVDAO_QUICKREF.md) - Quick reference for developers | [GOVDAO_INTEGRATION_GUIDE.md](GOVDAO_INTEGRATION_GUIDE.md) - Backend integration guide
+
+---
+
+### 📊 Spending Analytics & Dashboard
+
+SpendGuard includes comprehensive spending analytics to track, analyze, and optimize your financial patterns:
+
+**Core Analytics Features:**
+- **12 Spending Categories**: Pre-configured categories (Rent, Food, Utilities, Transportation, Entertainment, Healthcare, Shopping, Education, Savings, Investment, Business, Other)
+- **Real-Time Tracking**: Track all spending across categories with USD conversions
+- **Historical Trends**: 30-day spending trends with 7-day and 30-day moving averages
+- **Budget Management**: Set daily, weekly, and monthly budgets per category
+- **Category Breakdown**: Visual pie/donut chart showing spending distribution
+- **Transaction Details**: Expandable transaction lists with descriptions and dates
+
+**Advanced Analytics:**
+- **Velocity Warnings**: Smart alerts when spending approaches or exceeds budgets with 3 severity levels
+  - 🟢 **SAFE** (< 75% of budget) - Continue normally
+  - 🟡 **WARNING** (75-100% of budget) - Reduce spending
+  - 🔴 **CRITICAL** (> 100% of budget) - Take immediate action
+- **Budget Comparisons**: Side-by-side actual vs budgeted spending with remaining amounts
+- **Spending Statistics**: Total spent, daily/weekly/monthly averages, largest transactions
+- **Projected Spending**: Forecast end-of-period totals based on current velocity
+- **Trend Analysis**: Identify behavioral patterns and seasonal spending variations
+
+**Dashboard Components:**
+- **Key Statistics Cards**: Total spent, daily average, largest transaction, active categories
+- **Alert Section**: Highlighted warnings for budget overruns with actionable recommendations
+- **Category Breakdown**: Detailed spending by category with progress bars
+- **Spending Trends**: Historical chart with moving averages and trend analysis
+- **Velocity Alerts**: Detailed warnings with budget status and projections
+- **Budget Comparison**: Full budget vs actual comparison for all categories
+
+**Time Period Analysis:**
+- **Daily**: Day-by-day breakdown with daily budgets
+- **Weekly**: 7-day summaries with weekly budgets
+- **Monthly**: Month-by-month analysis with monthly budgets
+- **Custom Ranges**: Filter by specific date ranges
+
+**Data Persistence:**
+- **localStorage Storage**: All data persists in browser for offline access
+- **Export Ready**: Data structure supports future CSV/PDF export
+- **Real-Time Updates**: Automatic calculations as data changes
+
+**Developer Features:**
+- **11 React Hooks**: `useSpendingData()`, `useSpendingBudgets()`, `useSpendingSummary()`, `useSpendingByCategory()`, `useSpendingTrends()`, `useBudgetComparison()`, `useVelocityWarnings()`, `useSpendingStats()`, `useCategoryDetails()`, and more
+- **500+ Lines of Core Logic**: Comprehensive calculation functions for all analytics
+- **Type-Safe**: 100% TypeScript with full type definitions
+- **Modular Components**: 5 reusable UI components for easy integration
+
+**Access:**
+- **User Access**: Navigate to `/analytics` → Click "Spending Analytics" tab
+- **Components**: Import from `@/components/analytics/` directory
+- **Hooks**: Import from `@/lib/hooks/useSpendingAnalytics`
+- **Core Library**: Import from `@/lib/spending-analytics`
+
+**Use Cases:**
+- 💰 Monitor personal spending patterns and trends
+- 📈 Identify high-spending categories for optimization
+- ⚠️ Get alerts before exceeding budgets
+- 📊 Make data-driven financial decisions
+- 💡 Understand seasonal spending variations
+- 🎯 Plan future budgets based on historical data
+
+**Learn More:** [SPENDING_ANALYTICS_DOCUMENTATION.md](SPENDING_ANALYTICS_DOCUMENTATION.md) - Complete documentation with examples | [SPENDING_ANALYTICS_QUICKREF.md](SPENDING_ANALYTICS_QUICKREF.md) - Quick reference guide for developers
 
 ---
 
