@@ -27,7 +27,11 @@ export function TokenDistributionChart() {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ percentage }) => `${percentage}%`}
+              label={(entry: any) => {
+                const total = tokenData.reduce((sum, item) => sum + item.value, 0);
+                const percent = ((entry.value / total) * 100).toFixed(0);
+                return `${percent}%`;
+              }}
               outerRadius={120}
               fill="#8884d8"
               dataKey="value"

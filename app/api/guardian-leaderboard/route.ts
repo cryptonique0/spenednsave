@@ -54,7 +54,7 @@ function computeLeaderboard(activities: any[]) {
 
 export async function GET() {
   try {
-    const activities = GuardianSignatureDB.getAllActivities();
+    const activities = await GuardianSignatureDB.getAllActivities();
     const leaderboard = computeLeaderboard(activities);
     return NextResponse.json(leaderboard);
   } catch (err) {
