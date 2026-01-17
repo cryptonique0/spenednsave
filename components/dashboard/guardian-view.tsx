@@ -5,9 +5,10 @@ import { AvatarBlockie } from "@/components/ui/avatar-blockie";
 import { useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { useScheduledWithdrawals } from "@/lib/hooks/useScheduledWithdrawals";
+import { publicClient } from "@/lib/publicClient";
+import { createPublicClient, http } from "viem";
+import { baseSepolia } from "viem/chains";
 
-import { Contract } from "ethers";
-import { JsonRpcProvider } from "@ethersproject/providers";
 // import GuardianSBT ABI and address
 import GuardianSBTABI from "@/lib/abis/GuardianSBT.json";
 
@@ -42,13 +43,21 @@ function GuardianView({ badgeData }: { badgeData?: any }) {
         async function fetchVaults() {
             if (!address || !GUARDIAN_SBT_ADDRESS) return;
             try {
-                // Use ethers.js to call getVaultsForGuardian
-                const provider = new JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
-                const contract = new Contract(GUARDIAN_SBT_ADDRESS, GuardianSBTABI, provider);
+                // Use viem to read from contract
+                const client = createPublicClient({
+                    chain: baseSepolia,
+                    transport: http(),
+                });
+                
                 // This call may fail if the ABI or contract is not correct, so wrap in try/catch
                 // If not implemented, just set empty
                 try {
-                    await contract.getVaultsForGuardian(address);
+                    await client.readContract({
+                        address: GUARDIAN_SBT_ADDRESS as `0x${string}`,
+                        abi: GuardianSBTABI as any,
+                        functionName: 'getVaultsForGuardian',
+                        args: [address],
+                    });
                 } catch {
                     // fallback: not implemented
                 }
