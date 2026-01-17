@@ -60,6 +60,7 @@ export function Navbar() {
                             { name: "Activity", href: "/activity" },
                             { name: "Emergency", href: "/emergency" },
                             { name: "Updates", href: "/updates" },
+                            { name: "Referrals", href: "/referral-program" },
                             { name: "Blog", href: "/blog" },
                             { name: "Support", href: "/support" },
                         ].map((link) => {

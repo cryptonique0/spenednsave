@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { SmartSuggestionsCompact } from "@/components/smart-suggestions";
 import { Mail, MessageSquare, Github, HelpCircle, Zap, Shield } from "lucide-react";
 
 export default function SupportPage() {
@@ -87,7 +88,23 @@ export default function SupportPage() {
 
                     {/* FAQ Section */}
                     <div className="mb-12">
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Frequently Asked Questions</h2>
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Frequently Asked Questions</h2>
+                        </div>
+
+                        {/* Smart Suggestions */}
+                        <div className="mb-8">
+                            <SmartSuggestionsCompact
+                              userContext={{
+                                isNewUser: false,
+                                hasSetSpendingLimits: false,
+                                hasSetTimelock: false,
+                                isSecurityAware: false,
+                                referralProgram: false
+                              }}
+                              limit={3}
+                            />
+                        </div>
                         
                         <div className="space-y-4">
                             {/* FAQ Item 1 */}
