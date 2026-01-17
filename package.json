@@ -28,6 +28,7 @@
     "react-datepicker": "^9.1.0",
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
+    "recharts": "^3.6.0",
     "tailwind-merge": "^3.4.0",
     "viem": "^2.43.3",
     "wagmi": "^2.19.5"
