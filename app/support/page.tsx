@@ -19,7 +19,7 @@ export default function SupportPage() {
                     </div>
 
                     {/* Quick Links */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                         {/* Email Support */}
                         <a href="mailto:support@spendguard.io" className="group">
                             <div className="h-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6 hover:shadow-lg transition-all">
@@ -64,6 +64,22 @@ export default function SupportPage() {
                                 </p>
                                 <div className="text-primary font-semibold text-sm group-hover:underline">
                                     Open an Issue →
+                                </div>
+                            </div>
+                        </a>
+
+                        {/* Security Advisories */}
+                        <a href="/security-advisories" className="group">
+                            <div className="h-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-border rounded-2xl p-6 hover:shadow-lg transition-all">
+                                <div className="size-12 rounded-xl bg-red-100 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 mb-4 group-hover:scale-110 transition-transform">
+                                    <Shield size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Security Advisories</h3>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                                    View security updates and advisories
+                                </p>
+                                <div className="text-primary font-semibold text-sm group-hover:underline">
+                                    View Advisories →
                                 </div>
                             </div>
                         </a>
