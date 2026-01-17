@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Moon, Lock, Wallet, User, Activity, Box, Shield, Download } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Lock, Wallet, User, Activity, Box, Shield, Download, Smartphone, AlertCircle } from 'lucide-react';
 import { ThemeToggle } from '@/components/settings/theme-toggle';
 import { NotificationPreferences } from '@/components/notifications/notification-preferences';
 import { SecuritySettings } from '@/components/settings/security-settings';
@@ -13,14 +13,20 @@ import { VaultTransfer } from '@/components/settings/vault-transfer';
 import { VaultAnalytics } from '@/components/settings/vault-analytics';
 import { ActivityLogComponent } from '@/components/activity/activity-log-component';
 import { VaultTemplatesComponent } from '@/components/vault-setup/vault-templates-component';
+import { TwoFactorSetupComponent } from '@/components/auth/two-factor-setup';
+import { PresetSelectorComponent } from '@/components/vault-setup/preset-selector';
 import { createSampleActivityLogs } from '@/lib/services/activity/activity-log-types';
 import { VaultTemplate } from '@/lib/services/vault/vault-templates-service';
+import { VaultPresetConfig } from '@/lib/services/vault/vault-presets';
 import { useAccount } from 'wagmi';
 
 export default function SettingsPage() {
   const { address } = useAccount();
   const [activeTab, setActiveTab] = useState("appearance");
   const [selectedTemplate, setSelectedTemplate] = useState<VaultTemplate | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<VaultPresetConfig | null>(null);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [showTwoFactorSetup, setShowTwoFactorSetup] = useState(false);
   const activityLogs = createSampleActivityLogs();
 
   // Handle tab from URL params if provided
@@ -50,7 +56,7 @@ export default function SettingsPage() {
 
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-8 bg-card border border-border">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-9 mb-8 bg-card border border-border overflow-x-auto">
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Moon className="w-4 h-4" />
               <span className="hidden sm:inline">Appearance</span>
@@ -65,6 +71,11 @@ export default function SettingsPage() {
               <Lock className="w-4 h-4" />
               <span className="hidden sm:inline">Security</span>
               <span className="sm:hidden">Safe</span>
+            </TabsTrigger>
+            <TabsTrigger value="two-factor" className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden sm:inline">2FA</span>
+              <span className="sm:hidden">2FA</span>
             </TabsTrigger>
             <TabsTrigger value="wallets" className="flex items-center gap-2">
               <Wallet className="w-4 h-4" />
@@ -85,6 +96,11 @@ export default function SettingsPage() {
               <Box className="w-4 h-4" />
               <span className="hidden sm:inline">Templates</span>
               <span className="sm:hidden">Tmp</span>
+            </TabsTrigger>
+            <TabsTrigger value="vault-presets" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Presets</span>
+              <span className="sm:hidden">Pre</span>
             </TabsTrigger>
           </TabsList>
 
@@ -107,6 +123,107 @@ export default function SettingsPage() {
             <div className="bg-card border border-border rounded-lg p-6">
               <SecuritySettings />
             </div>
+          </TabsContent>
+
+          {/* Two-Factor Authentication Tab */}
+          <TabsContent value="two-factor" className="space-y-6">
+            {showTwoFactorSetup ? (
+              <div className="bg-card border border-border rounded-lg p-6">
+                <TwoFactorSetupComponent
+                  onComplete={(config) => {
+                    setTwoFactorEnabled(true);
+                    setShowTwoFactorSetup(false);
+                  }}
+                  onCancel={() => setShowTwoFactorSetup(false)}
+                />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* 2FA Status */}
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">
+                        Two-Factor Authentication
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Add an extra layer of security to your account
+                      </p>
+                    </div>
+                    <div
+                      className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        twoFactorEnabled
+                          ? 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-400'
+                          : 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-400'
+                      }`}
+                    >
+                      {twoFactorEnabled ? '✓ Enabled' : '○ Disabled'}
+                    </div>
+                  </div>
+
+                  {/* Warning */}
+                  {!twoFactorEnabled && (
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg mb-6 flex gap-3">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-yellow-900 dark:text-yellow-100">Recommended</p>
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
+                          Enabling 2FA significantly improves your account security. We strongly recommend setting it up.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2FA Methods Info */}
+                  <div className="space-y-4 mb-6">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-50">Available Methods</h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <p className="font-medium text-gray-900 dark:text-gray-50 mb-2">Authenticator App</p>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Most secure. Use Google Authenticator, Authy, or similar.
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400">✓ Recommended</p>
+                      </div>
+                      <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <p className="font-medium text-gray-900 dark:text-gray-50 mb-2">SMS</p>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Quick to set up. Receive codes via text message.
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">⚠ Standard</p>
+                      </div>
+                      <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <p className="font-medium text-gray-900 dark:text-gray-50 mb-2">Email</p>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Easy fallback. Receive codes to your email.
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">○ Backup</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Setup Button */}
+                  <button
+                    onClick={() => setShowTwoFactorSetup(true)}
+                    className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition font-medium"
+                  >
+                    {twoFactorEnabled ? 'Manage 2FA' : 'Enable 2FA Now'}
+                  </button>
+                </div>
+
+                {/* Best Practices */}
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-6">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">🔐 Security Best Practices</h3>
+                  <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                    <li>✓ Use authenticator apps instead of SMS when possible - they are more secure</li>
+                    <li>✓ Store backup codes in a secure location, not in email</li>
+                    <li>✓ Enable 2FA on all accounts with sensitive data</li>
+                    <li>✓ Never share your 2FA codes with anyone</li>
+                    <li>✓ Regularly review trusted devices and remove old ones</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Wallets Tab */}
@@ -300,6 +417,89 @@ export default function SettingsPage() {
 
                 <button className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition font-medium">
                   Deploy This Template
+                </button>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Vault Presets Tab */}
+          <TabsContent value="vault-presets" className="space-y-6">
+            <div className="bg-card border border-border rounded-lg p-6">
+              <PresetSelectorComponent
+                onSelectPreset={setSelectedPreset}
+                selectedPresetId={selectedPreset?.id}
+              />
+            </div>
+
+            {/* Selected Preset Details */}
+            {selectedPreset && (
+              <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">{selectedPreset.name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedPreset.description}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPreset(null)}
+                    className="text-muted-foreground hover:text-foreground transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Setup Time</p>
+                    <p className="font-semibold">{selectedPreset.setupTime}m</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Guardians</p>
+                    <p className="font-semibold">{selectedPreset.guardianCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Approval</p>
+                    <p className="font-semibold">{selectedPreset.approvalThreshold}/{selectedPreset.guardianCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Risk Level</p>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        selectedPreset.riskLevel === 'low'
+                          ? 'bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-400'
+                          : selectedPreset.riskLevel === 'medium'
+                            ? 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-400'
+                            : 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-400'
+                      }`}
+                    >
+                      {selectedPreset.riskLevel}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="font-semibold text-blue-900 dark:text-blue-100 mb-3">✓ Key Features</p>
+                  <ul className="space-y-2">
+                    {selectedPreset.features.map((feature, i) => (
+                      <li key={i} className="text-sm text-blue-800 dark:text-blue-200">
+                        • {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="font-semibold text-amber-900 dark:text-amber-100 mb-3">💡 Best Practices</p>
+                  <ul className="space-y-2">
+                    {selectedPreset.bestPractices.slice(0, 5).map((practice, i) => (
+                      <li key={i} className="text-sm text-amber-800 dark:text-amber-200">
+                        • {practice}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition font-medium">
+                  Deploy {selectedPreset.name}
                 </button>
               </div>
             )}
