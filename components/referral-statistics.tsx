@@ -2,7 +2,6 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, DollarSign, Target } from 'lucide-react';
-import { useState } from 'react';
 
 interface ReferralStats {
   totalReferrals: number;
@@ -19,10 +18,6 @@ interface ReferralChannelData {
   conversions: number;
   revenue: number;
   conversionRate: number;
-}
-
-interface ReferralStatisticsProps {
-  timeRange?: 'week' | 'month' | 'year';
 }
 
 const CHART_DATA = [
@@ -79,7 +74,7 @@ const CHANNEL_DISTRIBUTION = [
   { name: 'Direct', value: 8, color: '#F59E0B' },
 ];
 
-export function ReferralStatistics({ timeRange = 'month' }: ReferralStatisticsProps) {
+export function ReferralStatistics() {
   // timeRange prop reserved for future time period filtering
 
   // Calculate statistics
@@ -266,7 +261,7 @@ export function ReferralStatistics({ timeRange = 'month' }: ReferralStatisticsPr
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) =>
+                  label={({ name, percent = 0 }) =>
                     `${name} ${(percent * 100).toFixed(0)}%`
                   }
                   outerRadius={100}

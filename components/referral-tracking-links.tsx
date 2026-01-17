@@ -62,7 +62,7 @@ const SAMPLE_LINKS: ReferralLink[] = [
   }
 ];
 
-export function ReferralTrackingLinks(): JSX.Element {
+export function ReferralTrackingLinks() {
   const [links, setLinks] = useState<ReferralLink[]>(SAMPLE_LINKS);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [newLinkLabel, setNewLinkLabel] = useState('');

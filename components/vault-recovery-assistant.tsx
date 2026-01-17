@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageCircle, Send, AlertCircle, CheckCircle, Clock, Shield, RotateCcw, Key, Lock } from 'lucide-react';
+import { Send, AlertCircle, CheckCircle, Clock, Shield, RotateCcw } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -69,18 +69,17 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   }
 ];
 
-export function VaultRecoveryAssistant({ vaultId }: VaultRecoveryAssistantProps) {
+export function VaultRecoveryAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [inputValue, setInputValue] = useState('');
   const [recoverySteps] = useState<RecoveryStep[]>(SAMPLE_RECOVERY_STEPS);
-  const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user-${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
       content: inputValue,
       timestamp: new Date()
@@ -93,7 +92,7 @@ export function VaultRecoveryAssistant({ vaultId }: VaultRecoveryAssistantProps)
     // Simulate AI response
     setTimeout(() => {
       const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `assistant-${Math.random().toString(36).substr(2, 9)}`,
         role: 'assistant',
         content: generateAssistantResponse(inputValue),
         timestamp: new Date(),
@@ -213,7 +212,6 @@ export function VaultRecoveryAssistant({ vaultId }: VaultRecoveryAssistantProps)
                   <div
                     key={step.id}
                     className="cursor-pointer group"
-                    onClick={() => setCurrentStep(idx + 1)}
                   >
                     <div className={`p-4 rounded-lg border transition-all ${
                       step.status === 'completed'

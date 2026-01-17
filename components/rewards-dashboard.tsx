@@ -95,7 +95,7 @@ const SAMPLE_REWARDS: Reward[] = [
   }
 ];
 
-export function RewardsDashboard(): JSX.Element {
+export function RewardsDashboard() {
   const [rewards] = useState<Reward[]>(SAMPLE_REWARDS);
   const [filterType, setFilterType] = useState<'all' | 'pending' | 'credited' | 'redeemed'>('all');
 

@@ -252,10 +252,10 @@ export default function ReferralProgramPage() {
               </div>
             )}
 
-            {activeTab === 'tracking' && <ReferralTrackingLinks userCode="REF_USER001" />}
+            {activeTab === 'tracking' && <ReferralTrackingLinks />}
             {activeTab === 'rewards' && <RewardsDashboard />}
-            {activeTab === 'statistics' && <ReferralStatistics timeRange="month" />}
-            {activeTab === 'recovery' && <VaultRecoveryAssistant vaultId="VAULT_001" />}
+            {activeTab === 'statistics' && <ReferralStatistics />}
+            {activeTab === 'recovery' && <VaultRecoveryAssistant />}
           </div>
         </div>
       </main>
