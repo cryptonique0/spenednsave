@@ -631,6 +631,118 @@ export class TwoFactorAuthService {
       'Review 2FA logs and security events regularly'
     ];
   }
+
+  /**
+   * Initialize WebAuthn (FIDO2) security key setup
+   * Returns registration challenge for browser API
+   */
+  static async initializeWebAuthnSetup(
+    userId: string,
+    userName: string,
+    userDisplayName: string
+  ): Promise<{ challenge: string; expiresIn: number }> {
+    // Generate cryptographically random challenge
+    const challenge = this.generateWebAuthnChallenge();
+
+    // Store temporarily for verification (with expiry)
+    this.storeTempWebAuthnChallenge(userId, challenge, TWO_FACTOR_DEFAULTS.webauthnTimeout / 1000);
+
+    return {
+      challenge,
+      expiresIn: TWO_FACTOR_DEFAULTS.webauthnTimeout
+    };
+  }
+
+  /**
+   * Complete WebAuthn credential registration
+   */
+  static async completeWebAuthnRegistration(
+    userId: string,
+    credentialId: string,
+    publicKey: string,
+    deviceName: string,
+    transports?: string[]
+  ): Promise<{ success: boolean; credentialId: string }> {
+    // In production: verify credential format and store in database
+    // - Verify attestation (if needed)
+    // - Store public key securely
+    // - Hash credential ID for fast lookup
+    // - Encrypt sensitive data
+
+    // Record security event
+    this.logSecurityEvent({
+      userId,
+      eventType: 'webauthn_registered',
+      method: 'webauthn',
+      timestamp: new Date(),
+      ipAddress: '', // Would come from request context
+      userAgent: '', // Would come from request context
+      details: { deviceName, transports },
+      severity: 'info'
+    });
+
+    return {
+      success: true,
+      credentialId
+    };
+  }
+
+  /**
+   * Get registered WebAuthn credentials for a user
+   */
+  static async getWebAuthnCredentials(userId: string): Promise<Array<{
+    id: string;
+    deviceName: string;
+    registeredAt: Date;
+    lastUsedAt?: Date;
+  }>> {
+    // In production: fetch from database
+    return [];
+  }
+
+  /**
+   * Remove a WebAuthn credential
+   */
+  static async removeWebAuthnCredential(userId: string, credentialId: string): Promise<void> {
+    // In production: remove from database
+    
+    this.logSecurityEvent({
+      userId,
+      eventType: 'webauthn_removed',
+      method: 'webauthn',
+      timestamp: new Date(),
+      ipAddress: '',
+      userAgent: '',
+      details: { credentialId },
+      severity: 'info'
+    });
+  }
+
+  /**
+   * Generate WebAuthn challenge
+   */
+  private static generateWebAuthnChallenge(): string {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  /**
+   * Store temporary WebAuthn challenge
+   */
+  private static storeTempWebAuthnChallenge(
+    userId: string,
+    challenge: string,
+    expirySeconds: number
+  ): void {
+    // In production: store in session/cache with TTL
+    // sessionStorage.setItem(`webauthn_challenge_${userId}`, JSON.stringify({
+    //   challenge,
+    //   expiresAt: Date.now() + (expirySeconds * 1000)
+    // }));
+  }
 }
 
 export default TwoFactorAuthService;

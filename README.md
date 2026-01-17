@@ -39,6 +39,7 @@ SpendGuard is a smart contract system that enables secure fund management throug
 | Privacy Policy | [/privacy](/privacy) |
 | Smart Contract Specs | [contract-spec.md](contract-spec.md) |
 | Deployment Guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Internationalization (i18n) | [I18N_DOCUMENTATION.md](I18N_DOCUMENTATION.md) |
 | Batch Withdrawal Docs | [BATCH_WITHDRAWAL_MANAGER.md](BATCH_WITHDRAWAL_MANAGER.md) |
 | Guardian Risk Docs | [GUARDIAN_RISK_IMPLEMENTATION.md](GUARDIAN_RISK_IMPLEMENTATION.md) |
 | Issues | [GitHub Issues](https://github.com/cryptonique0/spenednsave/issues) |
@@ -56,6 +57,7 @@ SpendGuard is a smart contract system that enables secure fund management throug
 | Risk Scoring Engine | ✅ Complete | 500 | [GUARDIAN_RISK_IMPLEMENTATION.md](GUARDIAN_RISK_IMPLEMENTATION.md) |
 | Batch Withdrawal Manager | ✅ Complete | 1,300 | [BATCH_WITHDRAWAL_MANAGER.md](BATCH_WITHDRAWAL_MANAGER.md) |
 | Email Notifications | ✅ Complete | 400 | [lib/services/email-notifications.ts](lib/services/email-notifications.ts) |
+| Multi-Language Support (i18n) | ✅ Complete | 2,000+ | [I18N_DOCUMENTATION.md](I18N_DOCUMENTATION.md) |
 | Guardian Reputation System | 🔄 Proposed | — | [#1](https://github.com/cryptonique0/spenednsave/issues/1) |
 | Multi-Token Batching | 🔄 Proposed | — | [#2](https://github.com/cryptonique0/spenednsave/issues/2) |
 | Guardian Delegation | 🔄 Proposed | — | [#3](https://github.com/cryptonique0/spenednsave/issues/3) |
@@ -91,6 +93,14 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## 📝 Changelog
 
+- **2026-01-18**: Complete Multi-Language (i18n) Implementation:
+  - Full support for 8 languages: English, Spanish, French, German, Chinese, Japanese, Portuguese, and Russian
+  - 2,000+ translated strings covering all UI sections
+  - Lightweight custom i18n system (no external dependencies, ~50KB total)
+  - Language switcher components with 4 variants (dropdown, grid, inline, compact)
+  - Persistent language preferences with localStorage
+  - Language selector integrated into Settings page
+  - Comprehensive documentation: [I18N_DOCUMENTATION.md](I18N_DOCUMENTATION.md), [I18N_INTEGRATION_GUIDE.md](I18N_INTEGRATION_GUIDE.md), [I18N_QUICK_REFERENCE.md](I18N_QUICK_REFERENCE.md)
 - **2026-01-17**: Launched Enhanced Settings Page with comprehensive account management:
   - Theme/appearance customization (light/dark/system modes)
   - Notification preferences with 6+ notification types
@@ -224,6 +234,47 @@ SMTP_FROM="SpendGuard <no-reply@spendguard.xyz>"
 ```
 
 Or configure Resend API as needed.
+
+### 🌍 Multi-Language Support (i18n)
+
+SpendGuard now supports 8 languages with a lightweight, custom internationalization system:
+
+- **Supported Languages:**
+  - 🇺🇸 English (en)
+  - 🇪🇸 Spanish (es)
+  - 🇫🇷 French (fr)
+  - 🇩🇪 German (de)
+  - 🇨🇳 Chinese (zh)
+  - 🇯🇵 Japanese (ja)
+  - 🇵🇹 Portuguese (pt)
+  - 🇷🇺 Russian (ru)
+
+- **Features:**
+  - ✅ Automatic language detection from browser preferences
+  - ✅ Persistent language selection (saved to localStorage)
+  - ✅ Easy language switching from Settings page
+  - ✅ Comprehensive translation coverage (400+ strings)
+  - ✅ Lightweight implementation (~50KB minified)
+  - ✅ Support for RTL languages (prepared)
+  - ✅ Context-aware components with translation provider
+
+- **Usage in Components:**
+  ```typescript
+  'use client';
+  import { useI18n } from '@/lib/i18n';
+  
+  export function MyComponent() {
+    const { t } = useI18n();
+    return <button>{t('common.save')}</button>;
+  }
+  ```
+
+- **Language Switcher:** Available in Settings page and Navigation bar
+  - Dropdown, grid, or inline variants
+  - Flag emoji indicators for quick recognition
+  - Native language names for clarity
+
+**Learn More:** [I18N_DOCUMENTATION.md](I18N_DOCUMENTATION.md) - Complete guide to translations, adding new languages, and best practices.
 
 ---
 

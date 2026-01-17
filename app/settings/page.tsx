@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Moon, Lock, Wallet, User, Activity, Box, Shield, Download, Smartphone, AlertCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Moon, Lock, Wallet, User, Activity, Box, Shield, Download, Smartphone, AlertCircle, Globe } from 'lucide-react';
 import { ThemeToggle } from '@/components/settings/theme-toggle';
 import { NotificationPreferences } from '@/components/notifications/notification-preferences';
 import { SecuritySettings } from '@/components/settings/security-settings';
 import { WalletManagement } from '@/components/settings/wallet-management';
 import { AccountPreferences } from '@/components/settings/account-preferences';
 import { EmailPreferences } from '@/components/settings/email-preferences';
+import { LanguagePreferences } from '@/components/settings/language-preferences';
 import { VaultTransfer } from '@/components/settings/vault-transfer';
 import { VaultAnalytics } from '@/components/settings/vault-analytics';
 import { ActivityLogComponent } from '@/components/activity/activity-log-component';
@@ -101,6 +102,11 @@ export default function SettingsPage() {
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Presets</span>
               <span className="sm:hidden">Pre</span>
+            </TabsTrigger>
+            <TabsTrigger value="language" className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">Language</span>
+              <span className="sm:hidden">Lang</span>
             </TabsTrigger>
           </TabsList>
 
@@ -503,6 +509,13 @@ export default function SettingsPage() {
                 </button>
               </div>
             )}
+          </TabsContent>
+
+          {/* Language Tab */}
+          <TabsContent value="language" className="space-y-6">
+            <div className="bg-card border border-border rounded-lg p-6">
+              <LanguagePreferences />
+            </div>
           </TabsContent>
 
         {/* Additional Settings Sections */}

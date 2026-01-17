@@ -8,8 +8,9 @@
  * - totp: Time-based One-Time Password (authenticator apps)
  * - sms: SMS text message verification
  * - email: Email verification code
+ * - webauthn: Security keys (YubiKey, Windows Hello, Touch ID, etc.)
  */
-export type TwoFactorMethod = 'totp' | 'sms' | 'email';
+export type TwoFactorMethod = 'totp' | 'sms' | 'email' | 'webauthn';
 
 /**
  * 2FA Status
@@ -130,7 +131,7 @@ export interface BackupCodesInfo {
  */
 export interface TwoFactorSecurityEvent {
   userId: string;
-  eventType: 'setup_started' | 'setup_completed' | 'verification_success' | 'verification_failed' | 'backup_code_used' | 'method_removed' | 'backup_codes_regenerated' | 'device_trusted' | 'device_untrusted' | 'disabled' | 'account_locked';
+  eventType: 'setup_started' | 'setup_completed' | 'verification_success' | 'verification_failed' | 'backup_code_used' | 'method_removed' | 'backup_codes_regenerated' | 'device_trusted' | 'device_untrusted' | 'disabled' | 'account_locked' | 'webauthn_registered' | 'webauthn_verified' | 'webauthn_removed';
   method?: TwoFactorMethod;
   timestamp: Date;
   ipAddress: string;
@@ -273,7 +274,8 @@ export function getTwoFactorMethodName(method: TwoFactorMethod): string {
   const names: Record<TwoFactorMethod, string> = {
     totp: 'Authenticator App',
     sms: 'Text Message (SMS)',
-    email: 'Email'
+    email: 'Email',
+    webauthn: 'Security Key (WebAuthn)'
   };
   return names[method];
 }
@@ -285,7 +287,8 @@ export function getTwoFactorMethodIcon(method: TwoFactorMethod): string {
   const icons: Record<TwoFactorMethod, string> = {
     totp: 'Smartphone',
     sms: 'MessageSquare',
-    email: 'Mail'
+    email: 'Mail',
+    webauthn: 'KeyRound'
   };
   return icons[method];
 }
@@ -375,6 +378,25 @@ export const TWO_FACTOR_CONSTANTS = {
 };
 
 /**
+ * WebAuthn Credential - Registered security key information
+ */
+export interface WebAuthnCredential {
+  id: string; // Credential ID (public key)
+  rawId: string; // Base64-encoded credential ID
+  type: string; // 'public-key'
+  deviceName: string; // User-friendly name (e.g., "My YubiKey")
+  deviceType?: string; // Detected device type (e.g., "YubiKey", "Touch ID")
+  transports?: string[]; // Transport hints (usb, nfc, ble, internal)
+  counter: number; // Signature counter for clone detection
+  registeredAt: Date;
+  lastUsedAt?: Date;
+  backedUp: boolean; // Whether this credential is backed up
+  backupEligible: boolean; // Whether this credential is eligible for backup
+  aaguid?: string; // Authenticator AAGUID for device identification
+  publicKey?: string; // Base64-encoded public key (for server-side verification)
+}
+
+/**
  * 2FA Settings Defaults
  */
 export const TWO_FACTOR_DEFAULTS = {
@@ -383,5 +405,6 @@ export const TWO_FACTOR_DEFAULTS = {
   maxAttempts: 5,
   lockoutDuration: 15 * 60 * 1000, // 15 minutes
   setupTimeout: 10 * 60 * 1000, // 10 minutes
-  deviceTrustDuration: 30 * 24 * 60 * 60 * 1000 // 30 days
+  deviceTrustDuration: 30 * 24 * 60 * 60 * 1000, // 30 days
+  webauthnTimeout: 120000 // 2 minutes for WebAuthn operations
 };
