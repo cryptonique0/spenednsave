@@ -36,8 +36,27 @@ SpendGuard is a smart contract system that enables secure fund management throug
 | Frontend Code | [app/](app/), [components/](components/) |
 | Smart Contract Specs | [contract-spec.md](contract-spec.md) |
 | Deployment Guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Batch Withdrawal Docs | [BATCH_WITHDRAWAL_MANAGER.md](BATCH_WITHDRAWAL_MANAGER.md) |
+| Guardian Risk Docs | [GUARDIAN_RISK_IMPLEMENTATION.md](GUARDIAN_RISK_IMPLEMENTATION.md) |
 | Issues | [GitHub Issues](https://github.com/cryptonique0/spenednsave/issues) |
 | Feature Requests | [Discussions](https://github.com/cryptonique0/spenednsave/discussions) |
+
+### Implementation Status
+
+| Feature | Status | Lines of Code | Docs |
+|---------|--------|--------------|------|
+| Core Vault & Guardian Voting | ✅ Complete | 1,200 | [contract-spec.md](contract-spec.md) |
+| Spending Limits | ✅ Complete | 400 | [Contract](contracts/SpendVault.sol) |
+| Time-Locked Withdrawals | ✅ Complete | 500 | [TIME_LOCKS_SPEC.md](TIME_LOCKS_SPEC.md) |
+| Emergency Freeze Mechanism | ✅ Complete | 350 | [EMERGENCY_FREEZE_SPEC.md](EMERGENCY_FREEZE_SPEC.md) |
+| Guardian Activity Dashboard | ✅ Complete | 400 | [GUARDIAN_RISK_IMPLEMENTATION.md](GUARDIAN_RISK_IMPLEMENTATION.md) |
+| Risk Scoring Engine | ✅ Complete | 500 | [GUARDIAN_RISK_IMPLEMENTATION.md](GUARDIAN_RISK_IMPLEMENTATION.md) |
+| Batch Withdrawal Manager | ✅ Complete | 1,300 | [BATCH_WITHDRAWAL_MANAGER.md](BATCH_WITHDRAWAL_MANAGER.md) |
+| Email Notifications | ✅ Complete | 400 | [lib/services/email-notifications.ts](lib/services/email-notifications.ts) |
+| Guardian Reputation System | 🔄 Proposed | — | [#1](https://github.com/cryptonique0/spenednsave/issues/1) |
+| Multi-Token Batching | 🔄 Proposed | — | [#2](https://github.com/cryptonique0/spenednsave/issues/2) |
+| Guardian Delegation | 🔄 Proposed | — | [#3](https://github.com/cryptonique0/spenednsave/issues/3) |
+| Vault Recovery | 🔄 Proposed | — | [#4](https://github.com/cryptonique0/spenednsave/issues/4) |
 
 ---
 
@@ -73,6 +92,12 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 - **2026-01-16**: Added GuardianBadge and GuardianSBT contracts with comprehensive test coverage
 - **2026-01-15**: Email notification system integration with SMTP/Resend API support
 - **2026-01-14**: Fixed Activity Log total deposits calculation and display. Now always sums as `bigint` and shows up to 5 decimal places for ETH values.
+- **2026-01-13**: Multi-Sig Batch Withdrawal Manager fully implemented (650 lines contract, 400 lines hooks, 400 lines UI components)
+- **2026-01-10**: Risk Scoring Engine and Guardian Activity Dashboard launched
+- **2026-01-08**: Emergency Freeze mechanism with majority-based voting
+- **2026-01-05**: Time-locked withdrawals for large transactions
+- **2025-12-28**: Spending limits per token with temporal resets
+- **2025-12-20**: Initial v1.0 launch with core vault, guardian voting, and email notifications
 
 ## ✨ Features
 
@@ -874,6 +899,101 @@ npm run build
 # Start production server
 npm run start
 ```
+
+---
+
+## 🚀 Suggested Features for Enhancement
+
+Here are high-impact features that would significantly improve SpendGuard:
+
+### 1. **Guardian Reputation System** ⭐⭐⭐⭐⭐
+Implement an on-chain reputation system that rewards reliable guardians:
+- **Metrics**: Approval speed, response time, voting consistency
+- **On-Chain Badges**: NFT badges for milestones (100% approval rate, Fast responder, Trusted advisor)
+- **Reputation Score**: 0-1000 score visible on-chain and in dashboard
+- **Incentives**: Higher reputation guardians earn protocol rewards or fee discounts
+- **Penalty System**: Reputation decay for inactive guardians or policy violations
+- **Implementation**: Create `GuardianReputation.sol` contract + leaderboard UI
+
+### 2. **Advanced Multi-Token Batching** ⭐⭐⭐⭐
+Extend batch withdrawal manager to handle multiple tokens:
+- **Cross-Token Batches**: Bundle withdrawals of different tokens in single approval
+- **Rebalancing Batches**: Automatically convert tokens during withdrawal (DEX integration)
+- **Liquidity Aggregation**: Best-rate swaps across DEXs (1inch, Curve, Uniswap)
+- **Atomic Swaps**: Execute swaps + transfers in single transaction
+- **Implementation**: Add DEX routing, update `BatchWithdrawalManager.sol`, new UI component
+
+### 3. **Guardian Delegation & Proxy Voting** ⭐⭐⭐⭐
+Allow guardians to delegate voting power to trusted representatives:
+- **Temporary Delegation**: Guardian A delegates to Guardian B for 30 days (travel, busy)
+- **Partial Delegation**: Delegate only certain approval types (low-risk, emergency-only)
+- **Delegation Chain**: Up to 2-level delegation chains to prevent loop vulnerabilities
+- **Revocation**: Can revoke delegation anytime
+- **Transparency**: Full audit trail of delegations shown in dashboard
+- **Implementation**: Add delegation state to `GuardianSBT.sol`, update voting logic
+
+### 4. **Multisig Vault Recovery** ⭐⭐⭐⭐
+Enable recovery of vaults when owner becomes unresponsive:
+- **Recovery Proposal**: Guardians can initiate recovery if owner dormant for 180+ days
+- **Voting Requirements**: 75%+ guardian consensus required
+- **Recovery Phases**: 14-day voting period, 7-day execution window
+- **New Owner Assignment**: Rotating owner role among senior guardians (optional)
+- **Safety Measures**: Previous owner can reclaim within 30 days if re-active
+- **Implementation**: New recovery module, event logging, legal disclaimers
+
+### 5. **Automated Payroll & Subscriptions** ⭐⭐⭐⭐
+Enable recurring payments and subscriptions directly from vaults:
+- **Recurring Withdrawals**: Set up monthly/weekly payments to recipients
+- **Smart Scheduling**: Calendar-based scheduling with guardian pre-approval
+- **Subscription Management**: Track active subscriptions, modify/cancel anytime
+- **Batch Scheduling**: Pre-approve 12 months of payroll payments at once
+- **Automation Limits**: Max per-subscription, total per month enforcement
+- **Implementation**: `SubscriptionVault.sol` extension, cron-like UI
+
+### 6. **Cross-Chain Vault Management** ⭐⭐⭐⭐
+Sync vault state and governance across multiple blockchains:
+- **Multi-Chain Deployment**: Deploy same vault on Ethereum, Optimism, Arbitrum
+- **Unified Dashboard**: Single UI to manage vaults across all chains
+- **Cross-Chain Messaging**: LayerZero or Wormhole for state sync
+- **Atomic Withdrawal**: Execute withdrawal on one chain, mirror on others
+- **Unified Governance**: Single guardian set votes across all chains
+- **Implementation**: Bridge contracts, IBC integration, new dashboard tabs
+
+### 7. **Advanced Risk Analytics** ⭐⭐⭐⭐
+Expand risk scoring with ML-powered anomaly detection:
+- **Behavioral Analysis**: ML model trained on guardian approval patterns
+- **Anomaly Scoring**: Detect unusual approval combinations (guardian X never approves with Y)
+- **Threat Intelligence**: Integrate Chainalysis/TRM for address reputation
+- **Phishing Detection**: Flag if withdrawal goes to recently flagged address
+- **Historical Backtesting**: "What if" analysis of withdrawal patterns
+- **Implementation**: Python ML backend, enhanced dashboard visualizations
+
+### 8. **Decentralized Governance Module** ⭐⭐⭐
+Enable community voting on vault parameters:
+- **Parameter Voting**: Guardians vote on spending limits, timelock durations
+- **Proposal System**: Create proposals for vault policy changes
+- **Weighted Voting**: Senior guardians get higher voting weight (optional)
+- **Governance Tokens**: Issue non-transferable voting tokens tied to guardianship
+- **Historical Record**: Track all governance decisions on-chain
+- **Implementation**: `GovernanceModule.sol`, proposal tracker UI
+
+### 9. **Guardian Insurance Pool** ⭐⭐⭐
+Insurance mechanism protecting against guardian misconduct:
+- **Insurance Fund**: Collateral pool funded by vault fees (0.1-0.5% annual)
+- **Slashing**: Insurance covers losses from guardian collusion/theft
+- **Claims Process**: Owners can claim if guardians collude to steal funds
+- **Underwriting**: Guardian reputation used for insurance premiums
+- **Yield Generation**: Insurance pool assets earn yield on Aave/Lido
+- **Implementation**: `InsurancePool.sol`, claims management dashboard
+
+### 10. **Social Recovery & Account Abstraction** ⭐⭐⭐
+Integrate with latest AA standards for enhanced UX:
+- **ERC-4337 Support**: Use Account Abstraction for paymaster-sponsored txs
+- **Session Keys**: Guardians get time-limited session keys (30-day expiry)
+- **Batch Operations**: Multiple actions in single signature via Account Abstraction
+- **Gas Sponsorship**: Vault subsidizes guardian transaction fees
+- **Portable Identity**: Guardians keep their identity across multiple vaults
+- **Implementation**: Use Biconomy/Pimlico, new account recovery flows
 
 ---
 
