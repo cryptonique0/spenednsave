@@ -57,7 +57,7 @@ export function BatchWithdrawalCreator({ vaultAddress, batchManagerAddress, user
       ...items,
       {
         token: newItem.token,
-        amount: newItem.amount,
+        amount: newItem.amount || 0n,
         recipient: newItem.recipient as Address,
         reason: newItem.reason,
         category: newItem.category || 'general',
@@ -419,5 +419,3 @@ export function BatchDetailsView({ batchId, batchManagerAddress }: { batchId: bi
     </div>
   );
 }
-
-export { BatchWithdrawalCreator, BatchDetailsView };

@@ -166,7 +166,7 @@ export function useRevokeBatchApproval(batchManagerAddress: Address) {
 export function useExecuteBatch(batchManagerAddress: Address) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { writeContractAsync } = writeContractAsync();
+  const { writeContractAsync: executeWriteContract } = useWriteContract();
 
   const executeBatch = useCallback(
     async (batchId: bigint) => {
@@ -174,7 +174,7 @@ export function useExecuteBatch(batchManagerAddress: Address) {
       setError(null);
 
       try {
-        const hash = await writeContractAsync({
+        const hash = await executeWriteContract({
           address: batchManagerAddress,
           abi: BATCH_MANAGER_ABI,
           functionName: 'executeBatch',
@@ -190,7 +190,7 @@ export function useExecuteBatch(batchManagerAddress: Address) {
         setIsLoading(false);
       }
     },
-    [batchManagerAddress, writeContractAsync]
+    [batchManagerAddress, executeWriteContract]
   );
 
   return { executeBatch, isLoading, error };
@@ -237,7 +237,7 @@ export function useBatchDetails(batchManagerAddress: Address, batchId: bigint | 
     abi: BATCH_MANAGER_ABI,
     functionName: 'getBatch',
     args: batchId !== null ? [batchId] : undefined,
-    enabled: batchId !== null
+    query: { enabled: batchId !== null }
   });
 
   const batch: WithdrawalBatch | null = batchData
@@ -265,7 +265,7 @@ export function useBatchItems(batchManagerAddress: Address, batchId: bigint | nu
     abi: BATCH_MANAGER_ABI,
     functionName: 'getBatchItems',
     args: batchId !== null ? [batchId] : undefined,
-    enabled: batchId !== null
+    query: { enabled: batchId !== null }
   });
 
   const items: WithdrawalItem[] = itemsData
@@ -291,7 +291,7 @@ export function useBatchApprovers(batchManagerAddress: Address, batchId: bigint 
     abi: BATCH_MANAGER_ABI,
     functionName: 'getBatchApprovers',
     args: batchId !== null ? [batchId] : undefined,
-    enabled: batchId !== null
+    query: { enabled: batchId !== null }
   });
 
   const approvers: Address[] = approversData ? (approversData as Address[]) : [];
@@ -310,7 +310,7 @@ export function useHasApproved(
     abi: BATCH_MANAGER_ABI,
     functionName: 'hasApproved',
     args: batchId !== null && address ? [batchId, address] : undefined,
-    enabled: batchId !== null && address !== null
+    query: { enabled: batchId !== null && address !== null }
   });
 
   const hasApproved: boolean = hasApprovedData ? (hasApprovedData as boolean) : false;
@@ -325,7 +325,7 @@ export function useBatchResult(batchManagerAddress: Address, batchId: bigint | n
     abi: BATCH_MANAGER_ABI,
     functionName: 'getBatchResult',
     args: batchId !== null ? [batchId] : undefined,
-    enabled: batchId !== null
+    query: { enabled: batchId !== null }
   });
 
   const result: BatchExecutionResult | null = resultData
@@ -348,7 +348,7 @@ export function useVaultBatches(batchManagerAddress: Address, vaultAddress: Addr
     abi: BATCH_MANAGER_ABI,
     functionName: 'getVaultBatches',
     args: vaultAddress ? [vaultAddress] : undefined,
-    enabled: vaultAddress !== null
+    query: { enabled: vaultAddress !== null }
   });
 
   const batchIds: bigint[] = batchIdsData ? (batchIdsData as bigint[]) : [];
@@ -363,7 +363,7 @@ export function useUserBatches(batchManagerAddress: Address, userAddress: Addres
     abi: BATCH_MANAGER_ABI,
     functionName: 'getUserBatches',
     args: userAddress ? [userAddress] : undefined,
-    enabled: userAddress !== null
+    query: { enabled: userAddress !== null }
   });
 
   const batchIds: bigint[] = batchIdsData ? (batchIdsData as bigint[]) : [];
