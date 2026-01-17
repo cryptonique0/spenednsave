@@ -113,6 +113,55 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## ✨ Features
 
+### ⚙️ Enhanced Settings Page
+
+SpendGuard includes a comprehensive settings interface for complete account management:
+
+- **Appearance & Theme** - Switch between light, dark, or system theme with persistence
+  - 3 theme options with visual preview
+  - Automatic dark mode detection
+  - Reduced motion accessibility option
+  
+- **Notification Preferences** - Control all notification types with granular toggles
+  - In-app notifications (5 event types)
+  - Email notification settings
+  - Withdrawal, approval, emergency alerts
+  - Guardian action notifications
+  
+- **Security Settings** - Manage account security and sessions
+  - Two-Factor Authentication (2FA) setup with authenticator app
+  - QR code and manual secret key entry
+  - Active sessions monitoring with device details
+  - Revoke unused sessions
+  - Password management
+  - Login activity history
+  
+- **Wallet Management** - Organize connected wallets
+  - Display all connected wallets with balances
+  - Set primary wallet
+  - Copy wallet addresses
+  - Direct BaseScan explorer links
+  - Disconnect wallets
+  - Multi-chain support (Base, Ethereum, Arbitrum, Optimism)
+  
+- **Account Preferences** - Personalize your experience
+  - Display name and email management
+  - Email verification status
+  - Timezone selection (8 worldwide options)
+  - Language preference (7 languages)
+  - Communication preference toggles
+  - Account creation date and status
+
+**Features:**
+- Tab-based navigation for easy access
+- URL parameters for deep linking (`/settings?tab=security`)
+- Dark mode throughout
+- Responsive mobile design
+- Accessible forms with proper labels
+- Real-time preference updates
+
+**Learn More:** [ENHANCED_SETTINGS_DOCUMENTATION.md](ENHANCED_SETTINGS_DOCUMENTATION.md) | [Integration Examples](SETTINGS_INTEGRATION_EXAMPLES.md)
+
 ### 📚 User Documentation & Support Pages
 
 SpendGuard includes comprehensive user-facing documentation:

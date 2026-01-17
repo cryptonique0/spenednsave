@@ -60,7 +60,7 @@ export function AccountPreferences() {
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium mb-2">
               <Mail className="w-4 h-4" />
               Email Address
               {emailVerified && (
@@ -87,7 +87,7 @@ export function AccountPreferences() {
 
           {/* Timezone */}
           <div>
-            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium mb-2">
               <MapPin className="w-4 h-4" />
               Timezone
             </label>
