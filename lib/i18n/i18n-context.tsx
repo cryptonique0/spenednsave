@@ -80,33 +80,37 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE);
   const [mounted, setMounted] = useState(false);
 
-  // Load language preference on mount
+  // Load language preference on mount and update document attributes
   useEffect(() => {
     const savedLanguage = loadLanguagePreference();
     setLanguageState(savedLanguage);
+    
+    // Update document lang attribute
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = savedLanguage;
+      document.documentElement.dir = SUPPORTED_LANGUAGES[savedLanguage].direction;
+    }
+    
     setMounted(true);
   }, []);
+
+  // Update document attributes when language changes
+  useEffect(() => {
+    if (typeof document !== 'undefined' && mounted) {
+      document.documentElement.lang = language;
+      document.documentElement.dir = SUPPORTED_LANGUAGES[language].direction;
+    }
+  }, [language, mounted]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     saveLanguagePreference(lang);
-    
-    // Update document lang attribute
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = lang;
-      document.documentElement.dir = SUPPORTED_LANGUAGES[lang].direction;
-    }
   };
 
   const t = (key: string, defaultValue?: string): string => {
     const currentTranslations = translations[language] as any;
     return getNestedTranslation(currentTranslations, key, defaultValue || key);
   };
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   const value: I18nContextType = {
     language,
