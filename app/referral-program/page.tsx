@@ -4,6 +4,12 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Users, Gift, TrendingUp, Copy, Check, DollarSign, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { ReferralTrackingLinks } from '@/components/referral-tracking-links';
+import { RewardsDashboard } from '@/components/rewards-dashboard';
+import { ReferralStatistics } from '@/components/referral-statistics';
+import { VaultRecoveryAssistant } from '@/components/vault-recovery-assistant';
+
+type TabType = 'overview' | 'tracking' | 'rewards' | 'statistics' | 'recovery';
 
 interface ReferralTier {
   id: string;
@@ -133,6 +139,7 @@ const REFERRAL_FEATURES = [
 export default function ReferralProgramPage() {
   const [copied, setCopied] = useState(false);
   const [selectedRewardType, setSelectedRewardType] = useState<'all' | 'referral-bonus' | 'tier-bonus' | 'milestone'>('all');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const referralLink = 'https://spendguard.io/join?ref=USER_123456';
   const currentTier = REFERRAL_TIERS[0];
@@ -153,9 +160,86 @@ export default function ReferralProgramPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 dark:bg-background-dark">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-16 px-4 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-surface-border dark:to-background-dark pt-20 pb-12">
+        <div className="w-full px-6 md:px-8 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+              Referral Program Hub
+            </h1>
+            <p className="text-lg text-slate-600 dark:text-slate-300">
+              Track, manage, and optimize your referral earnings all in one place
+            </p>
+          </div>
+
+          {/* Quick Copy Banner */}
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border border-primary/20 rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                  Your Referral Link
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Share this link to earn rewards
+                </p>
+              </div>
+              <button
+                onClick={handleCopyLink}
+                className="px-6 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-8 overflow-x-auto pb-2 border-b border-surface-border dark:border-gray-700">
+            {[
+              { id: 'overview' as const, label: '📊 Overview' },
+              { id: 'tracking' as const, label: '🔗 Tracking Links' },
+              { id: 'rewards' as const, label: '🎁 Rewards' },
+              { id: 'statistics' as const, label: '📈 Statistics' },
+              { id: 'recovery' as const, label: '🔄 Recovery' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'text-primary border-primary'
+                    : 'text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div>
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                {/* Overview Content - Original Hero Section */}
+                <section className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-lg p-8 md:p-12">
+                  <h2 className="text-3xl font-bold mb-4">Turn Your Network Into Rewards</h2>
+                  <p className="text-xl text-blue-100 mb-8">Share your referral link today and start earning rewards. The sooner you start, the sooner you reach higher tiers!</p>
+                  <button
+                    onClick={handleCopyLink}
+                    className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition-colors text-lg flex items-center gap-2"
+                  >
+                    <Copy size={20} /> Copy My Referral Link
+                  </button>
+                </section>
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center gap-3 mb-4">
               <Gift size={32} />
