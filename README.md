@@ -34,6 +34,9 @@ SpendGuard is a smart contract system that enables secure fund management throug
 | Live Demo | [spendguard.xyz](https://spendguard.xyz) |
 | Contracts | [contracts/](contracts/) |
 | Frontend Code | [app/](app/), [components/](components/) |
+| Support & Help | [/support](/support) |
+| Terms of Service | [/terms](/terms) |
+| Privacy Policy | [/privacy](/privacy) |
 | Smart Contract Specs | [contract-spec.md](contract-spec.md) |
 | Deployment Guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
 | Batch Withdrawal Docs | [BATCH_WITHDRAWAL_MANAGER.md](BATCH_WITHDRAWAL_MANAGER.md) |
@@ -88,6 +91,7 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## 📝 Changelog
 
+- **2026-01-17**: Added comprehensive Support & Help Center, Terms of Service, and Privacy Policy pages. Added "Withdrawals" filter button to Activity Log for better withdrawal tracking.
 - **2026-01-17**: Cleaned up dependencies and removed test files for frontend-only production build
 - **2026-01-16**: Added GuardianBadge and GuardianSBT contracts with comprehensive test coverage
 - **2026-01-15**: Email notification system integration with SMTP/Resend API support
@@ -101,6 +105,29 @@ SpendGuard combines the security of multi-signature wallets with the simplicity 
 
 ## ✨ Features
 
+### 📚 User Documentation & Support Pages
+
+SpendGuard includes comprehensive user-facing documentation:
+
+- **[Support & Help Center](/support)** - FAQ, troubleshooting guides, and support contacts
+  - 8 comprehensive FAQ answers covering vault setup, guardians, limits, and withdrawals
+  - Troubleshooting section for common issues (transactions, wallet connections, withdrawals)
+  - Multiple contact channels: Email, Discord, GitHub Issues
+  - Response time: 24-48 hours
+
+- **[Terms of Service](/terms)** - Complete legal terms covering:
+  - User eligibility and account responsibilities
+  - Smart contract and blockchain disclaimers
+  - Vault deposits, guardian participation, and risk acknowledgments
+  - Prohibited activities and dispute resolution
+  - Non-custodial nature of the service
+
+- **[Privacy Policy](/privacy)** - Comprehensive privacy documentation:
+  - Non-custodial architecture and blockchain transparency
+  - Data collection and usage practices
+  - Your privacy rights (access, deletion, portability)
+  - International data transfers and security measures
+  - Cookie and third-party service integration
 
 ### Email Notifications
 
@@ -217,8 +244,22 @@ SpendGuard includes an emergency freeze feature that allows guardians to quickly
 
 - ✅ **Voting Dashboard**: View and approve pending withdrawal requests
 - ✅ **Readable Signatures**: EIP-712 structured data shows clear withdrawal details
-- ✅ **Activity Log**: Track all requests you've approved or rejected
+- ✅ **Activity Log**: Track all requests you've approved or rejected (includes Deposits, Withdrawals, and Guardians filters)
 - ✅ **Non-Transferable Power**: Guardian status is soulbound and cannot be sold
+
+### 📋 Activity Log & Withdrawal Tracking
+
+Complete transaction history with multi-filter capabilities:
+
+- **Filter Options**: All Activity, Deposits, Withdrawals, Guardians
+- **Withdrawal Details**: Shows withdrawal amounts with status indicators (red icon, ArrowUpRight icon)
+- **Real-Time Tracking**: View all vault activities with timestamps and transaction links
+- **Pagination**: Navigate large activity histories with 10 items per page
+- **Statistics**: Total deposits, total activities, and guardian count cards
+- **Export Ready**: CSV export button for external analysis
+- **Blockchain Links**: Direct links to BaseScan for transaction verification
+
+**Use Case**: Monitor all vault financial activity in one place, track withdrawal patterns, and audit guardian participation history.
 
 ### 📊 Guardian Activity Dashboard
 
