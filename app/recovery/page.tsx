@@ -6,6 +6,7 @@ import { StepByStepRecovery } from '@/components/step-by-step-recovery';
 import { EmergencyContactVerification } from '@/components/emergency-contact-verification';
 import { GuardianConsensusTracking } from '@/components/guardian-consensus-tracking';
 import { CustomizationOptions } from '@/components/customization-options';
+import { RecoverySettings } from '@/components/recovery-settings';
 import { Shield, Phone, Users, Settings, AlertTriangle } from 'lucide-react';
 
 export default function RecoveryProgram() {
@@ -68,7 +69,7 @@ export default function RecoveryProgram() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto mb-8 bg-white dark:bg-surface-dark p-1 rounded-lg border border-surface-border dark:border-gray-700">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-auto mb-8 bg-white dark:bg-surface-dark p-1 rounded-lg border border-surface-border dark:border-gray-700">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Recovery Process</span>
@@ -88,6 +89,11 @@ export default function RecoveryProgram() {
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Customization</span>
               <span className="sm:hidden">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="recovery-settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Recovery Settings</span>
+              <span className="sm:hidden">Recovery</span>
             </TabsTrigger>
           </TabsList>
 
@@ -122,6 +128,13 @@ export default function RecoveryProgram() {
           <TabsContent value="settings" className="space-y-6">
             <div className="bg-white dark:bg-surface-dark rounded-lg p-6 border border-surface-border dark:border-gray-700">
               <CustomizationOptions />
+            </div>
+          </TabsContent>
+
+          {/* Recovery Settings Tab */}
+          <TabsContent value="recovery-settings" className="space-y-6">
+            <div className="bg-white dark:bg-surface-dark rounded-lg p-6 border border-surface-border dark:border-gray-700">
+              <RecoverySettings />
             </div>
           </TabsContent>
         </Tabs>
