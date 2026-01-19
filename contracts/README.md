@@ -1241,6 +1241,126 @@ Feature #14 implements **guardian-based owner recovery** to restore vault access
 
 ---
 
+## Feature #16: Delayed Guardian Additions
+
+**Purpose**: Add guardians with a cooldown period before activation, preventing instant account compromise
+
+**Problem Solved**: Attacker gains temporary admin access and adds malicious guardian → Guardian can immediately vote and steal funds
+
+**Solution**: New guardians enter PENDING state for configurable period (default 7 days) before becoming ACTIVE
+
+### Core Contracts
+
+#### GuardianDelayController.sol
+**Purpose**: Central service managing guardian activation delays
+
+**Key Features**:
+- Guardian status state machine (NONE → PENDING → ACTIVE → REMOVED)
+- Vault registration with configurable delays
+- Pending guardian tracking with activation times
+- Guardian activation after delay expiration
+- Cancellation mechanism for suspicious additions
+- 8 events for complete audit trail
+- 20+ query functions for status checks
+
+**Default Delay**: 7 days (604,800 seconds)
+**Minimum Delay**: 1 day (cannot be reduced further)
+
+**Key Functions**:
+- `registerVault(vault, delayDuration)` - Register vault with delay
+- `initiateGuardianAddition(vault, guardian, reason)` - Start pending guardian
+- `activatePendingGuardian(pendingId, vault)` - Activate after delay expires
+- `cancelPendingGuardian(pendingId, reason)` - Cancel suspicious addition
+- `removeGuardian(vault, guardian)` - Remove active guardian immediately
+
+#### SpendVaultWithDelayedGuardians.sol
+**Purpose**: Vault with delayed guardian activation and active-only voting
+
+**Key Features**:
+- Guardian management (add, activate, cancel, remove)
+- **Critical**: Pending guardians cannot vote on proposals
+- EIP-712 signature verification validates ACTIVE only
+- Full backward compatibility with Features #1-15
+- Integration with GuardianDelayController
+
+**Key Functions**:
+- `initiateGuardianAddition(guardian, reason)` - Owner initiates
+- `activateGuardian(pendingId)` - Anyone can activate after delay
+- `cancelGuardianAddition(pendingId, reason)` - Owner cancels pending
+- `removeGuardian(guardian)` - Owner removes active immediately
+
+#### VaultFactoryWithDelayedGuardians.sol
+**Purpose**: Factory for deploying vaults with delayed guardian activation
+
+**Key Features**:
+- Auto-creates GuardianDelayController instance
+- Deploy vaults with default or custom delays
+- Track deployed vaults and statistics
+
+**Key Functions**:
+- `deployVault(owner, guardians, requiredSignatures)` - Deploy with default delay
+- `deployVaultWithCustomDelay(owner, guardians, requiredSignatures, customDelay)` - Custom delay
+- `updateDefaultDelay(newDelay)` - Change factory default
+- `updateVaultDelay(vault, newDelay)` - Update existing vault
+
+### Guardian Lifecycle
+
+```
+NONE → initiateGuardianAddition() → PENDING (7 days)
+                                       ├─ activatePendingGuardian() → ACTIVE
+                                       └─ cancelGuardianAddition() → REMOVED
+       ACTIVE → removeGuardian() → REMOVED
+```
+
+### Key Security Benefits
+
+✅ **Detection Window**: 7 days to identify and cancel malicious additions
+✅ **Pending Voting Restriction**: Pending guardians cannot vote at all
+✅ **Immediate Removal**: Compromised guardians removed instantly
+✅ **Cancellation Mechanism**: Owner can prevent suspicious activations
+✅ **No Shortcuts**: Fixed delay cannot be bypassed
+✅ **Complete Audit Trail**: All additions/removals logged
+✅ **Per-Vault Configuration**: Different vaults can have different delays
+✅ **Backward Compatible**: All Features #1-15 work unchanged
+
+### Quick Start
+
+```solidity
+// 1. Deploy factory (auto-creates controller)
+VaultFactoryWithDelayedGuardians factory = new VaultFactoryWithDelayedGuardians();
+
+// 2. Deploy vault (with default 7-day delay)
+address vault = factory.deployVault(owner, [guardian1, guardian2], 2);
+
+// 3. Add new guardian (enters PENDING for 7 days)
+vault.initiateGuardianAddition(newGuardian, "Team expansion");
+
+// 4. After 7 days, anyone activates
+vault.activateGuardian(pendingId);
+
+// 5. Guardian can now vote
+```
+
+### Complete Documentation
+
+- **Full Guide**: See `FEATURE_16_DELAYED_GUARDIANS.md` (1,050+ lines)
+- **Quick Reference**: See `FEATURE_16_DELAYED_GUARDIANS_QUICKREF.md` (750+ lines)
+- **API Reference**: See `FEATURE_16_DELAYED_GUARDIANS_INDEX.md` (900+ lines)
+- **Delivery Summary**: See `FEATURE_16_DELIVERY_SUMMARY.md` (300+ lines)
+
+### Key Takeaways
+
+✅ **Delayed Activation** provides time to detect malicious additions
+✅ **Pending Status** prevents voting before activation
+✅ **Cancellation** allows removal of suspicious guardians
+✅ **Fixed Delay** (7 days) adequate for threat detection
+✅ **Complete Audit Trail** logs all guardian changes
+✅ **Backward Compatible** with Features #1-15
+✅ **Gas Efficient** shared controller architecture
+✅ **Production-Ready** with comprehensive error handling
+
+---
+
 ## License
 
 MIT
