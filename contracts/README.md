@@ -176,6 +176,63 @@ This directory contains the Solidity smart contracts for the SpendGuard applicat
 - `hasVault(address user)`: Check if user has vault
 - `getTotalVaults()`: Get total vaults created
 
+### 10. VaultPausingController.sol
+**Purpose**: Manages temporary pause capability for vault withdrawals
+
+**Key Features**:
+- Pause/unpause withdrawals while allowing deposits
+- Reason tracking for audit trail
+- Pause duration tracking in seconds
+- Complete history of all pause/unpause events
+- Shared controller for all vaults (one per network)
+
+**Functions**:
+- `pauseVault(address vault, string reason)`: Pause withdrawals
+- `unpauseVault(address vault, string reason)`: Resume withdrawals
+- `updatePauseReason(address vault, string newReason)`: Update reason while paused
+- `isPaused(address vault)`: Check pause status
+- `getPauseReason(address vault)`: Get pause reason
+- `getPauseTime(address vault)`: Get pause start time
+- `getPauseElapsedTime(address vault)`: Get pause duration
+- `getPauseHistory(address vault)`: Get all pause/unpause events
+- `isManagedVault(address vault)`: Check if registered
+
+### 11. SpendVaultWithPausing.sol
+**Purpose**: Vault with temporary pause mechanism for emergency response
+
+**Key Features**:
+- Blocks all withdrawals when paused
+- Allows all deposits regardless of pause state
+- Blocks emergency unlock requests when paused
+- Integrates with shared VaultPausingController
+- Pause status queryable via vault contract
+
+**Functions**:
+- `isVaultPaused()`: Check if paused
+- `getVaultPauseReason()`: Get pause reason
+- `getVaultPauseTime()`: Get pause start time
+- `getVaultPauseElapsedTime()`: Get pause duration
+- `withdraw(...)`: Reverts with "Vault is paused" if paused
+- `deposit(address token, uint256 amount)`: Works when paused
+- `depositETH()`: Works when paused
+
+### 12. VaultFactoryWithPausing.sol
+**Purpose**: Factory for deploying vaults with pause capability
+
+**Key Features**:
+- Creates GuardianSBT (per user)
+- Deploys SpendVaultWithPausing (per user)
+- Manages shared VaultPausingController (one per network)
+- Tracks user vaults and pause status
+
+**Functions**:
+- `createVault(uint256 quorum)`: Deploy complete system with pausing
+- `getUserVaults(address user)`: Get user's vaults
+- `isVaultPaused(address vault)`: Check vault pause status
+- `getVaultPauseReason(address vault)`: Get pause reason
+- `getVaultPauseElapsedTime(address vault)`: Get pause duration
+- `getPausingController()`: Get shared controller
+
 **SpendVault Core Functions**:
 
 **Management**:
