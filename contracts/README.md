@@ -1092,6 +1092,155 @@ Feature #13 implements **on-chain reason hashing** to store only the hash of wit
 
 ---
 
+## Feature #14: Social Recovery Owner Reset
+
+**Status**: Production-Ready  
+**Contracts**: 3  
+**Tests**: 30+  
+**Documentation**: 3 guides  
+**Security Model**: Multi-sig consensus with timelocks  
+
+### Overview
+
+Feature #14 implements **guardian-based owner recovery** to restore vault access if the owner loses their private key. Guardians vote on owner reset with 7-day voting period and 7-day timelock delay for security.
+
+### Contracts
+
+#### 1. GuardianSocialRecovery.sol
+
+**Purpose**: Central recovery service managing owner reset voting
+
+**Key Features**:
+- Guardian consensus voting for owner reset
+- 7-day voting period for deliberation
+- 7-day timelock for security
+- Recovery cancellation mechanism
+- Complete recovery history and statistics
+- Configurable quorum per vault
+
+**Functions**:
+- `registerVault(vault, quorum, guardianToken)` - Register vault for recovery
+- `initiateRecovery(vault, newOwner, reason)` - Guardian initiates recovery
+- `approveRecovery(recoveryId)` - Guardian votes to approve
+- `executeRecovery(recoveryId, vault)` - Execute after timelock
+- `cancelRecovery(recoveryId, reason)` - Cancel if needed
+- `getRecovery(recoveryId)` - Get recovery details
+- `getRecoveryStats(vault)` - Get vault recovery statistics
+- `updateVaultQuorum(vault, newQuorum)` - Update quorum
+
+**Safety Features**:
+- Multi-sig consensus (configurable)
+- 7-day voting window
+- 7-day execution delay
+- Cancellation before execution
+- Vote tracking per guardian
+- Audit trail for all attempts
+
+#### 2. SpendVaultWithSocialRecovery.sol
+
+**Purpose**: Multi-sig vault with integrated social recovery
+
+**Key Features**:
+- Receive owner reset calls from recovery contract
+- Maintain all previous vault functionality
+- Support emergency guardian freeze
+- Complete integration with recovery mechanism
+- Event tracking for recovery events
+
+**Functions**:
+- All vault functions from Feature #10 plus:
+- `resetOwnerViaSocial(newOwner, recoveryId)` - Execute recovery (recovery contract only)
+- `getRecoveryContract()` - Get recovery contract address
+- `hasSocialRecoveryEnabled()` - Check recovery status
+
+**Backward Compatibility**:
+- All withdrawal functions unchanged
+- Guardian management intact
+- Pause/resume functionality preserved
+- Emergency guardian still functional
+
+#### 3. VaultFactoryWithSocialRecovery.sol
+
+**Purpose**: Factory for deploying vaults with social recovery
+
+**Key Features**:
+- Deploy vaults with automatic recovery registration
+- Guardian SBT validation
+- Per-vault quorum management
+- Vault tracking and statistics
+- Deployment history
+
+**Functions**:
+- `deployVault(owner, guardians, requiredSignatures, emergencyGuardian)` - Deploy with default quorum
+- `deployVaultWithCustomQuorum(...)` - Deploy with custom recovery quorum
+- `getVaultInfo(vault)` - Get vault information
+- `getRecoveryQuorum(vault)` - Get recovery quorum
+- `updateVaultRecoveryQuorum(vault, newQuorum)` - Update quorum
+- `getDeploymentSummary()` - Get overall statistics
+
+### Recovery Flow
+
+1. **Initiation** (Day 0)
+   - Guardian calls `initiateRecovery(vault, newOwner, reason)`
+   - Recovery enters PENDING status
+   - Voting deadline: +7 days
+
+2. **Voting** (Days 0-7)
+   - Other guardians call `approveRecovery(recoveryId)`
+   - Each guardian votes once
+   - When quorum reached → APPROVED status
+   - Timelock starts: +7 days
+
+3. **Timelock** (Days 7-14)
+   - Recovery locked in but not executed
+   - Security delay prevents immediate takeover
+   - Allows detection of false alarms
+   - Can still be cancelled
+
+4. **Execution** (Day 14+)
+   - Anyone can call `executeRecovery(recoveryId, vault)`
+   - Owner officially changed
+   - Recovery marked EXECUTED
+   - New owner has full vault control
+
+### Key Benefits
+
+✅ **Guardian-Based Recovery** - Owner loss doesn't mean fund loss  
+✅ **Multi-Sig Security** - Quorum prevents unauthorized takeover  
+✅ **Timelock Protection** - 14-day minimum (7 voting + 7 execution delay)  
+✅ **Reversible** - Can cancel during voting period  
+✅ **Transparent** - Complete audit trail of all recoveries  
+✅ **Flexible** - Configurable quorum per vault (1 to N)  
+✅ **Backward Compatible** - All features #1-13 untouched  
+✅ **Production-ready** - 3 contracts, 30+ tests, full documentation  
+
+### Use Cases
+
+1. **Lost Hardware Wallet** - Owner lost physical wallet with private key
+2. **Compromised Key** - Owner needs immediate key rotation
+3. **Inheritance** - Heirs recover vault access
+4. **Team Succession** - Multiple owners rotating access
+5. **Key Rotation** - Scheduled key updates
+
+### Security Properties
+
+- ✅ **Immutable History** - Cannot rewrite recovery events
+- ✅ **Atomic Recovery** - All-or-nothing ownership change
+- ✅ **Transparent Voting** - All votes public on-chain
+- ✅ **Emergency Freeze** - Independent layer for compromised recovery
+- ✅ **Guardian Identity** - SBT-based validation
+- ✅ **Time Protection** - No instant takeover possible
+
+### Timing
+
+- **Voting Period**: 7 days (fixed)
+- **Execution Delay**: 7 days (fixed)
+- **Minimum Total Time**: 14 days from initiation
+- **Can Cancel**: During voting period
+- **Can Execute**: After voting + timelock
+
+---
+
 ## License
 
 MIT
