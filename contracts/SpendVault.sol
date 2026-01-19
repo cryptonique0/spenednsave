@@ -632,6 +632,11 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     ) Ownable(msg.sender) EIP712("SpendGuard", "1") {
         require(_guardianToken != address(0), "Invalid guardian token address");
         require(_quorum > 0, "Quorum must be greater than 0");
+        
+        // Validate name and tags
+        _validateName(_name);
+        _validateTags(_tags);
+        
         guardianToken = _guardianToken;
         quorum = _quorum;
         name = _name;
@@ -645,16 +650,20 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     /**
      * @notice Set the vault name (owner only)
+     * @param newName New name for the vault (max 64 characters)
      */
     function setName(string memory newName) external onlyOwner {
+        _validateName(newName);
         name = newName;
         emit NameChanged(newName);
     }
 
     /**
      * @notice Set the vault tags (owner only)
+     * @param newTags New tags array (max 10 tags)
      */
     function setTags(string[] memory newTags) external onlyOwner {
+        _validateTags(newTags);
         delete tags;
         for (uint256 i = 0; i < newTags.length; i++) {
             tags.push(newTags[i]);
@@ -1413,5 +1422,31 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         }
         
         return unlockTime - block.timestamp;
+    }
+
+    /**
+     * @notice Validate vault name format and length
+     * @param _name The vault name to validate
+     * @dev Ensures name is not empty and does not exceed 64 characters
+     */
+    function _validateName(string memory _name) internal pure {
+        bytes memory nameBytes = bytes(_name);
+        require(nameBytes.length > 0, "Vault name cannot be empty");
+        require(nameBytes.length <= 64, "Vault name must not exceed 64 characters");
+    }
+
+    /**
+     * @notice Validate vault tags array and individual tags
+     * @param _tags The tags array to validate
+     * @dev Ensures tag count does not exceed 10 and each tag is valid
+     */
+    function _validateTags(string[] memory _tags) internal pure {
+        require(_tags.length <= 10, "Maximum 10 tags allowed per vault");
+        
+        for (uint256 i = 0; i < _tags.length; i++) {
+            bytes memory tagBytes = bytes(_tags[i]);
+            require(tagBytes.length > 0, "Tag cannot be empty");
+            require(tagBytes.length <= 32, "Tag must not exceed 32 characters");
+        }
     }
 }

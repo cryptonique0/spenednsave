@@ -30,6 +30,8 @@ contract VaultFactory {
     /**
      * @notice Create a new vault and guardian token for the caller
      * @param _quorum Number of guardian signatures required
+     * @param _name Display name for the vault (max 64 characters)
+     * @param _tags Array of tags for the vault (max 10 tags)
      * @return guardianToken Address of the deployed GuardianSBT
      * @return vault Address of the deployed SpendVault
      */
@@ -40,6 +42,12 @@ contract VaultFactory {
     ) external returns (address guardianToken, address vault) {
         require(userVaults[msg.sender] == address(0), "Vault already exists for this user");
         require(_quorum > 0, "Quorum must be greater than 0");
+        
+        // Validate vault name
+        _validateVaultName(_name);
+        
+        // Validate tags
+        _validateVaultTags(_tags);
 
         // Deploy GuardianSBT for this user
         GuardianSBT guardianSBT = new GuardianSBT();
@@ -100,5 +108,31 @@ contract VaultFactory {
     function getVaultByIndex(uint256 index) external view returns (address) {
         require(index < allVaults.length, "Index out of bounds");
         return allVaults[index];
+    }
+
+    /**
+     * @notice Validate vault name format and length
+     * @param _name The vault name to validate
+     * @dev Ensures name is not empty and does not exceed 64 characters
+     */
+    function _validateVaultName(string memory _name) internal pure {
+        bytes memory nameBytes = bytes(_name);
+        require(nameBytes.length > 0, "Vault name cannot be empty");
+        require(nameBytes.length <= 64, "Vault name must not exceed 64 characters");
+    }
+
+    /**
+     * @notice Validate vault tags array and individual tags
+     * @param _tags The tags array to validate
+     * @dev Ensures tag count does not exceed 10 and each tag is valid
+     */
+    function _validateVaultTags(string[] memory _tags) internal pure {
+        require(_tags.length <= 10, "Maximum 10 tags allowed per vault");
+        
+        for (uint256 i = 0; i < _tags.length; i++) {
+            bytes memory tagBytes = bytes(_tags[i]);
+            require(tagBytes.length > 0, "Tag cannot be empty");
+            require(tagBytes.length <= 32, "Tag must not exceed 32 characters");
+        }
     }
 }
