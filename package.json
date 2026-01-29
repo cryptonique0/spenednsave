@@ -36,6 +36,7 @@
     "wagmi": "^2.19.5"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-datepicker": "^6.2.0",
@@ -43,6 +44,7 @@
     "autoprefixer": "^10.4.23",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "hardhat": "^3.1.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "typescript": "^5"
