@@ -32,7 +32,8 @@ contract SpendVaultWithYield {
     /// @notice Withdraw funds from the vault (owner or guardian)
     function withdraw(address payable to, uint256 amount) external onlyOwner {
         require(address(this).balance >= amount, "Insufficient balance");
-        to.transfer(amount);
+        (bool sent, ) = to.call{value: amount}("");
+        require(sent, "Transfer failed");
     }
 
     /// @notice Set or update the yield strategy (guardian only)
@@ -43,19 +44,19 @@ contract SpendVaultWithYield {
     }
 
     /// @notice Deposit funds into the yield strategy (guardian only)
-    function depositToStrategy(uint256 amount) external onlyGuardian {
+    function depositToStrategy(uint256 /*amount*/) external onlyGuardian {
         require(strategy != address(0), "No strategy");
         // TODO: call strategy deposit logic
     }
 
     /// @notice Withdraw funds from the yield strategy (guardian only)
-    function withdrawFromStrategy(uint256 amount) external onlyGuardian {
+    function withdrawFromStrategy(uint256 /*amount*/) external onlyGuardian {
         require(strategy != address(0), "No strategy");
         // TODO: call strategy withdraw logic
     }
 
     /// @notice Emergency withdraw from strategy (guardian only)
-    function emergencyWithdrawFromStrategy(uint256 amount) external onlyGuardian {
+    function emergencyWithdrawFromStrategy(uint256 /*amount*/) external onlyGuardian {
         require(strategy != address(0), "No strategy");
         // TODO: call strategy emergency withdraw logic
     }
