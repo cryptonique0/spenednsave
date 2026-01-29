@@ -1838,3 +1838,302 @@ Approval: local + (remote × weight) >= quorum
 ## License
 
 MIT
+
+---
+
+## Feature #21: Automated Yield Integration
+
+**Status**: In Development  
+**Contracts**: 4  
+**Tests**: 30+  
+**Documentation**: 5 guides
+
+### Overview
+
+Enables vaults to automatically deposit idle funds into DeFi protocols (Aave, Compound, Lido, etc.) to earn yield, with guardian-controlled withdrawal and rebalancing.
+
+### Contracts
+
+#### 1. YieldStrategyManager.sol
+**Purpose**: Manages yield strategies and protocol integrations
+
+**Key Features**:
+- Register/upgrade yield strategies per vault
+- Guardian approval for strategy changes
+- Auto-harvest and reinvestment
+- Emergency withdrawal to vault
+
+**Events**:
+- `StrategyRegistered(vault, strategy, timestamp)`
+- `StrategyUpgraded(vault, oldStrategy, newStrategy, timestamp)`
+- `YieldHarvested(vault, amount, protocol, timestamp)`
+- `EmergencyWithdrawal(vault, amount, protocol, timestamp)`
+
+#### 2. SpendVaultWithYield.sol
+**Purpose**: Vault with automated yield integration
+
+**Key Features**:
+- Deposit/withdraw to/from yield protocols
+- Guardian approval for yield actions
+- Emergency withdrawal support
+
+#### 3. VaultFactoryWithYield.sol
+**Purpose**: Factory for deploying yield-enabled vaults
+
+**Key Features**:
+- Deploys SpendVaultWithYield
+- Registers vaults with YieldStrategyManager
+
+#### 4. YieldStrategyPlugin.sol
+**Purpose**: Pluggable strategy contract for protocol integration
+
+**Key Features**:
+- Modular, upgradable plugin for each protocol
+- Guardian approval for plugin upgrades
+
+### Documentation
+- **YIELD_INTEGRATION_GUIDE.md**
+- **YIELD_STRATEGY_QUICKREF.md**
+- **FEATURE_21_YIELD_INTEGRATION.md**
+- **YIELD_STRATEGY_INDEX.md**
+- **YIELD_STRATEGY_VERIFICATION.md**
+
+### Security, Upgradability, Composability
+- Guardian approval for all strategy/plugin changes
+- Emergency withdrawal for risk events
+- Modular plugin system for new protocols
+- Upgradeable via factory and manager
+
+### Tests
+- 30+ tests: strategy registration, yield accrual, emergency withdrawal, plugin upgrades
+- Full integration and security coverage
+
+---
+
+## Feature #22: On-Chain Insurance Coverage
+
+**Status**: In Development  
+**Contracts**: 3  
+**Tests**: 20+  
+**Documentation**: 4 guides
+
+### Overview
+
+Integrates with decentralized insurance protocols (Nexus Mutual, InsurAce) to provide coverage for vault assets against smart contract risk, hacks, or loss.
+
+### Contracts
+
+#### 1. InsuranceManager.sol
+**Purpose**: Manages insurance policy purchase, renewal, and claims
+
+**Key Features**:
+- Purchase/renew insurance on-chain
+- Guardian approval for insurance actions
+- Automatic claim filing on incident detection
+
+**Events**:
+- `InsurancePurchased(vault, provider, policyId, timestamp)`
+- `InsuranceRenewed(vault, provider, policyId, timestamp)`
+- `ClaimFiled(vault, provider, claimId, timestamp)`
+- `ClaimPaid(vault, provider, claimId, amount, timestamp)`
+
+#### 2. SpendVaultWithInsurance.sol
+**Purpose**: Vault with insurance integration
+
+**Key Features**:
+- Query insurance status and coverage
+- Guardian approval for insurance actions
+
+#### 3. VaultFactoryWithInsurance.sol
+**Purpose**: Factory for deploying insurance-enabled vaults
+
+**Key Features**:
+- Deploys SpendVaultWithInsurance
+- Registers vaults with InsuranceManager
+
+### Documentation
+- **INSURANCE_INTEGRATION_GUIDE.md**
+- **INSURANCE_QUICKREF.md**
+- **FEATURE_22_INSURANCE.md**
+- **INSURANCE_VERIFICATION.md**
+
+### Security, Upgradability, Composability
+- Guardian approval for all insurance actions
+- Modular integration for new insurance providers
+- Upgradeable via factory and manager
+
+### Tests
+- 20+ tests: policy purchase, renewal, claim filing, payout, provider integration
+
+---
+
+## Feature #23: Modular Plugin System
+
+**Status**: In Development  
+**Contracts**: 3  
+**Tests**: 25+  
+**Documentation**: 4 guides
+
+### Overview
+
+Enables vault owners to install, upgrade, or remove plugins (modules) for custom logic (e.g., spending limits, whitelists, time-based rules) without redeploying the vault.
+
+### Contracts
+
+#### 1. PluginRegistry.sol
+**Purpose**: Registry and permissioning for plugins
+
+**Key Features**:
+- Register/approve plugins
+- Guardian approval for plugin changes
+
+**Events**:
+- `PluginRegistered(plugin, version, timestamp)`
+- `PluginEnabled(vault, plugin, timestamp)`
+- `PluginDisabled(vault, plugin, timestamp)`
+
+#### 2. SpendVaultWithPlugins.sol
+**Purpose**: Vault with modular plugin hooks
+
+**Key Features**:
+- Pre- and post-execution hooks for withdrawals
+- Guardian approval for plugin changes
+
+#### 3. VaultFactoryWithPlugins.sol
+**Purpose**: Factory for deploying plugin-enabled vaults
+
+**Key Features**:
+- Deploys SpendVaultWithPlugins
+- Registers vaults with PluginRegistry
+
+### Documentation
+- **PLUGIN_SYSTEM_GUIDE.md**
+- **PLUGIN_SYSTEM_QUICKREF.md**
+- **FEATURE_23_PLUGIN_SYSTEM.md**
+- **PLUGIN_SYSTEM_VERIFICATION.md**
+
+### Security, Upgradability, Composability
+- Guardian approval for all plugin changes
+- Modular, upgradable plugin architecture
+- Composable with all vault features
+
+### Tests
+- 25+ tests: plugin registration, enable/disable, execution hooks, upgrade paths
+
+---
+
+## Feature #24: zk-SNARKs Privacy Withdrawals
+
+**Status**: In Development  
+**Contracts**: 4  
+**Tests**: 30+  
+**Documentation**: 5 guides
+
+### Overview
+
+Allows users to make private withdrawals using zero-knowledge proofs, hiding recipient, amount, and reason from public view while maintaining auditability for guardians.
+
+### Contracts
+
+#### 1. ZKProofVerifier.sol
+**Purpose**: Verifies zk-SNARK withdrawal proofs
+
+**Key Features**:
+- zk-SNARK circuit integration
+- On-chain proof verification
+
+**Events**:
+- `WithdrawalProofSubmitted(vault, proofHash, timestamp)`
+- `WithdrawalVerified(vault, proofHash, timestamp)`
+
+#### 2. SpendVaultWithPrivacy.sol
+**Purpose**: Vault with privacy withdrawal support
+
+**Key Features**:
+- Optional privacy mode per withdrawal
+- Guardian verification of zk-proofs
+
+#### 3. PrivacyAuditRegistry.sol
+**Purpose**: Off-chain auditability for authorized parties
+
+**Key Features**:
+- Register/view audit requests
+- Guardian approval for audit access
+
+#### 4. VaultFactoryWithPrivacy.sol
+**Purpose**: Factory for deploying privacy-enabled vaults
+
+**Key Features**:
+- Deploys SpendVaultWithPrivacy
+- Registers vaults with ZKProofVerifier
+
+### Documentation
+- **PRIVACY_WITHDRAWAL_GUIDE.md**
+- **PRIVACY_QUICKREF.md**
+- **FEATURE_24_PRIVACY.md**
+- **PRIVACY_INDEX.md**
+- **PRIVACY_VERIFICATION.md**
+
+### Security, Upgradability, Composability
+- Guardian approval for privacy/audit actions
+- Modular verifier for new zk-circuits
+- Upgradeable via factory and registry
+
+### Tests
+- 30+ tests: proof submission, verification, privacy mode, audit access
+
+---
+
+## Feature #25: DAO Governance Integration
+
+**Status**: In Development  
+**Contracts**: 3  
+**Tests**: 25+  
+**Documentation**: 4 guides
+
+### Overview
+
+Allows vaults to be controlled by on-chain DAOs (Governor Bravo, OpenZeppelin Governor, etc.), enabling proposals and votes to directly trigger vault actions.
+
+### Contracts
+
+#### 1. DAOGovernanceAdapter.sol
+**Purpose**: Adapter for DAO proposal execution
+
+**Key Features**:
+- Gating vault actions by DAO proposals
+- Automatic execution on proposal passage
+
+**Events**:
+- `DAOProposalExecuted(vault, proposalId, action, timestamp)`
+
+#### 2. SpendVaultWithDAOControl.sol
+**Purpose**: Vault with DAO governance integration
+
+**Key Features**:
+- Vault actions gated by DAO proposals
+- Guardian/owner override for emergencies
+
+#### 3. VaultFactoryWithDAOControl.sol
+**Purpose**: Factory for deploying DAO-controlled vaults
+
+**Key Features**:
+- Deploys SpendVaultWithDAOControl
+- Registers vaults with DAOGovernanceAdapter
+
+### Documentation
+- **DAO_INTEGRATION_GUIDE.md**
+- **DAO_QUICKREF.md**
+- **FEATURE_25_DAO_INTEGRATION.md**
+- **DAO_VERIFICATION.md**
+
+### Security, Upgradability, Composability
+- DAO proposal gating for all actions
+- Guardian/owner override for emergencies
+- Modular adapter for different DAO frameworks
+- Upgradeable via factory and adapter
+
+### Tests
+- 25+ tests: proposal execution, DAO gating, emergency override, integration with major frameworks
+
+---
