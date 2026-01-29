@@ -49,6 +49,7 @@
     "hardhat": "^2.22.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
