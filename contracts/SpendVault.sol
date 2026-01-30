@@ -23,6 +23,40 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         address public yieldStrategyManager;
         address public currentYieldStrategy;
         event YieldStrategyChanged(address indexed oldStrategy, address indexed newStrategy, uint256 timestamp);
+        // ============ Strategy Analytics Integration ============
+
+        // ============ User Strategy Preferences Integration ============
+
+        /// @notice Set user strategy preferences (ordered list) in YieldStrategyManager
+        function setUserStrategyPreferences(address[] calldata strategies) external {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("setUserStrategyPreferences(address,address[])", address(this), strategies));
+            require(success, "Set preferences failed");
+        }
+
+        /// @notice Get user strategy preferences for this vault from YieldStrategyManager
+        function getUserStrategyPreferences(address user) public view returns (address[] memory) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getUserStrategyPreferences(address,address)", user, address(this)));
+            require(success, "Get preferences failed");
+            return abi.decode(data, (address[]));
+        }
+
+        // Get latest analytics for a strategy from YieldStrategyManager
+        function getLatestStrategyAnalytics(address strategy) public view returns (uint256 apy, uint256 riskScore, uint256 returnsAmount, uint256 timestamp) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getLatestStrategyAnalytics(address)", strategy));
+            require(success, "Get analytics failed");
+            return abi.decode(data, (uint256, uint256, uint256, uint256));
+        }
+
+        // Get historical analytics for a strategy (last N snapshots)
+        function getStrategyAnalyticsHistory(address strategy, uint256 n) public view returns (bytes memory) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getStrategyAnalyticsHistory(address,uint256)", strategy, n));
+            require(success, "Get analytics history failed");
+            return data;
+        }
 
                 // Internal helper to check withdrawal caps
                 function _checkWithdrawalCaps(address _token, uint256 amount) internal view {
