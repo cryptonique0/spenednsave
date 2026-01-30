@@ -18,6 +18,24 @@ interface IGuardianSBT {
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
+        // ============ Strategy Whitelist/Blacklist Integration ============
+
+        /// @notice Check if a strategy is whitelisted in the manager
+        function isStrategyWhitelisted(address strategy) public view returns (bool) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("whitelistedStrategies(address)", strategy));
+            require(success, "Query failed");
+            return abi.decode(data, (bool));
+        }
+
+        /// @notice Check if a strategy is blacklisted in the manager
+        function isStrategyBlacklisted(address strategy) public view returns (bool) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("blacklistedStrategies(address)", strategy));
+            require(success, "Query failed");
+            return abi.decode(data, (bool));
+        }
+
                     // ============ Multi-Chain Yield Aggregation Integration ============
 
                     /// @notice Get all strategies for this vault on a specific chain
