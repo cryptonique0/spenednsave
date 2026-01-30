@@ -109,7 +109,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 maxAmount; // inclusive upper bound (0 = no upper limit)
         uint256 requiredApprovals; // number of guardian signatures required
         uint256 cooldown; // cooldown in seconds for repeated withdrawals in this range
-    }
 
     WithdrawalPolicy[] public withdrawalPolicies;
     mapping(address => mapping(uint256 => uint256)) public lastWithdrawalTime; // recipient => policyIdx => last timestamp
