@@ -4,6 +4,28 @@ pragma solidity ^0.8.20;
 /// @title YieldStrategyManager
 /// @notice Manages yield strategies and protocol integrations for SpendVaults
 contract YieldStrategyManager {
+
+        /// @notice Suggest allocations for a user and vault, prioritizing user preferences if set
+        function suggestAllocations(address user, address vault) external view returns (address[] memory strategies, uint256[] memory allocations) {
+            address[] memory prefs = userStrategyPreferences[user][vault];
+            address[] memory allStrategies = vaultStrategies[vault];
+            uint256 n = prefs.length > 0 ? prefs.length : allStrategies.length;
+            address[] memory resultStrategies = new address[](n);
+            uint256[] memory resultAllocations = new uint256[](n);
+            uint256 allocationPer = n > 0 ? 10000 / n : 0;
+            if (prefs.length > 0) {
+                for (uint256 i = 0; i < n; i++) {
+                    resultStrategies[i] = prefs[i];
+                    resultAllocations[i] = allocationPer;
+                }
+            } else {
+                for (uint256 i = 0; i < n; i++) {
+                    resultStrategies[i] = allStrategies[i];
+                    resultAllocations[i] = allocationPer;
+                }
+            }
+            return (resultStrategies, resultAllocations);
+        }
     // Events
     event StrategyRegistered(address indexed vault, address indexed strategy, uint256 timestamp);
     event StrategyUpgraded(address indexed vault, address indexed oldStrategy, address indexed newStrategy, uint256 timestamp);
@@ -12,6 +34,11 @@ contract YieldStrategyManager {
 
     // Mapping: vault => strategy
     mapping(address => address) public vaultStrategy;
+
+    // User-defined strategy preferences: user => vault => strategies (ordered by preference)
+    mapping(address => mapping(address => address[])) public userStrategyPreferences;
+
+    event UserStrategyPreferencesSet(address indexed user, address indexed vault, address[] strategies, uint256 timestamp);
 
         // Mapping: strategy => performance metrics
         struct StrategyMetrics {
@@ -123,5 +150,18 @@ contract YieldStrategyManager {
                 emit StrategySwitched(vault, current, bestStrategy, block.timestamp);
             }
             config.lastCheck = block.timestamp;
+        }
+
+        /// @notice Set user-defined strategy preferences (ordered list)
+        function setUserStrategyPreferences(address vault, address[] calldata strategies) external {
+            require(strategies.length > 0, "No strategies provided");
+            // Optionally: validate strategies are registered for this vault
+            userStrategyPreferences[msg.sender][vault] = strategies;
+            emit UserStrategyPreferencesSet(msg.sender, vault, strategies, block.timestamp);
+        }
+
+        /// @notice Get user-defined strategy preferences for a vault
+        function getUserStrategyPreferences(address user, address vault) external view returns (address[] memory) {
+            return userStrategyPreferences[user][vault];
+        }
     }
-}
