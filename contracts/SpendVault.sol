@@ -45,6 +45,140 @@ interface IGuardianSBT {
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
+    /// @notice Get info for a social yield pool (from manager)
+    function getSocialYieldPoolInfo(uint256 poolId) public view returns (
+        string memory name,
+        address creator,
+        address[] memory members,
+        uint256 totalPooled,
+        address[] memory strategies,
+        uint256 createdAt
+    ) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolInfo(uint256)", poolId));
+        require(success, "Get pool info failed");
+        return abi.decode(data, (string, address, address[], uint256, address[], uint256));
+    }
+
+    /// @notice Get a member's share in a pool (from manager)
+    function getSocialYieldPoolMemberShare(uint256 poolId, address user) public view returns (uint256) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolMemberShare(uint256,address)", poolId, user));
+        require(success, "Get member share failed");
+        return abi.decode(data, (uint256));
+    }
+
+    /// @notice Get strategies a pool participates in (from manager)
+    function getSocialYieldPoolStrategies(uint256 poolId) public view returns (address[] memory) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolStrategies(uint256)", poolId));
+        require(success, "Get pool strategies failed");
+        return abi.decode(data, (address[]));
+    }
+
+    /// @notice Get total pooled in a pool (from manager)
+    function getSocialYieldPoolTotalPooled(uint256 poolId) public view returns (uint256) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolTotalPooled(uint256)", poolId));
+        require(success, "Get pool total pooled failed");
+        return abi.decode(data, (uint256));
+    }
+
+    /// @notice Deposit funds to a social yield pool (calls manager, does not move tokens)
+    function depositToSocialYieldPool(uint256 poolId, uint256 amount) external {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("depositToSocialYieldPool(uint256,uint256)", poolId, amount));
+        require(success, "Deposit to pool failed");
+        emit SocialYieldPoolDeposit(poolId, msg.sender, amount, block.timestamp);
+    }
+
+    /// @notice Withdraw funds from a social yield pool (calls manager, does not move tokens)
+    function withdrawFromSocialYieldPool(uint256 poolId, uint256 amount) external {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("withdrawFromSocialYieldPool(uint256,uint256)", poolId, amount));
+        require(success, "Withdraw from pool failed");
+        emit SocialYieldPoolWithdraw(poolId, msg.sender, amount, block.timestamp);
+    }
+
+    /// @notice Pool participates in a yield strategy (calls manager)
+    function poolParticipateInStrategy(uint256 poolId, address strategy) external {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("poolParticipateInStrategy(uint256,address)", poolId, strategy));
+        require(success, "Pool participate failed");
+    }
+
+    /// @notice Distribute yield to pool members (calls manager, stub)
+    function distributePoolYield(uint256 poolId, uint256 totalYield) external view {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, ) = yieldStrategyManager.staticcall(abi.encodeWithSignature("distributePoolYield(uint256,uint256)", poolId, totalYield));
+        require(success, "Distribute pool yield failed");
+    }
+
+    // ============ Social Yield Pools Logic ============
+    /// @notice Create a new social yield pool (calls manager)
+    function createSocialYieldPool(string calldata name) external returns (uint256 poolId) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.call(abi.encodeWithSignature("createSocialYieldPool(string)", name));
+        require(success, "Create pool failed");
+        poolId = abi.decode(data, (uint256));
+        emit SocialYieldPoolCreated(poolId, name, msg.sender, block.timestamp);
+    }
+
+    /// @notice Join a social yield pool (calls manager)
+    function joinSocialYieldPool(uint256 poolId) external {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("joinSocialYieldPool(uint256)", poolId));
+        require(success, "Join pool failed");
+        emit SocialYieldPoolJoined(poolId, msg.sender, block.timestamp);
+    }
+
+    /// @notice Leave a social yield pool (calls manager)
+    function leaveSocialYieldPool(uint256 poolId) external {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("leaveSocialYieldPool(uint256)", poolId));
+        require(success, "Leave pool failed");
+        emit SocialYieldPoolLeft(poolId, msg.sender, block.timestamp);
+    }
+
+    /// @notice Get members of a pool (from manager)
+    function getSocialYieldPoolMembers(uint256 poolId) public view returns (address[] memory) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolMembers(uint256)", poolId));
+        require(success, "Get pool members failed");
+        return abi.decode(data, (address[]));
+    }
+
+    /// @notice Get pools for a user (from manager)
+    function getUserSocialYieldPools(address user) public view returns (uint256[] memory) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getUserSocialYieldPools(address)", user));
+        require(success, "Get user pools failed");
+        return abi.decode(data, (uint256[]));
+    }
+
+    // ============ Social Yield Pools ============
+    struct SocialYieldPoolInfo {
+        uint256 poolId;
+        string name;
+        address creator;
+        address[] members;
+        uint256 totalPooled;
+        mapping(address => uint256) memberShares;
+        address[] strategies;
+        uint256 createdAt;
+    }
+    // Pool id => info (mirrors manager, for vault-side tracking)
+    mapping(uint256 => SocialYieldPoolInfo) public socialYieldPools;
+    // User => pool ids
+    mapping(address => uint256[]) public userPools;
+    // Pool id => vault (for reverse lookup)
+    mapping(uint256 => address) public poolVault;
+    event SocialYieldPoolCreated(uint256 indexed poolId, string name, address indexed creator, uint256 timestamp);
+    event SocialYieldPoolJoined(uint256 indexed poolId, address indexed user, uint256 timestamp);
+    event SocialYieldPoolLeft(uint256 indexed poolId, address indexed user, uint256 timestamp);
+    event SocialYieldPoolDeposit(uint256 indexed poolId, address indexed user, uint256 amount, uint256 timestamp);
+    event SocialYieldPoolWithdraw(uint256 indexed poolId, address indexed user, uint256 amount, uint256 timestamp);
+
         // ============ Strategy Whitelist/Blacklist Integration ============
 
         /// @notice Check if a strategy is whitelisted in the manager
