@@ -5,6 +5,27 @@ pragma solidity ^0.8.20;
 /// @notice Manages yield strategies and protocol integrations for SpendVaults
 contract YieldStrategyManager {
 
+    // Fee tracking per strategy (basis points, 0-10000)
+    struct StrategyFeeInfo {
+        uint256 baseFeeBps; // e.g. protocol fee
+        uint256 withdrawalFeeBps;
+        uint256 crossChainFeeBps;
+        uint256 lastUpdated;
+    }
+    mapping(address => StrategyFeeInfo) public strategyFees;
+    event StrategyFeeUpdated(address indexed strategy, uint256 baseFeeBps, uint256 withdrawalFeeBps, uint256 crossChainFeeBps, uint256 timestamp);
+
+    /// @notice Update fees for a strategy (governance only)
+    function updateStrategyFees(address strategy, uint256 baseFeeBps, uint256 withdrawalFeeBps, uint256 crossChainFeeBps) external onlyGovernance {
+        strategyFees[strategy] = StrategyFeeInfo({
+            baseFeeBps: baseFeeBps,
+            withdrawalFeeBps: withdrawalFeeBps,
+            crossChainFeeBps: crossChainFeeBps,
+            lastUpdated: block.timestamp
+        });
+        emit StrategyFeeUpdated(strategy, baseFeeBps, withdrawalFeeBps, crossChainFeeBps, block.timestamp);
+    }
+
     /// @notice Whitelist a strategy (governance only)
     function setStrategyWhitelisted(address strategy, bool whitelisted) external onlyGovernance {
         whitelistedStrategies[strategy] = whitelisted;
@@ -44,15 +65,21 @@ contract YieldStrategyManager {
         function suggestAllocations(address user, address vault) external view returns (address[] memory strategies, uint256[] memory allocations) {
         address[] memory prefs = userStrategyPreferences[user][vault];
         address[] memory allStrategies = vaultStrategies[vault];
-        // Filter out blacklisted and non-whitelisted strategies
+        // Filter out blacklisted and non-whitelisted strategies, and calculate net APY
         uint256 maxN = prefs.length > 0 ? prefs.length : allStrategies.length;
         address[] memory tempStrategies = new address[](maxN);
+        int256[] memory netApyScores = new int256[](maxN);
         uint256 n = 0;
         if (prefs.length > 0) {
             for (uint256 i = 0; i < prefs.length; i++) {
                 address s = prefs[i];
                 if (whitelistedStrategies[s] && !blacklistedStrategies[s]) {
                     tempStrategies[n] = s;
+                    // Net APY = APY - total fees (all in basis points)
+                    StrategyMetrics memory m = strategyMetrics[s];
+                    StrategyFeeInfo memory f = strategyFees[s];
+                    int256 netApy = int256(m.apy) - int256(f.baseFeeBps) - int256(f.withdrawalFeeBps) - int256(f.crossChainFeeBps);
+                    netApyScores[n] = netApy;
                     n++;
                 }
             }
@@ -61,7 +88,21 @@ contract YieldStrategyManager {
                 address s = allStrategies[i];
                 if (whitelistedStrategies[s] && !blacklistedStrategies[s]) {
                     tempStrategies[n] = s;
+                    StrategyMetrics memory m = strategyMetrics[s];
+                    StrategyFeeInfo memory f = strategyFees[s];
+                    int256 netApy = int256(m.apy) - int256(f.baseFeeBps) - int256(f.withdrawalFeeBps) - int256(f.crossChainFeeBps);
+                    netApyScores[n] = netApy;
                     n++;
+                }
+            }
+        }
+        // Sort strategies by netApyScores descending (simple selection sort for small n)
+        for (uint256 i = 0; i < n; i++) {
+            for (uint256 j = i + 1; j < n; j++) {
+                if (netApyScores[j] > netApyScores[i]) {
+                    // Swap
+                    (netApyScores[i], netApyScores[j]) = (netApyScores[j], netApyScores[i]);
+                    (tempStrategies[i], tempStrategies[j]) = (tempStrategies[j], tempStrategies[i]);
                 }
             }
         }
