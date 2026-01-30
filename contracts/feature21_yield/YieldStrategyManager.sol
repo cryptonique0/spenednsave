@@ -5,6 +5,17 @@ pragma solidity ^0.8.20;
 /// @notice Manages yield strategies and protocol integrations for SpendVaults
 contract YieldStrategyManager {
 
+    // Multi-chain strategy info
+    struct StrategyInfo {
+        uint256 chainId;
+        address strategyAddress;
+        string name;
+        string metadata; // Optional: JSON or IPFS hash
+    }
+    // strategy => info
+    mapping(address => StrategyInfo) public strategyInfo;
+
+
         /// @notice Suggest allocations for a user and vault, prioritizing user preferences if set
         function suggestAllocations(address user, address vault) external view returns (address[] memory strategies, uint256[] memory allocations) {
             address[] memory prefs = userStrategyPreferences[user][vault];
@@ -69,12 +80,56 @@ contract YieldStrategyManager {
         _;
     }
 
-    /// @notice Register a new yield strategy for a vault
-    function registerStrategy(address vault, address strategy) external onlyGuardian(vault) {
+
+    /// @notice Register a new yield strategy for a vault (with chainId and metadata)
+    function registerStrategy(address vault, address strategy, uint256 chainId, string calldata name, string calldata metadata) external onlyGuardian(vault) {
         require(vaultStrategy[vault] == address(0), "Strategy already registered");
         vaultStrategy[vault] = strategy;
-            vaultStrategies[vault].push(strategy);
+        vaultStrategies[vault].push(strategy);
+        strategyInfo[strategy] = StrategyInfo({
+            chainId: chainId,
+            strategyAddress: strategy,
+            name: name,
+            metadata: metadata
+        });
         emit StrategyRegistered(vault, strategy, block.timestamp);
+    }
+
+    /// @notice Get all strategies for a vault on a specific chain
+    function getVaultStrategiesByChain(address vault, uint256 chainId) external view returns (address[] memory) {
+        address[] memory all = vaultStrategies[vault];
+        uint256 count = 0;
+        for (uint256 i = 0; i < all.length; i++) {
+            if (strategyInfo[all[i]].chainId == chainId) count++;
+        }
+        address[] memory filtered = new address[](count);
+        uint256 idx = 0;
+        for (uint256 i = 0; i < all.length; i++) {
+            if (strategyInfo[all[i]].chainId == chainId) {
+                filtered[idx++] = all[i];
+            }
+        }
+        return filtered;
+    }
+
+    /// @notice Aggregate APY, risk, and returns for all strategies of a vault (optionally by chain)
+    function aggregateVaultAnalytics(address vault, uint256 chainId) external view returns (uint256 avgAPY, uint256 avgRisk, uint256 count) {
+        address[] memory all = vaultStrategies[vault];
+        uint256 sumAPY = 0;
+        uint256 sumRisk = 0;
+        uint256 n = 0;
+        for (uint256 i = 0; i < all.length; i++) {
+            if (chainId == 0 || strategyInfo[all[i]].chainId == chainId) {
+                sumAPY += strategyMetrics[all[i]].apy;
+                sumRisk += strategyMetrics[all[i]].riskScore;
+                n++;
+            }
+        }
+        if (n > 0) {
+            avgAPY = sumAPY / n;
+            avgRisk = sumRisk / n;
+        }
+        count = n;
     }
 
     /// @notice Upgrade the yield strategy for a vault
