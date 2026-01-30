@@ -42,24 +42,37 @@ contract YieldStrategyManager {
 
         /// @notice Suggest allocations for a user and vault, prioritizing user preferences if set
         function suggestAllocations(address user, address vault) external view returns (address[] memory strategies, uint256[] memory allocations) {
-            address[] memory prefs = userStrategyPreferences[user][vault];
-            address[] memory allStrategies = vaultStrategies[vault];
-            uint256 n = prefs.length > 0 ? prefs.length : allStrategies.length;
-            address[] memory resultStrategies = new address[](n);
-            uint256[] memory resultAllocations = new uint256[](n);
-            uint256 allocationPer = n > 0 ? 10000 / n : 0;
-            if (prefs.length > 0) {
-                for (uint256 i = 0; i < n; i++) {
-                    resultStrategies[i] = prefs[i];
-                    resultAllocations[i] = allocationPer;
-                }
-            } else {
-                for (uint256 i = 0; i < n; i++) {
-                    resultStrategies[i] = allStrategies[i];
-                    resultAllocations[i] = allocationPer;
+        address[] memory prefs = userStrategyPreferences[user][vault];
+        address[] memory allStrategies = vaultStrategies[vault];
+        // Filter out blacklisted and non-whitelisted strategies
+        uint256 maxN = prefs.length > 0 ? prefs.length : allStrategies.length;
+        address[] memory tempStrategies = new address[](maxN);
+        uint256 n = 0;
+        if (prefs.length > 0) {
+            for (uint256 i = 0; i < prefs.length; i++) {
+                address s = prefs[i];
+                if (whitelistedStrategies[s] && !blacklistedStrategies[s]) {
+                    tempStrategies[n] = s;
+                    n++;
                 }
             }
-            return (resultStrategies, resultAllocations);
+        } else {
+            for (uint256 i = 0; i < allStrategies.length; i++) {
+                address s = allStrategies[i];
+                if (whitelistedStrategies[s] && !blacklistedStrategies[s]) {
+                    tempStrategies[n] = s;
+                    n++;
+                }
+            }
+        }
+        address[] memory resultStrategies = new address[](n);
+        uint256[] memory resultAllocations = new uint256[](n);
+        uint256 allocationPer = n > 0 ? 10000 / n : 0;
+        for (uint256 i = 0; i < n; i++) {
+            resultStrategies[i] = tempStrategies[i];
+            resultAllocations[i] = allocationPer;
+        }
+        return (resultStrategies, resultAllocations);
         }
     // Events
     event StrategyRegistered(address indexed vault, address indexed strategy, uint256 timestamp);
@@ -108,6 +121,8 @@ contract YieldStrategyManager {
     /// @notice Register a new yield strategy for a vault (with chainId and metadata)
     function registerStrategy(address vault, address strategy, uint256 chainId, string calldata name, string calldata metadata) external onlyGuardian(vault) {
         require(vaultStrategy[vault] == address(0), "Strategy already registered");
+        require(whitelistedStrategies[strategy], "Strategy not whitelisted");
+        require(!blacklistedStrategies[strategy], "Strategy blacklisted");
         vaultStrategy[vault] = strategy;
         vaultStrategies[vault].push(strategy);
         strategyInfo[strategy] = StrategyInfo({
