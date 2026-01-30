@@ -1,3 +1,23 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+interface IGuardianSBT {
+    function balanceOf(address account) external view returns (uint256);
+}
+
+/**
+ * @title SpendVault
+ * @notice Multi-signature treasury vault with guardian-based approvals
+ * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
+ */
+contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+
     /// @notice Get fee-optimized strategy allocations for this vault and user
     function getFeeOptimizedAllocations(address user) public view returns (address[] memory strategies, uint256[] memory allocations) {
         require(yieldStrategyManager != address(0), "Manager not set");
@@ -24,25 +44,6 @@
         count = n;
         return (avgNetApy, avgTotalFeesBps, count);
     }
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-interface IGuardianSBT {
-    function balanceOf(address account) external view returns (uint256);
-}
-
-/**
- * @title SpendVault
- * @notice Multi-signature treasury vault with guardian-based approvals
- * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
- */
-contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     /// @notice Get info for a social yield pool (from manager)
     function getSocialYieldPoolInfo(uint256 poolId) public view returns (
