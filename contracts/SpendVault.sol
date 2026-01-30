@@ -20,6 +20,10 @@ interface IGuardianSBT {
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     // Guardian reputation event: logs every approval action
     event GuardianAction(address indexed guardian, string action, uint256 timestamp, address indexed vault, address indexed recipient, uint256 amount, string reason);
+        // Yield strategy manager integration
+        address public yieldStrategyManager;
+        address public currentYieldStrategy;
+        event YieldStrategyChanged(address indexed oldStrategy, address indexed newStrategy, uint256 timestamp);
 
                 // Internal helper to check withdrawal caps
                 function _checkWithdrawalCaps(address _token, uint256 amount) internal view {
@@ -70,6 +74,33 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     address public guardianToken;
     uint256 public quorum;
     uint256 public nonce;
+        // Set yield strategy manager (owner only)
+        function setYieldStrategyManager(address manager) external onlyOwner {
+            require(manager != address(0), "Invalid manager address");
+            yieldStrategyManager = manager;
+        }
+
+        // Set initial yield strategy (owner only)
+        function setInitialYieldStrategy(address strategy) external onlyOwner {
+            require(strategy != address(0), "Invalid strategy address");
+            currentYieldStrategy = strategy;
+        }
+
+        // Called by YieldStrategyManager to switch strategy
+        function onYieldStrategySwitched(address newStrategy) external {
+            require(msg.sender == yieldStrategyManager, "Only manager can switch");
+            address oldStrategy = currentYieldStrategy;
+            currentYieldStrategy = newStrategy;
+            emit YieldStrategyChanged(oldStrategy, newStrategy, block.timestamp);
+        }
+
+        // Trigger automated strategy switching (owner or guardian)
+        function triggerAutoStrategySwitch() external {
+            require(msg.sender == owner() || IGuardianSBT(guardianToken).balanceOf(msg.sender) > 0, "Not authorized");
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("autoSwitchStrategy(address)", address(this)));
+            require(success, "Strategy switch failed");
+        }
 
     // ============ Policy-Based Withdrawal Rules ============
 
@@ -277,8 +308,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     function getPolicy(uint256 amount) public view returns (WithdrawalPolicy memory) {
         return withdrawalPolicies[getPolicyIndex(amount)];
     }
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
