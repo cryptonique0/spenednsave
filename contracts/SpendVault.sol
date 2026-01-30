@@ -1,3 +1,30 @@
+    /// @notice Get fee-optimized strategy allocations for this vault and user
+    function getFeeOptimizedAllocations(address user) public view returns (address[] memory strategies, uint256[] memory allocations) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("suggestAllocations(address,address)", user, address(this)));
+        require(success, "Suggest allocations failed");
+        return abi.decode(data, (address[], uint256[]));
+    }
+
+    /// @notice Aggregate fee-optimized APY and fees for this vault and user
+    function aggregateFeeOptimizedAnalytics(address user) public view returns (uint256 avgNetApy, uint256 avgTotalFeesBps, uint256 count) {
+        require(yieldStrategyManager != address(0), "Manager not set");
+        (address[] memory strategies, ) = getFeeOptimizedAllocations(user);
+        uint256 n = strategies.length;
+        uint256 sumNetApy = 0;
+        uint256 sumFees = 0;
+        for (uint256 i = 0; i < n; i++) {
+            (uint256 apy, uint256 fees) = getLatestStrategyAnalytics(strategies[i]);
+            sumNetApy += apy;
+            sumFees += fees;
+        }
+        if (n > 0) {
+            avgNetApy = sumNetApy / n;
+            avgTotalFeesBps = sumFees / n;
+        }
+        count = n;
+        return (avgNetApy, avgTotalFeesBps, count);
+    }
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
