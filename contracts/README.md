@@ -197,24 +197,48 @@ This directory contains the Solidity smart contracts for the SpendGuard applicat
 - `getPauseHistory(address vault)`: Get all pause/unpause events
 - `isManagedVault(address vault)`: Check if registered
 
-### 11. SpendVaultWithPausing.sol
-**Purpose**: Vault with temporary pause mechanism for emergency response
+
+### CompliancePlugin.sol (KYC/AML Plugin)
+**Purpose**: Optional KYC/AML compliance module for regulated DAOs or treasuries
 
 **Key Features**:
-- Blocks all withdrawals when paused
-- Allows all deposits regardless of pause state
-- Blocks emergency unlock requests when paused
-- Integrates with shared VaultPausingController
-- Pause status queryable via vault contract
+- Multi-admin/DAO support: multiple admins can manage compliance
+- Admin management: add/remove admins, cannot remove self
+- Admin-only actions: only admins can set compliance status, request/verify KYC
+- Event hooks for external KYC/AML provider integration
+- Compatible with SpendVaultWithCompliance
 
 **Functions**:
-- `isVaultPaused()`: Check if paused
-- `getVaultPauseReason()`: Get pause reason
-- `getVaultPauseTime()`: Get pause start time
-- `getVaultPauseElapsedTime()`: Get pause duration
-- `withdraw(...)`: Reverts with "Vault is paused" if paused
-- `deposit(address token, uint256 amount)`: Works when paused
-- `depositETH()`: Works when paused
+- `addAdmin(address newAdmin)`: Add a new admin
+- `removeAdmin(address adminToRemove)`: Remove an admin (not self)
+- `setComplianceStatus(address account, bool status)`: Set KYC/AML status
+- `requestKYC(address account, string provider)`: Emit event for off-chain KYC
+- `verifyKYC(address account, string provider, bool result)`: Callback for off-chain KYC
+- `checkCompliance(address account)`: Query compliance status
+
+**Events**:
+- `AdminAdded(admin, timestamp)`
+- `AdminRemoved(admin, timestamp)`
+- `ComplianceStatusUpdated(account, status, timestamp)`
+- `KYCRequested(account, provider, timestamp)`
+- `KYCVerified(account, provider, result, timestamp)`
+
+### SpendVaultWithCompliance.sol
+**Purpose**: Vault with on-chain compliance (KYC/AML) integration
+
+**Key Features**:
+- Only compliant owners can withdraw
+- Integrates with CompliancePlugin for compliance checks
+
+**Functions**:
+- `withdraw(address payable to, uint256 amount)`: Withdraw if compliant
+- `deposit()`: Deposit ETH
+
+**Integration Example**:
+1. Admin sets compliance status or requests KYC for an account
+2. Only compliant owners can withdraw from the vault
+
+---
 
 ### 12. VaultFactoryWithPausing.sol
 **Purpose**: Factory for deploying vaults with pause capability
