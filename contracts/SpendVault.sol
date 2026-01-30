@@ -17,6 +17,15 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+            // ============ Emergency Strategy Exit Integration ============
+
+            /// @notice Trigger emergency exit from the current yield strategy via the manager
+            function emergencyStrategyExit(uint256 amount) external {
+                require(msg.sender == owner() || IGuardianSBT(guardianToken).balanceOf(msg.sender) > 0, "Not authorized");
+                require(yieldStrategyManager != address(0), "Manager not set");
+                (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("emergencyWithdraw(address,uint256)", address(this), amount));
+                require(success, "Emergency exit failed");
+            }
     // Guardian reputation event: logs every approval action
     event GuardianAction(address indexed guardian, string action, uint256 timestamp, address indexed vault, address indexed recipient, uint256 amount, string reason);
         // Yield strategy manager integration
