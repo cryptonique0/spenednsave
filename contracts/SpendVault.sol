@@ -43,6 +43,30 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
                         require(usedMonthly + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
                     }
                 }
+        // ============ Risk-Adjusted Yield Allocation Integration ============
+
+        // Set user risk profile in YieldStrategyManager
+        function setUserRiskProfile(uint8 profile) external {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("setUserRiskProfile(uint8)", profile));
+            require(success, "Set risk profile failed");
+        }
+
+        // Get vault allocation for a strategy (basis points, 0-10000)
+        function getVaultStrategyAllocation(address strategy) public view returns (uint256) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("vaultStrategyAllocation(address,address)", address(this), strategy));
+            require(success, "Get allocation failed");
+            return abi.decode(data, (uint256));
+        }
+
+        // Suggest allocations for this vault and user
+        function suggestAllocations(address user) public view returns (address[] memory strategies, uint256[] memory allocations) {
+            require(yieldStrategyManager != address(0), "Manager not set");
+            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("suggestAllocations(address,address)", user, address(this)));
+            require(success, "Suggest allocations failed");
+            return abi.decode(data, (address[], uint256[]));
+        }
 
                 // Internal helper to update withdrawal counters
                 function _updateWithdrawalCounters(address _token, uint256 amount) internal {
