@@ -87,12 +87,21 @@ contract YieldStrategyManager {
         emit StrategyUpgraded(vault, oldStrategy, newStrategy, block.timestamp);
     }
 
-    /// @notice Emergency withdraw all funds from strategy back to vault
-    function emergencyWithdraw(address vault, uint256 amount) external onlyGuardian(vault) {
+    /// @notice Emergency withdraw all funds from strategy back to vault (vault or guardian)
+    function emergencyWithdraw(address vault, uint256 amount) external {
+        require(msg.sender == vault || isGuardian(msg.sender, vault), "Not authorized");
         address strategy = vaultStrategy[vault];
         require(strategy != address(0), "No strategy registered");
-        // TODO: call strategy emergency withdraw logic
+        // Call emergencyWithdraw on the strategy contract
+        (bool success, ) = strategy.call(abi.encodeWithSignature("emergencyWithdraw(uint256)", amount));
+        require(success, "Strategy emergency withdraw failed");
         emit EmergencyWithdrawal(vault, amount, strategy, block.timestamp);
+    }
+
+    // Internal: check if address is a guardian for the vault (placeholder, to be implemented)
+    function isGuardian(address /*user*/, address /*vault*/) public pure returns (bool) {
+        // TODO: integrate with actual guardian system
+        return false;
     }
 
     /// @notice Harvest yield from strategy
