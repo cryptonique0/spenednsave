@@ -309,35 +309,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         return withdrawalPolicies[getPolicyIndex(amount)];
     }
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-interface IGuardianSBT {
-    function balanceOf(address account) external view returns (uint256);
-}
-
-/**
- * @title SpendVault
- * @notice Multi-signature treasury vault with guardian-based approvals
- * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
- */
-contract SpendVault is Ownable, EIP712, ReentrancyGuard {
-                    // ============ Vault Transfer ============
-                    struct TransferRequest {
-                        address newOwner;
-                        address[] approvals;
-                        bool executed;
-                        uint256 createdAt;
-                    }
-                    mapping(uint256 => TransferRequest) public transferRequests;
-                    uint256 public transferRequestCount;
-
-                    event TransferRequested(uint256 indexed id, address indexed newOwner, uint256 createdAt);
-                    event TransferApproved(uint256 indexed id, address indexed guardian);
-                    event TransferExecuted(uint256 indexed id, address indexed oldOwner, address indexed newOwner);
 
                     /**
                      * @notice Request transfer of vault ownership (owner only, requires guardian approval)
