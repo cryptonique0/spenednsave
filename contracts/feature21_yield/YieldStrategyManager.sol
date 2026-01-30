@@ -5,6 +5,18 @@ pragma solidity ^0.8.20;
 /// @notice Manages yield strategies and protocol integrations for SpendVaults
 contract YieldStrategyManager {
 
+    /// @notice Whitelist a strategy (governance only)
+    function setStrategyWhitelisted(address strategy, bool whitelisted) external onlyGovernance {
+        whitelistedStrategies[strategy] = whitelisted;
+        emit StrategyWhitelisted(strategy, whitelisted, block.timestamp);
+    }
+
+    /// @notice Blacklist a strategy (governance only)
+    function setStrategyBlacklisted(address strategy, bool blacklisted) external onlyGovernance {
+        blacklistedStrategies[strategy] = blacklisted;
+        emit StrategyBlacklisted(strategy, blacklisted, block.timestamp);
+    }
+
     // Whitelist/blacklist storage
     mapping(address => bool) public whitelistedStrategies;
     mapping(address => bool) public blacklistedStrategies;
