@@ -5,6 +5,18 @@ pragma solidity ^0.8.20;
 /// @notice Manages yield strategies and protocol integrations for SpendVaults
 contract YieldStrategyManager {
 
+    // Whitelist/blacklist storage
+    mapping(address => bool) public whitelistedStrategies;
+    mapping(address => bool) public blacklistedStrategies;
+    event StrategyWhitelisted(address indexed strategy, bool whitelisted, uint256 timestamp);
+    event StrategyBlacklisted(address indexed strategy, bool blacklisted, uint256 timestamp);
+
+    // Governance-only modifier (placeholder)
+    modifier onlyGovernance() {
+        // TODO: integrate with actual governance
+        _;
+    }
+
     // Multi-chain strategy info
     struct StrategyInfo {
         uint256 chainId;
