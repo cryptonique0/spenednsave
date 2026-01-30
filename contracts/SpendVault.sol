@@ -4,7 +4,6 @@
         (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("suggestAllocations(address,address)", user, address(this)));
         require(success, "Suggest allocations failed");
         return abi.decode(data, (address[], uint256[]));
-    }
 
     /// @notice Aggregate fee-optimized APY and fees for this vault and user
     function aggregateFeeOptimizedAnalytics(address user) public view returns (uint256 avgNetApy, uint256 avgTotalFeesBps, uint256 count) {
