@@ -17,6 +17,24 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+
+                    // ============ Multi-Chain Yield Aggregation Integration ============
+
+                    /// @notice Get all strategies for this vault on a specific chain
+                    function getVaultStrategiesByChain(uint256 chainId) public view returns (address[] memory) {
+                        require(yieldStrategyManager != address(0), "Manager not set");
+                        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getVaultStrategiesByChain(address,uint256)", address(this), chainId));
+                        require(success, "Get strategies by chain failed");
+                        return abi.decode(data, (address[]));
+                    }
+
+                    /// @notice Aggregate APY, risk, and count for all strategies (optionally by chain, chainId=0 for all)
+                    function aggregateVaultAnalytics(uint256 chainId) public view returns (uint256 avgAPY, uint256 avgRisk, uint256 count) {
+                        require(yieldStrategyManager != address(0), "Manager not set");
+                        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("aggregateVaultAnalytics(address,uint256)", address(this), chainId));
+                        require(success, "Aggregate analytics failed");
+                        return abi.decode(data, (uint256, uint256, uint256));
+                    }
             // ============ Emergency Strategy Exit Integration ============
 
             /// @notice Trigger emergency exit from the current yield strategy via the manager
