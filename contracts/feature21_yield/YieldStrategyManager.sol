@@ -5,6 +5,162 @@ pragma solidity ^0.8.20;
 /// @notice Manages yield strategies and protocol integrations for SpendVaults
 contract YieldStrategyManager {
 
+    /// @notice Get info for a social yield pool
+    function getSocialYieldPoolInfo(uint256 poolId) external view returns (
+        string memory name,
+        address creator,
+        address[] memory members,
+        uint256 totalPooled,
+        address[] memory strategies,
+        uint256 createdAt
+    ) {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        name = pool.name;
+        creator = pool.creator;
+        members = pool.members;
+        totalPooled = pool.totalPooled;
+        strategies = pool.strategies;
+        createdAt = pool.createdAt;
+    }
+
+    /// @notice Get a member's share in a pool
+    function getSocialYieldPoolMemberShare(uint256 poolId, address user) external view returns (uint256) {
+        return socialYieldPools[poolId].memberShares[user];
+    }
+
+    /// @notice Get strategies a pool participates in
+    function getSocialYieldPoolStrategies(uint256 poolId) external view returns (address[] memory) {
+        return socialYieldPools[poolId].strategies;
+    }
+
+    /// @notice Get total pooled in a pool
+    function getSocialYieldPoolTotalPooled(uint256 poolId) external view returns (uint256) {
+        return socialYieldPools[poolId].totalPooled;
+    }
+
+    /// @notice Deposit funds to a social yield pool (tracks shares, does not move tokens)
+    function depositToSocialYieldPool(uint256 poolId, uint256 amount) external {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        require(pool.isMember[msg.sender], "Not a member");
+        pool.totalPooled += amount;
+        pool.memberShares[msg.sender] += amount;
+        emit SocialYieldPoolDeposit(poolId, msg.sender, amount, block.timestamp);
+    }
+
+    /// @notice Withdraw funds from a social yield pool (tracks shares, does not move tokens)
+    function withdrawFromSocialYieldPool(uint256 poolId, uint256 amount) external {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        require(pool.isMember[msg.sender], "Not a member");
+        require(pool.memberShares[msg.sender] >= amount, "Insufficient share");
+        pool.totalPooled -= amount;
+        pool.memberShares[msg.sender] -= amount;
+        emit SocialYieldPoolWithdraw(poolId, msg.sender, amount, block.timestamp);
+    }
+
+    /// @notice Pool participates in a yield strategy (adds strategy to pool)
+    function poolParticipateInStrategy(uint256 poolId, address strategy) external {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        require(pool.creator == msg.sender, "Only creator");
+        pool.strategies.push(strategy);
+    }
+
+    /// @notice Distribute yield to pool members (stub, to be called after yield is realized)
+    function distributePoolYield(uint256 poolId, uint256 /*totalYield*/) external view {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        uint256 n = pool.members.length;
+        for (uint256 i = 0; i < n; i++) {
+            address member = pool.members[i];
+            uint256 share = pool.memberShares[member];
+            if (pool.totalPooled > 0 && share > 0) {
+                // In a real implementation, transfer (totalYield * share / totalPooled) to member
+                // Here, just a placeholder for off-chain or vault-side distribution
+            }
+        }
+    }
+
+    // ============ Social Yield Pools Logic ============
+    /// @notice Create a new social yield pool
+    function createSocialYieldPool(string calldata name) external returns (uint256 poolId) {
+        poolId = nextPoolId++;
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        pool.name = name;
+        pool.creator = msg.sender;
+        pool.createdAt = block.timestamp;
+        pool.members.push(msg.sender);
+        pool.isMember[msg.sender] = true;
+        userPools[msg.sender].push(poolId);
+        emit SocialYieldPoolCreated(poolId, name, msg.sender, block.timestamp);
+    }
+
+    /// @notice Join an existing social yield pool
+    function joinSocialYieldPool(uint256 poolId) external {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        require(!pool.isMember[msg.sender], "Already a member");
+        pool.members.push(msg.sender);
+        pool.isMember[msg.sender] = true;
+        userPools[msg.sender].push(poolId);
+        emit SocialYieldPoolJoined(poolId, msg.sender, block.timestamp);
+    }
+
+    /// @notice Leave a social yield pool
+    function leaveSocialYieldPool(uint256 poolId) external {
+        SocialYieldPool storage pool = socialYieldPools[poolId];
+        require(pool.isMember[msg.sender], "Not a member");
+        pool.isMember[msg.sender] = false;
+        // Remove from members array (swap and pop)
+        uint256 len = pool.members.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (pool.members[i] == msg.sender) {
+                pool.members[i] = pool.members[len - 1];
+                pool.members.pop();
+                break;
+            }
+        }
+        // Remove from userPools
+        uint256[] storage pools = userPools[msg.sender];
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i] == poolId) {
+                pools[i] = pools[pools.length - 1];
+                pools.pop();
+                break;
+            }
+        }
+        emit SocialYieldPoolLeft(poolId, msg.sender, block.timestamp);
+    }
+
+    /// @notice Get members of a pool
+    function getSocialYieldPoolMembers(uint256 poolId) external view returns (address[] memory) {
+        return socialYieldPools[poolId].members;
+    }
+
+    /// @notice Get pools for a user
+    function getUserSocialYieldPools(address user) external view returns (uint256[] memory) {
+        return userPools[user];
+    }
+
+    // ============ Social Yield Pools ============
+    struct SocialYieldPool {
+        string name;
+        address creator;
+        address[] members;
+        mapping(address => bool) isMember;
+        uint256 totalPooled;
+        mapping(address => uint256) memberShares; // user => share
+        address[] strategies; // strategies this pool participates in
+        uint256 createdAt;
+    }
+    // Pool id counter
+    uint256 public nextPoolId;
+    // Pool id => pool
+    mapping(uint256 => SocialYieldPool) public socialYieldPools;
+    // User => pool ids
+    mapping(address => uint256[]) public userPools;
+    event SocialYieldPoolCreated(uint256 indexed poolId, string name, address indexed creator, uint256 timestamp);
+    event SocialYieldPoolJoined(uint256 indexed poolId, address indexed user, uint256 timestamp);
+    event SocialYieldPoolLeft(uint256 indexed poolId, address indexed user, uint256 timestamp);
+    event SocialYieldPoolDeposit(uint256 indexed poolId, address indexed user, uint256 amount, uint256 timestamp);
+    event SocialYieldPoolWithdraw(uint256 indexed poolId, address indexed user, uint256 amount, uint256 timestamp);
+
     // Fee tracking per strategy (basis points, 0-10000)
     struct StrategyFeeInfo {
         uint256 baseFeeBps; // e.g. protocol fee
