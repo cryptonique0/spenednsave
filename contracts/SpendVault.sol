@@ -46,7 +46,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         uint256 sumNetApy = 0;
         uint256 sumFees = 0;
         for (uint256 i = 0; i < n; i++) {
-            (uint256 apy, uint256 fees) = getLatestStrategyAnalytics(strategies[i]);
+            (uint256 apy, uint256 fees,,) = getLatestStrategyAnalytics(strategies[i]);
             sumNetApy += apy;
             sumFees += fees;
         }
@@ -512,30 +512,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
      * @param amount Amount to withdraw
      * @return status SpendingLimitStatus struct with current usage and violations
      */
-    function checkSpendingLimitStatus(address token, uint256 amount) 
-        external 
-        view 
-        returns (SpendingLimitStatus memory status) 
-    {
-        WithdrawalCap memory cap = withdrawalCaps[token];
-        uint256 dayIndex = block.timestamp / 1 days;
-        uint256 weekIndex = block.timestamp / 1 weeks;
-        uint256 monthIndex = block.timestamp / 30 days;
-
-        status.dailyUsed = withdrawnDaily[token][dayIndex];
-        status.weeklyUsed = withdrawnWeekly[token][weekIndex];
-        status.monthlyUsed = withdrawnMonthly[token][monthIndex];
-
-        if (cap.daily > 0) {
-            status.exceedsDaily = (status.dailyUsed + amount > cap.daily);
-        }
-        if (cap.weekly > 0) {
-            status.exceedsWeekly = (status.weeklyUsed + amount > cap.weekly);
-        }
-        if (cap.monthly > 0) {
-            status.exceedsMonthly = (status.monthlyUsed + amount > cap.monthly);
-        }
-    }
 
     /**
      * @notice Get total guardian count for this vault
@@ -847,7 +823,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
             GuardianRotation storage rotation = guardianRotations[inactiveGuardian];
             require(rotation.proposalTime > 0 && !rotation.completed, "No active proposal");
             // Count active guardians (excluding inactive)
-            uint256 activeCount = 0;
             // This assumes a way to enumerate all guardians; for now, require at least quorum-1 approvals
             if (rotation.approvals.length >= quorum - 1 || block.timestamp > rotation.proposalTime + ROTATION_DELAY) {
                 // Prevent reducing below quorum
