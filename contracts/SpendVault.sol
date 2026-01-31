@@ -17,6 +17,18 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
+            event TransferRequested(uint256 indexed id, address indexed newOwner, uint256 timestamp);
+            event TransferApproved(uint256 indexed id, address indexed guardian);
+            event TransferExecuted(uint256 indexed id, address indexed oldOwner, address indexed newOwner);
+        uint256 public transferRequestCount;
+        struct TransferRequest {
+            address newOwner;
+            bool executed;
+            uint256 createdAt;
+            address[] approvals;
+        }
+        mapping(uint256 => TransferRequest) public transferRequests;
+    address[] public guardians;
 
     /// @notice Get fee-optimized strategy allocations for this vault and user
     function getFeeOptimizedAllocations(address user) public view returns (address[] memory strategies, uint256[] memory allocations) {
@@ -48,7 +60,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     /// @notice Get info for a social yield pool (from manager)
     function getSocialYieldPoolInfo(uint256 poolId) public view returns (
-        string memory name,
+        string memory poolName,
         address creator,
         address[] memory members,
         uint256 totalPooled,
@@ -117,12 +129,12 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
 
     // ============ Social Yield Pools Logic ============
     /// @notice Create a new social yield pool (calls manager)
-    function createSocialYieldPool(string calldata name) external returns (uint256 poolId) {
+    function createSocialYieldPool(string calldata poolName) external returns (uint256 poolId) {
         require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.call(abi.encodeWithSignature("createSocialYieldPool(string)", name));
+        (bool success, bytes memory data) = yieldStrategyManager.call(abi.encodeWithSignature("createSocialYieldPool(string)", poolName));
         require(success, "Create pool failed");
         poolId = abi.decode(data, (uint256));
-        emit SocialYieldPoolCreated(poolId, name, msg.sender, block.timestamp);
+        emit SocialYieldPoolCreated(poolId, poolName, msg.sender, block.timestamp);
     }
 
     /// @notice Join a social yield pool (calls manager)
@@ -995,7 +1007,37 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         emit Deposited(token, msg.sender, amount);
     }
 
-    // ============ Withdrawal Functions ============
+
+    /**
+     * @notice Check current spending status against limits
+     * @param token Token address (address(0) for ETH)
+     * @param amount Amount to withdraw
+     * @return status SpendingLimitStatus struct with current usage and violations
+     */
+    function checkSpendingLimitStatus(address token, uint256 amount) 
+        public 
+        view 
+        returns (SpendingLimitStatus memory status) 
+    {
+        WithdrawalCap memory cap = withdrawalCaps[token];
+        uint256 dayIndex = block.timestamp / 1 days;
+        uint256 weekIndex = block.timestamp / 1 weeks;
+        uint256 monthIndex = block.timestamp / 30 days;
+
+        status.dailyUsed = withdrawnDaily[token][dayIndex];
+        status.weeklyUsed = withdrawnWeekly[token][weekIndex];
+        status.monthlyUsed = withdrawnMonthly[token][monthIndex];
+
+        if (cap.daily > 0) {
+            status.exceedsDaily = (status.dailyUsed + amount > cap.daily);
+        }
+        if (cap.weekly > 0) {
+            status.exceedsWeekly = (status.weeklyUsed + amount > cap.weekly);
+        }
+        if (cap.monthly > 0) {
+            status.exceedsMonthly = (status.monthlyUsed + amount > cap.monthly);
+        }
+    }
 
     /**
      * @notice Withdraw funds with guardian signatures
@@ -1185,7 +1227,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
             emit WithdrawalQueued(withdrawalId, token, amount, recipient, readyAt);
         } else {
             // Small withdrawals execute immediately
-            withdraw(token, amount, recipient, reason, category, block.timestamp, signatures);
+            this.withdraw(token, amount, recipient, reason, category, block.timestamp, signatures);
         }
     }
 
@@ -1343,10 +1385,10 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         QueuedWithdrawal storage queued = queuedWithdrawals[withdrawalId];
         
         // Count how many guardians have frozen this
-        uint256 freezeCount = 0;
+        uint256 frozenCount = 0;
         for (uint256 i = 0; i < queued.signers.length; i++) {
             if (frozenBy[withdrawalId][queued.signers[i]]) {
-                freezeCount++;
+                frozenCount++;
             }
         }
 
