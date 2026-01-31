@@ -24,6 +24,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
         (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("suggestAllocations(address,address)", user, address(this)));
         require(success, "Suggest allocations failed");
         return abi.decode(data, (address[], uint256[]));
+    }
 
     /// @notice Aggregate fee-optimized APY and fees for this vault and user
     function aggregateFeeOptimizedAnalytics(address user) public view returns (uint256 avgNetApy, uint256 avgTotalFeesBps, uint256 count) {
@@ -334,9 +335,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     using ECDSA for bytes32;
 
     // State variables
-    address public guardianToken;
-    uint256 public quorum;
-    uint256 public nonce;
         // Set yield strategy manager (owner only)
         function setYieldStrategyManager(address manager) external onlyOwner {
             require(manager != address(0), "Invalid manager address");
@@ -955,7 +953,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     function setWeightedQuorum(bool enabled, uint256 threshold) external onlyOwner {
         weightedQuorumEnabled = enabled;
         weightedQuorumThreshold = threshold;
-    }
     }
 
     /**
