@@ -48,6 +48,7 @@ SpendGuard is a smart contract system that enables secure fund management throug
 - **GovDao Governance** → [GOVDAO_DOCUMENTATION.md](GOVDAO_DOCUMENTATION.md)
 - **Spending Analytics & Dashboard** → [SPENDING_ANALYTICS_DOCUMENTATION.md](SPENDING_ANALYTICS_DOCUMENTATION.md)
 - Recovery System → [PHASE_11_COMPLETION_SUMMARY.md](PHASE_11_COMPLETION_SUMMARY.md)
+- **Social Yield Pools** → [SOCIAL_YIELD_POOLS.md](SOCIAL_YIELD_POOLS.md)
 
 ---
 

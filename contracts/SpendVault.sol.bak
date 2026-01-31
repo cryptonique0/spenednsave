@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -17,253 +18,12 @@ interface IGuardianSBT {
  * @dev Uses EIP-712 for signature verification and soulbound tokens for guardian verification
  */
 contract SpendVault is Ownable, EIP712, ReentrancyGuard {
-
-    /// @notice Get fee-optimized strategy allocations for this vault and user
-    function getFeeOptimizedAllocations(address user) public view returns (address[] memory strategies, uint256[] memory allocations) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("suggestAllocations(address,address)", user, address(this)));
-        require(success, "Suggest allocations failed");
-        return abi.decode(data, (address[], uint256[]));
-    }
-
-    /// @notice Aggregate fee-optimized APY and fees for this vault and user
-    function aggregateFeeOptimizedAnalytics(address user) public view returns (uint256 avgNetApy, uint256 avgTotalFeesBps, uint256 count) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (address[] memory strategies, ) = getFeeOptimizedAllocations(user);
-        uint256 n = strategies.length;
-        uint256 sumNetApy = 0;
-        uint256 sumFees = 0;
-        for (uint256 i = 0; i < n; i++) {
-            (uint256 apy, uint256 fees) = getLatestStrategyAnalytics(strategies[i]);
-            sumNetApy += apy;
-            sumFees += fees;
-        }
-        if (n > 0) {
-            avgNetApy = sumNetApy / n;
-            avgTotalFeesBps = sumFees / n;
-        }
-        count = n;
-        return (avgNetApy, avgTotalFeesBps, count);
-    }
-
-    /// @notice Get info for a social yield pool (from manager)
-    function getSocialYieldPoolInfo(uint256 poolId) public view returns (
-        string memory name,
-        address creator,
-        address[] memory members,
-        uint256 totalPooled,
-        address[] memory strategies,
-        uint256 createdAt
-    ) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolInfo(uint256)", poolId));
-        require(success, "Get pool info failed");
-        return abi.decode(data, (string, address, address[], uint256, address[], uint256));
-    }
-
-    /// @notice Get a member's share in a pool (from manager)
-    function getSocialYieldPoolMemberShare(uint256 poolId, address user) public view returns (uint256) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolMemberShare(uint256,address)", poolId, user));
-        require(success, "Get member share failed");
-        return abi.decode(data, (uint256));
-    }
-
-    /// @notice Get strategies a pool participates in (from manager)
-    function getSocialYieldPoolStrategies(uint256 poolId) public view returns (address[] memory) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolStrategies(uint256)", poolId));
-        require(success, "Get pool strategies failed");
-        return abi.decode(data, (address[]));
-    }
-
-    /// @notice Get total pooled in a pool (from manager)
-    function getSocialYieldPoolTotalPooled(uint256 poolId) public view returns (uint256) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolTotalPooled(uint256)", poolId));
-        require(success, "Get pool total pooled failed");
-        return abi.decode(data, (uint256));
-    }
-
-    /// @notice Deposit funds to a social yield pool (calls manager, does not move tokens)
-    function depositToSocialYieldPool(uint256 poolId, uint256 amount) external {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("depositToSocialYieldPool(uint256,uint256)", poolId, amount));
-        require(success, "Deposit to pool failed");
-        emit SocialYieldPoolDeposit(poolId, msg.sender, amount, block.timestamp);
-    }
-
-    /// @notice Withdraw funds from a social yield pool (calls manager, does not move tokens)
-    function withdrawFromSocialYieldPool(uint256 poolId, uint256 amount) external {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("withdrawFromSocialYieldPool(uint256,uint256)", poolId, amount));
-        require(success, "Withdraw from pool failed");
-        emit SocialYieldPoolWithdraw(poolId, msg.sender, amount, block.timestamp);
-    }
-
-    /// @notice Pool participates in a yield strategy (calls manager)
-    function poolParticipateInStrategy(uint256 poolId, address strategy) external {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("poolParticipateInStrategy(uint256,address)", poolId, strategy));
-        require(success, "Pool participate failed");
-    }
-
-    /// @notice Distribute yield to pool members (calls manager, stub)
-    function distributePoolYield(uint256 poolId, uint256 totalYield) external view {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, ) = yieldStrategyManager.staticcall(abi.encodeWithSignature("distributePoolYield(uint256,uint256)", poolId, totalYield));
-        require(success, "Distribute pool yield failed");
-    }
-
-    // ============ Social Yield Pools Logic ============
-    /// @notice Create a new social yield pool (calls manager)
-    function createSocialYieldPool(string calldata name) external returns (uint256 poolId) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.call(abi.encodeWithSignature("createSocialYieldPool(string)", name));
-        require(success, "Create pool failed");
-        poolId = abi.decode(data, (uint256));
-        emit SocialYieldPoolCreated(poolId, name, msg.sender, block.timestamp);
-    }
-
-    /// @notice Join a social yield pool (calls manager)
-    function joinSocialYieldPool(uint256 poolId) external {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("joinSocialYieldPool(uint256)", poolId));
-        require(success, "Join pool failed");
-        emit SocialYieldPoolJoined(poolId, msg.sender, block.timestamp);
-    }
-
-    /// @notice Leave a social yield pool (calls manager)
-    function leaveSocialYieldPool(uint256 poolId) external {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("leaveSocialYieldPool(uint256)", poolId));
-        require(success, "Leave pool failed");
-        emit SocialYieldPoolLeft(poolId, msg.sender, block.timestamp);
-    }
-
-    /// @notice Get members of a pool (from manager)
-    function getSocialYieldPoolMembers(uint256 poolId) public view returns (address[] memory) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getSocialYieldPoolMembers(uint256)", poolId));
-        require(success, "Get pool members failed");
-        return abi.decode(data, (address[]));
-    }
-
-    /// @notice Get pools for a user (from manager)
-    function getUserSocialYieldPools(address user) public view returns (uint256[] memory) {
-        require(yieldStrategyManager != address(0), "Manager not set");
-        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getUserSocialYieldPools(address)", user));
-        require(success, "Get user pools failed");
-        return abi.decode(data, (uint256[]));
-    }
-
-    // ============ Social Yield Pools ============
-    struct SocialYieldPoolInfo {
-        uint256 poolId;
-        string name;
-        address creator;
-        address[] members;
-        uint256 totalPooled;
-        mapping(address => uint256) memberShares;
-        address[] strategies;
-        uint256 createdAt;
-    }
-    // Pool id => info (mirrors manager, for vault-side tracking)
-    mapping(uint256 => SocialYieldPoolInfo) public socialYieldPools;
-    // User => pool ids
-    mapping(address => uint256[]) public userPools;
-    // Pool id => vault (for reverse lookup)
-    mapping(uint256 => address) public poolVault;
-    event SocialYieldPoolCreated(uint256 indexed poolId, string name, address indexed creator, uint256 timestamp);
-    event SocialYieldPoolJoined(uint256 indexed poolId, address indexed user, uint256 timestamp);
-    event SocialYieldPoolLeft(uint256 indexed poolId, address indexed user, uint256 timestamp);
-    event SocialYieldPoolDeposit(uint256 indexed poolId, address indexed user, uint256 amount, uint256 timestamp);
-    event SocialYieldPoolWithdraw(uint256 indexed poolId, address indexed user, uint256 amount, uint256 timestamp);
-
-        // ============ Strategy Whitelist/Blacklist Integration ============
-
-        /// @notice Check if a strategy is whitelisted in the manager
-        function isStrategyWhitelisted(address strategy) public view returns (bool) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("whitelistedStrategies(address)", strategy));
-            require(success, "Query failed");
-            return abi.decode(data, (bool));
-        }
-
-        /// @notice Check if a strategy is blacklisted in the manager
-        function isStrategyBlacklisted(address strategy) public view returns (bool) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("blacklistedStrategies(address)", strategy));
-            require(success, "Query failed");
-            return abi.decode(data, (bool));
-        }
-
-                    // ============ Multi-Chain Yield Aggregation Integration ============
-
-                    /// @notice Get all strategies for this vault on a specific chain
-                    function getVaultStrategiesByChain(uint256 chainId) public view returns (address[] memory) {
-                        require(yieldStrategyManager != address(0), "Manager not set");
-                        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getVaultStrategiesByChain(address,uint256)", address(this), chainId));
-                        require(success, "Get strategies by chain failed");
-                        return abi.decode(data, (address[]));
-                    }
-
-                    /// @notice Aggregate APY, risk, and count for all strategies (optionally by chain, chainId=0 for all)
-                    function aggregateVaultAnalytics(uint256 chainId) public view returns (uint256 avgAPY, uint256 avgRisk, uint256 count) {
-                        require(yieldStrategyManager != address(0), "Manager not set");
-                        (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("aggregateVaultAnalytics(address,uint256)", address(this), chainId));
-                        require(success, "Aggregate analytics failed");
-                        return abi.decode(data, (uint256, uint256, uint256));
-                    }
-            // ============ Emergency Strategy Exit Integration ============
-
-            /// @notice Trigger emergency exit from the current yield strategy via the manager
-            function emergencyStrategyExit(uint256 amount) external {
-                require(msg.sender == owner() || IGuardianSBT(guardianToken).balanceOf(msg.sender) > 0, "Not authorized");
-                require(yieldStrategyManager != address(0), "Manager not set");
-                (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("emergencyWithdraw(address,uint256)", address(this), amount));
-                require(success, "Emergency exit failed");
-            }
     // Guardian reputation event: logs every approval action
     event GuardianAction(address indexed guardian, string action, uint256 timestamp, address indexed vault, address indexed recipient, uint256 amount, string reason);
         // Yield strategy manager integration
         address public yieldStrategyManager;
         address public currentYieldStrategy;
         event YieldStrategyChanged(address indexed oldStrategy, address indexed newStrategy, uint256 timestamp);
-        // ============ Strategy Analytics Integration ============
-
-        // ============ User Strategy Preferences Integration ============
-
-        /// @notice Set user strategy preferences (ordered list) in YieldStrategyManager
-        function setUserStrategyPreferences(address[] calldata strategies) external {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("setUserStrategyPreferences(address,address[])", address(this), strategies));
-            require(success, "Set preferences failed");
-        }
-
-        /// @notice Get user strategy preferences for this vault from YieldStrategyManager
-        function getUserStrategyPreferences(address user) public view returns (address[] memory) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getUserStrategyPreferences(address,address)", user, address(this)));
-            require(success, "Get preferences failed");
-            return abi.decode(data, (address[]));
-        }
-
-        // Get latest analytics for a strategy from YieldStrategyManager
-        function getLatestStrategyAnalytics(address strategy) public view returns (uint256 apy, uint256 riskScore, uint256 returnsAmount, uint256 timestamp) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getLatestStrategyAnalytics(address)", strategy));
-            require(success, "Get analytics failed");
-            return abi.decode(data, (uint256, uint256, uint256, uint256));
-        }
-
-        // Get historical analytics for a strategy (last N snapshots)
-        function getStrategyAnalyticsHistory(address strategy, uint256 n) public view returns (bytes memory) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("getStrategyAnalyticsHistory(address,uint256)", strategy, n));
-            require(success, "Get analytics history failed");
-            return data;
-        }
 
                 // Internal helper to check withdrawal caps
                 function _checkWithdrawalCaps(address _token, uint256 amount) internal view {
@@ -284,30 +44,6 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
                         require(usedMonthly + amount <= cap.monthly, "Monthly withdrawal cap exceeded");
                     }
                 }
-        // ============ Risk-Adjusted Yield Allocation Integration ============
-
-        // Set user risk profile in YieldStrategyManager
-        function setUserRiskProfile(uint8 profile) external {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, ) = yieldStrategyManager.call(abi.encodeWithSignature("setUserRiskProfile(uint8)", profile));
-            require(success, "Set risk profile failed");
-        }
-
-        // Get vault allocation for a strategy (basis points, 0-10000)
-        function getVaultStrategyAllocation(address strategy) public view returns (uint256) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("vaultStrategyAllocation(address,address)", address(this), strategy));
-            require(success, "Get allocation failed");
-            return abi.decode(data, (uint256));
-        }
-
-        // Suggest allocations for this vault and user
-        function suggestAllocations(address user) public view returns (address[] memory strategies, uint256[] memory allocations) {
-            require(yieldStrategyManager != address(0), "Manager not set");
-            (bool success, bytes memory data) = yieldStrategyManager.staticcall(abi.encodeWithSignature("suggestAllocations(address,address)", user, address(this)));
-            require(success, "Suggest allocations failed");
-            return abi.decode(data, (address[], uint256[]));
-        }
 
                 // Internal helper to update withdrawal counters
                 function _updateWithdrawalCounters(address _token, uint256 amount) internal {
@@ -335,6 +71,9 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     using ECDSA for bytes32;
 
     // State variables
+    address public guardianToken;
+    uint256 public quorum;
+    uint256 public nonce;
         // Set yield strategy manager (owner only)
         function setYieldStrategyManager(address manager) external onlyOwner {
             require(manager != address(0), "Invalid manager address");
@@ -953,6 +692,7 @@ contract SpendVault is Ownable, EIP712, ReentrancyGuard {
     function setWeightedQuorum(bool enabled, uint256 threshold) external onlyOwner {
         weightedQuorumEnabled = enabled;
         weightedQuorumThreshold = threshold;
+    }
     }
 
     /**
